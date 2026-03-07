@@ -1,0 +1,2 @@
+cn.liboshuai.pulsix.framework.tracer.config.PulsixTracerAutoConfiguration
+cn.liboshuai.pulsix.framework.tracer.config.PulsixMetricsAutoConfiguration
