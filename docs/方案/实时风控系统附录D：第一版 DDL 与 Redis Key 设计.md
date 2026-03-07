@@ -553,7 +553,7 @@ Redis 在这套系统里主要承担：
 命名建议遵循：
 
 ```latex
-rdp:{domain}:{type}:{scene}:{bizKey}
+pulsix:{domain}:{type}:{scene}:{bizKey}
 ```
 
 这样做的好处是：
@@ -569,7 +569,7 @@ rdp:{domain}:{type}:{scene}:{bizKey}
 ### 设备黑名单
 
 ```latex
-rdp:list:black:device:{deviceId}
+pulsix:list:black:device:{deviceId}
 ```
 
 值可以是：
@@ -580,7 +580,7 @@ rdp:list:black:device:{deviceId}
 #### 示例
 
 ```latex
-rdp:list:black:device:D9001 -> 1
+pulsix:list:black:device:D9001 -> 1
 ```
 
 ---
@@ -588,13 +588,13 @@ rdp:list:black:device:D9001 -> 1
 ### IP 黑名单
 
 ```latex
-rdp:list:black:ip:{ip}
+pulsix:list:black:ip:{ip}
 ```
 
 #### 示例
 
 ```latex
-rdp:list:black:ip:1.2.3.4 -> 1
+pulsix:list:black:ip:1.2.3.4 -> 1
 ```
 
 ---
@@ -602,7 +602,7 @@ rdp:list:black:ip:1.2.3.4 -> 1
 ### 用户白名单
 
 ```latex
-rdp:list:white:user:{userId}
+pulsix:list:white:user:{userId}
 ```
 
 ---
@@ -612,7 +612,7 @@ rdp:list:white:user:{userId}
 也可以用 Hash：
 
 ```latex
-rdp:list:black:device:{deviceId}
+pulsix:list:black:device:{deviceId}
 ```
 
 字段例如：
@@ -628,13 +628,13 @@ rdp:list:black:device:{deviceId}
 ### 用户风险等级
 
 ```latex
-rdp:profile:user:risk:{userId}
+pulsix:profile:user:risk:{userId}
 ```
 
 #### 示例
 
 ```latex
-rdp:profile:user:risk:U1001 -> H
+pulsix:profile:user:risk:U1001 -> H
 ```
 
 ---
@@ -642,13 +642,13 @@ rdp:profile:user:risk:U1001 -> H
 ### 设备风险分
 
 ```latex
-rdp:profile:device:score:{deviceId}
+pulsix:profile:device:score:{deviceId}
 ```
 
 #### 示例
 
 ```latex
-rdp:profile:device:score:D9001 -> 87
+pulsix:profile:device:score:D9001 -> 87
 ```
 
 ---
@@ -658,7 +658,7 @@ rdp:profile:device:score:D9001 -> 87
 如果你想一次性存多项用户画像：
 
 ```latex
-rdp:profile:user:{userId}
+pulsix:profile:user:{userId}
 ```
 
 字段例如：
@@ -677,13 +677,13 @@ rdp:profile:user:{userId}
 ### 用户 5 分钟交易次数
 
 ```latex
-rdp:feature:user_trade_cnt_5m:{userId}
+pulsix:feature:user_trade_cnt_5m:{userId}
 ```
 
 #### 示例
 
 ```latex
-rdp:feature:user_trade_cnt_5m:U1001 -> 3
+pulsix:feature:user_trade_cnt_5m:U1001 -> 3
 ```
 
 ---
@@ -691,7 +691,7 @@ rdp:feature:user_trade_cnt_5m:U1001 -> 3
 ### 设备 1 小时关联用户数
 
 ```latex
-rdp:feature:device_bind_user_cnt_1h:{deviceId}
+pulsix:feature:device_bind_user_cnt_1h:{deviceId}
 ```
 
 ---
@@ -699,13 +699,13 @@ rdp:feature:device_bind_user_cnt_1h:{deviceId}
 ### 如果你希望带场景维度
 
 ```latex
-rdp:feature:{sceneCode}:{featureCode}:{entityKey}
+pulsix:feature:{sceneCode}:{featureCode}:{entityKey}
 ```
 
 例如：
 
 ```latex
-rdp:feature:TRADE_RISK:user_trade_cnt_5m:U1001
+pulsix:feature:TRADE_RISK:user_trade_cnt_5m:U1001
 ```
 
 这个更通用，我更推荐这一种。
@@ -717,19 +717,19 @@ rdp:feature:TRADE_RISK:user_trade_cnt_5m:U1001
 ### 小型配置缓存
 
 ```latex
-rdp:cache:scene:active_version:{sceneCode}
+pulsix:cache:scene:active_version:{sceneCode}
 ```
 
 ### 仿真结果缓存
 
 ```latex
-rdp:cache:simulation:{sceneCode}:{caseId}:{versionNo}
+pulsix:cache:simulation:{sceneCode}:{caseId}:{versionNo}
 ```
 
 ### 本地热点 lookup 预热标记
 
 ```latex
-rdp:cache:warmup:{sceneCode}:{featureCode}
+pulsix:cache:warmup:{sceneCode}:{featureCode}
 ```
 
 ---
@@ -765,13 +765,13 @@ Redis 可以加速读取，但不是设计态配置主库。
 Kafka Topic 命名建议统一前缀，例如：
 
 ```latex
-rdp.{domain}.{name}
+pulsix.{domain}.{name}
 ```
 
 或：
 
 ```latex
-rdp-{domain}-{name}
+pulsix-{domain}-{name}
 ```
 
 我这里用点号风格举例。
@@ -783,7 +783,7 @@ rdp-{domain}-{name}
 ### 统一原始事件流
 
 ```latex
-rdp.event.raw
+pulsix.event.raw
 ```
 
 事件体中带：
@@ -798,9 +798,9 @@ rdp.event.raw
 ### 如果后期按场景拆分
 
 ```latex
-rdp.event.login
-rdp.event.register
-rdp.event.trade
+pulsix.event.login
+pulsix.event.register
+pulsix.event.trade
 ```
 
 一期不一定需要，统一 raw topic 更简单。
@@ -810,7 +810,7 @@ rdp.event.trade
 ## D.11.2 配置快照 Topic
 
 ```latex
-rdp.config.snapshot
+pulsix.config.snapshot
 ```
 
 用于承载：
@@ -833,7 +833,7 @@ rdp.config.snapshot
 ## D.11.3 决策结果 Topic
 
 ```latex
-rdp.decision.result
+pulsix.decision.result
 ```
 
 承载：
@@ -856,7 +856,7 @@ rdp.decision.result
 ## D.11.4 决策日志 Topic
 
 ```latex
-rdp.decision.log
+pulsix.decision.log
 ```
 
 承载更完整的日志内容：
@@ -875,7 +875,7 @@ rdp.decision.log
 ## D.11.5 引擎错误 Topic
 
 ```latex
-rdp.engine.error
+pulsix.engine.error
 ```
 
 用于承载：
@@ -890,7 +890,7 @@ rdp.engine.error
 ## D.11.6 死信 Topic
 
 ```latex
-rdp.event.dlq
+pulsix.event.dlq
 ```
 
 用于承载：
@@ -974,10 +974,10 @@ Redis 先只做：
 
 Kafka 先只保留：
 
-- `rdp.event.raw`
-- `rdp.config.snapshot`
-- `rdp.decision.result`
-- `rdp.decision.log`
+- `pulsix.event.raw`
+- `pulsix.config.snapshot`
+- `pulsix.decision.result`
+- `pulsix.decision.log`
 
 这样足够跑通 MVP。
 

@@ -29,7 +29,7 @@
 
 这一章讲完之后，你应该能够对下面这些问题有非常清晰的实现感：
 
-- `rdp-rule-core` 这个模块该怎么拆
+- `pulsix-kernel` 这个模块该怎么拆
 - Flink 算子里要缓存什么对象
 - 表达式执行器和 Groovy 执行器如何统一抽象
 - 如何做到“版本切换时编译一次，事件执行时反复复用”
@@ -173,33 +173,32 @@
 
 ## 18.4 推荐的模块划分
 
-为了让控制平台仿真和 Flink 线上执行共用同一套逻辑，我建议你把执行器相关代码抽到独立模块。
+为了让控制平台仿真和 Flink 线上执行共用同一套逻辑，我建议你把执行器相关代码放到统一执行内核模块中，并且让目录结构贴合当前 `pulsix` 仓库。
 
 推荐模块结构如下：
 
 ```latex
-rdp/
-├── rdp-admin/                 # 控制平台
-├── rdp-engine-job/            # Flink Job
-├── rdp-ui/                    # 前端
-├── rdp-common/                # 通用 DTO / 枚举 / 工具
-├── rdp-rule-core/             # 规则执行核心（重点）
-│   ├── api/
-│   ├── model/
-│   ├── compiler/
-│   ├── runtime/
-│   ├── engine-aviator/
-│   ├── engine-groovy/
-│   └── template/
-└── rdp-feature-core/          # 特征执行与上下文构建（可后续抽）
+pulsix/
+├── pulsix-dependencies/              # BOM / 版本对齐
+├── pulsix-framework/
+│   ├── pulsix-common/                # 通用 DTO / 枚举 / 工具 / CommonApi
+│   ├── pulsix-kernel/                # 统一执行内核（重点）
+│   └── pulsix-spring-boot-starter-*  # 各类基础组件
+├── pulsix-server/                    # Spring Boot 启动器
+├── pulsix-module-system/             # 用户、权限、租户、菜单、审计
+├── pulsix-module-infra/              # 配置、文件、任务、监控、基础日志
+├── pulsix-module-risk/               # 控制平台风控主业务
+├── pulsix-engine/                    # Flink 引擎
+├── pulsix-ui/                        # 前端
+└── docs/
 ```
 
-其中最关键的是 `rdp-rule-core`。
+其中最关键的是 `pulsix-kernel`。
 
 它应该同时被：
 
-- `rdp-admin` 的仿真服务使用
-- `rdp-engine-job` 的 Flink 决策链路使用
+- `pulsix-module-risk` 的仿真服务使用
+- `pulsix-engine` 的 Flink 决策链路使用
 
 这样才能保证：
 

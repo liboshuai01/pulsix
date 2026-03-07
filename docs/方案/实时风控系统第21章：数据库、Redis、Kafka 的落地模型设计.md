@@ -558,7 +558,7 @@ Redis 不适合用来做：
 
 例如：
 
-- `rdp.event.raw`
+- `pulsix.event.raw`
 
 事件体中包含：
 
@@ -578,9 +578,9 @@ Redis 不适合用来做：
 
 后面如果量大，再考虑按场景拆：
 
-- `rdp.event.login`
-- `rdp.event.register`
-- `rdp.event.trade`
+- `pulsix.event.login`
+- `pulsix.event.register`
+- `pulsix.event.trade`
 
 ---
 
@@ -588,7 +588,7 @@ Redis 不适合用来做：
 
 建议：
 
-- `rdp.config.snapshot`
+- `pulsix.config.snapshot`
 
 它承载：
 
@@ -613,7 +613,7 @@ Redis 不适合用来做：
 
 建议：
 
-- `rdp.decision.result`
+- `pulsix.decision.result`
 
 承载较轻的最终决策结果，供下游消费。
 
@@ -637,7 +637,7 @@ Redis 不适合用来做：
 
 建议：
 
-- `rdp.decision.log`
+- `pulsix.decision.log`
 
 这条 Topic 可以更详细，承载：
 
@@ -665,8 +665,8 @@ Redis 不适合用来做：
 
 建议你一定预留：
 
-- `rdp.event.dlq`
-- `rdp.engine.error`
+- `pulsix.event.dlq`
+- `pulsix.engine.error`
 
 分别接住：
 
@@ -724,10 +724,10 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 建议统一前缀：
 
-- `rdp.event.*`
-- `rdp.config.*`
-- `rdp.decision.*`
-- `rdp.engine.*`
+- `pulsix.event.*`
+- `pulsix.config.*`
+- `pulsix.decision.*`
+- `pulsix.engine.*`
 
 这样后面维护和监控都会舒服很多。
 
@@ -746,7 +746,7 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 对于你当前项目目标，一期可采用：
 
-- Flink -> Kafka `rdp.decision.log`
+- Flink -> Kafka `pulsix.decision.log`
 - 独立消费者/简化 sink -> MySQL `decision_log` / `rule_hit_log`
 
 这样你能快速做出：
@@ -842,11 +842,11 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 先规划 5 类 Topic：
 
-- `rdp.event.raw`
-- `rdp.config.snapshot`
-- `rdp.decision.result`
-- `rdp.decision.log`
-- `rdp.event.dlq`
+- `pulsix.event.raw`
+- `pulsix.config.snapshot`
+- `pulsix.decision.result`
+- `pulsix.decision.log`
+- `pulsix.event.dlq`
 
 ### 21.11.4 Flink
 
@@ -1013,11 +1013,11 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 建议至少有：
 
-- `rdp.event.raw`
-- `rdp.config.snapshot`
-- `rdp.decision.result`
-- `rdp.decision.log`
-- `rdp.event.dlq`
+- `pulsix.event.raw`
+- `pulsix.config.snapshot`
+- `pulsix.decision.result`
+- `pulsix.decision.log`
+- `pulsix.event.dlq`
 
 ### 4）Flink State 是流式中间态主场
 
@@ -1051,7 +1051,7 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 这一章会重点回答：
 
 - 仓库应该怎么拆
-- `rdp-admin / rdp-engine-job / rdp-ui / common / rule-core` 等模块应该如何组织
+- `pulsix-server / pulsix-module-system / pulsix-module-infra / pulsix-module-risk / pulsix-engine / pulsix-ui / pulsix-framework/pulsix-common / pulsix-framework/pulsix-kernel / pulsix-spring-boot-starter-*` 等模块应该如何组织
 - 代码目录应该长什么样
 - 一个阶段一个阶段应该先写什么
 - 哪些接口和领域对象应该先稳定下来

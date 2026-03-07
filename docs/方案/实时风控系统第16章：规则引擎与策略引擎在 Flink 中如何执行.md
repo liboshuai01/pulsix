@@ -1142,8 +1142,8 @@ FIRST\_HIT 模式最大的性能优势就在于可以短路。
 
 也就是说：
 
-- Spring Boot 仿真页依赖 `rule-core`
-- Flink 引擎也依赖 `rule-core`
+- Spring Boot 仿真页依赖 `pulsix-kernel`
+- Flink 引擎也依赖 `pulsix-kernel`
 
 两边的区别应该只在于：
 

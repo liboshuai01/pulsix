@@ -605,7 +605,7 @@ public class DecisionResult {
 ### B.22 一套推荐的包结构
 
 ```java
-com.rdp.core.snapshot
+cn.liboshuai.pulsix.framework.common.biz.risk.runtime
   ├── SceneSnapshot
   ├── EventSchemaSpec
   ├── FeatureSpec
@@ -614,17 +614,17 @@ com.rdp.core.snapshot
   ├── DerivedFeatureSpec
   ├── RuleSpec
   ├── PolicySpec
-  └── RuntimeHints
-
-com.rdp.core.runtime
-  ├── CompiledSceneRuntime
-  ├── FeatureExecutionPlan
-  ├── PolicyRuntime
+  ├── RuntimeHints
   ├── EvalContext
   ├── DecisionResult
   └── RuleEvalResult
 
-com.rdp.core.engine
+cn.liboshuai.pulsix.kernel.runtime
+  ├── CompiledSceneRuntime
+  ├── FeatureExecutionPlan
+  └── PolicyRuntime
+
+cn.liboshuai.pulsix.kernel.engine
   ├── RuleInvoker
   ├── DerivedFeatureInvoker
   ├── FeatureExecutor

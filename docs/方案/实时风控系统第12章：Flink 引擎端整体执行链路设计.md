@@ -170,13 +170,13 @@ Broadcast State + 本地运行时编译缓存
 
 ### 事件主流
 
-- 从 Kafka `rdp.event.raw` 读取
+- 从 Kafka `pulsix.event.raw` 读取
 - 解析成 `RiskEvent`
 - 按需要做 `keyBy`
 
 ### 配置流
 
-- 从 Kafka `rdp.config.snapshot` 读取
+- 从 Kafka `pulsix.config.snapshot` 读取
 - 解析成 `SceneSnapshotEnvelope`
 - `broadcast()` 成广播流
 

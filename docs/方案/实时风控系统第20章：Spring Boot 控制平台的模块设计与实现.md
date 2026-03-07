@@ -55,7 +55,7 @@
 
 不要一开始拆很多微服务。
 
-建议就是一个 `rdp-admin` Spring Boot 应用承载控制平台主能力，内部按模块和分层组织。
+建议让 `pulsix-server` 作为 Spring Boot 启动容器承载控制平台进程，核心风控业务则集中在 `pulsix-module-risk` 中按模块和分层组织。
 
 原因很简单：
 
@@ -106,7 +106,7 @@
 
 正确做法是：
 
-- 控制平台仿真服务依赖统一的 `rule-core`
+- 控制平台仿真服务依赖统一的 `pulsix-kernel`
 - 和 Flink 引擎共用表达式执行器 / Groovy 执行器 / Policy 执行逻辑
 
 这样才能保证：
@@ -122,38 +122,50 @@
 ### 20.4.1 如果你做成单仓库，建议结构如下
 
 ```latex
-rdp/
-├── rdp-admin/                # Spring Boot 控制平台
-├── rdp-engine-job/           # Flink 实时决策引擎
-├── rdp-ui/                   # Vue3 前端
-├── rdp-rule-core/            # 规则执行核心（仿真 + Flink 共用）
-├── rdp-common/               # 通用对象、工具、异常、枚举
-├── rdp-snapshot-compiler/    # 快照编译器（也可并入 admin）
+pulsix/
+├── pulsix-framework/
+│   ├── pulsix-common/
+│   ├── pulsix-kernel/
+│   └── pulsix-spring-boot-starter-*/
+├── pulsix-server/                # Spring Boot 启动器
+├── pulsix-module-system/         # 用户、权限、租户、菜单、审计
+├── pulsix-module-infra/          # 配置、文件、任务、监控、基础日志
+├── pulsix-module-risk/           # 风控控制面核心业务
+├── pulsix-engine/                # Flink 实时风控引擎
+├── pulsix-ui/                    # Vue3 前端
 └── docs/
 ```
 
-其中第 20 章主要讲的是 `rdp-admin`。
+其中第 20 章主要讲的是控制平台后端中的 `pulsix-module-risk`，而 `pulsix-server` 只负责启动与聚合。
 
 ---
 
-### 20.4.2 `rdp-admin` 内部建议的逻辑分层
+### 20.4.2 `pulsix-module-risk` 内部建议的逻辑分层
 
 ```latex
-rdp-admin
+pulsix-module-risk
 ├── controller      # HTTP 接口层
-├── application     # 应用服务层 / use case
-├── domain          # 领域模型、领域服务、规则校验抽象
-├── infrastructure  # DAO、Repository、消息投递、Redis/DB访问
-├── converter       # DTO/DO/VO 转换
-├── config          # Spring 配置
-├── security        # 认证鉴权
-├── support         # 通用支撑，如分页、异常、审计拦截
-└── scheduler       # 可选，定时任务
+├── service         # 应用服务 / 领域流程
+│   ├── scene
+│   ├── event
+│   ├── feature
+│   ├── list
+│   ├── rule
+│   ├── policy
+│   ├── release
+│   ├── simulation
+│   └── log
+├── dal             # DO / Mapper / Repository
+├── convert         # DTO / DO / VO 转换
+├── api             # 对外 CommonApi 或领域接口
+├── enums
+├── mq
+└── framework       # 本模块内部配置与支撑
 ```
 
-这是一个非常实用的分层方式。
+这是更贴近当前 `pulsix` 工程风格的一种分层方式。
 
-它不要求你强行套特别重的 DDD，但能把职责基本划开。
+它不要求你强行套特别重的 DDD，但能让控制平台核心业务边界保持清晰，同时又和现有 `system / infra` 模块风格一致。
 
 ---
 
@@ -440,44 +452,58 @@ Infrastructure 层负责：
 
 ## 20.7 一个推荐的包结构示例
 
-下面给你一个比较务实的 `rdp-admin` 包结构示例：
+下面给你一个比较务实的 `pulsix-module-risk` 包结构示例：
 
 ```latex
-com.rdp.admin
-├── config
-├── security
-├── support
-│   ├── exception
-│   ├── response
-│   ├── page
-│   └── audit
-├── module
-│   ├── auth
-│   ├── scene
-│   │   ├── controller
-│   │   ├── application
-│   │   ├── domain
-│   │   ├── infrastructure
-│   │   └── model
-│   ├── event
-│   ├── feature
-│   ├── list
-│   ├── rule
-│   ├── policy
-│   ├── release
-│   ├── simulation
-│   ├── decisionlog
-│   └── audit
-└── AdminApplication
+cn.liboshuai.pulsix.module.risk
+├── api/
+│   ├── scene/
+│   ├── feature/
+│   ├── release/
+│   ├── simulation/
+│   └── log/
+├── controller/
+│   └── admin/
+│       ├── scene/
+│       ├── event/
+│       ├── feature/
+│       ├── list/
+│       ├── rule/
+│       ├── policy/
+│       ├── release/
+│       ├── simulation/
+│       └── log/
+├── service/
+│   ├── scene/
+│   ├── event/
+│   ├── feature/
+│   ├── list/
+│   ├── rule/
+│   ├── policy/
+│   ├── release/
+│   │   ├── validator/
+│   │   ├── compiler/
+│   │   └── publisher/
+│   ├── simulation/
+│   └── log/
+├── convert/
+├── dal/
+│   ├── dataobject/
+│   └── mysql/
+├── enums/
+├── mq/
+│   ├── message/
+│   └── producer/
+└── framework/
 ```
 
-这是比较适合单体项目的“按业务模块分包”的方式。
+这是比较适合当前项目的“按业务域收敛 + 按模块分层”的方式。
 
 它的优点是：
 
 - 模块边界清楚
-- 每个模块内部都能按 controller/application/domain/infrastructure 再分层
-- 后续如果真要拆服务，也更自然
+- 风控主业务集中在 `risk` 域，不会和 `system / infra` 混淆
+- 每个业务域内部仍然可以继续按 controller / service / dal / convert 细分
 
 ---
 
@@ -667,7 +693,7 @@ public class ReleaseApplicationService {
 
 仿真模块应该：
 
-- 尽量复用 `rule-core`
+- 尽量复用 `pulsix-kernel`
 - 复用表达式/Groovy 执行器抽象
 - 复用 policy 执行逻辑
 - 复用 hit reason 生成逻辑
@@ -909,7 +935,7 @@ public class ReleaseApplicationService {
 
 ## 20.17 一个适合你当前项目的最小可落地控制平台模块清单
 
-如果你现在就要开工，我建议 `rdp-admin` 一期至少做下面这些模块：
+如果你现在就要开工，我建议 `pulsix-module-risk` 一期至少做下面这些模块：
 
 1. auth / user / role
 2. scene
@@ -1027,7 +1053,7 @@ DTO / DO / Domain / Snapshot / VO 要分开，不要混用。
 - 仿真和线上执行核心要尽量复用
 - 控制平台与 Flink 引擎要边界清晰，但可以共享规则执行基础设施
 
-到这里，你已经可以开始着手画 `rdp-admin` 的真实工程结构了。
+到这里，你已经可以开始着手画 `pulsix-module-risk` 的真实工程结构了。
 
 ---
 
