@@ -34,6 +34,18 @@
 
 这里不会把所有索引、字符集、引擎参数全部写满，而是先给你一版足够清晰的 MVP DDL 草稿。
 
+为与当前 `pulsix-module-system/infra` 的表结构规范保持一致，并方便后续 Spring Boot 实体直接继承 `BaseDO`，以下所有示例表统一追加这一组公共字段：
+
+```sql
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除'
+```
+
+如果业务上还需要记录发布人、审核人、操作人等语义字段，例如 `published_by`、`operator_id`，则继续保留为业务字段，不替代这组公共字段。
+
 ---
 
 ## D.3 基础元数据表
@@ -49,10 +61,11 @@ CREATE TABLE scene_def (
   status TINYINT NOT NULL DEFAULT 1,
   default_policy_code VARCHAR(64) DEFAULT NULL,
   description VARCHAR(512) DEFAULT NULL,
-  created_by VARCHAR(64) DEFAULT NULL,
-  updated_by VARCHAR(64) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除'
 );
 ```
 
@@ -78,8 +91,11 @@ CREATE TABLE event_schema (
   version INT NOT NULL DEFAULT 1,
   status TINYINT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_event (scene_code, event_code)
 );
 ```
@@ -100,8 +116,11 @@ CREATE TABLE event_field_def (
   sample_value VARCHAR(512) DEFAULT NULL,
   description VARCHAR(512) DEFAULT NULL,
   sort_no INT NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_event_field (event_code, field_name)
 );
 ```
@@ -125,8 +144,11 @@ CREATE TABLE feature_def (
   status TINYINT NOT NULL DEFAULT 1,
   version INT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_feature (scene_code, feature_code)
 );
 ```
@@ -156,8 +178,11 @@ CREATE TABLE feature_stream_conf (
   include_current_event TINYINT NOT NULL DEFAULT 1,
   ttl_seconds BIGINT DEFAULT NULL,
   state_hint_json JSON DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_feature_stream (feature_code)
 );
 ```
@@ -183,8 +208,11 @@ CREATE TABLE feature_lookup_conf (
   cache_ttl_seconds BIGINT DEFAULT NULL,
   timeout_ms INT DEFAULT NULL,
   extra_json JSON DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_feature_lookup (feature_code)
 );
 ```
@@ -209,8 +237,11 @@ CREATE TABLE feature_derived_conf (
   depends_on_json JSON DEFAULT NULL,
   value_type VARCHAR(32) NOT NULL,
   extra_json JSON DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_feature_derived (feature_code)
 );
 ```
@@ -229,8 +260,11 @@ CREATE TABLE list_set (
   list_type VARCHAR(32) NOT NULL,
   status TINYINT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_list (scene_code, list_code)
 );
 ```
@@ -263,8 +297,11 @@ CREATE TABLE list_item (
   status TINYINT NOT NULL DEFAULT 1,
   remark VARCHAR(512) DEFAULT NULL,
   ext_json JSON DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   KEY idx_list_code (list_code),
   KEY idx_match_value (match_value)
 );
@@ -292,8 +329,11 @@ CREATE TABLE rule_def (
   hit_reason_template VARCHAR(1024) DEFAULT NULL,
   version INT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_rule (scene_code, rule_code)
 );
 ```
@@ -327,8 +367,11 @@ CREATE TABLE policy_def (
   status TINYINT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
   version INT NOT NULL DEFAULT 1,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_policy (scene_code, policy_code)
 );
 ```
@@ -351,8 +394,11 @@ CREATE TABLE policy_rule_ref (
   enabled_flag TINYINT NOT NULL DEFAULT 1,
   branch_expr VARCHAR(1024) DEFAULT NULL,
   score_weight INT DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_policy_rule (policy_code, rule_code)
 );
 ```
@@ -376,7 +422,11 @@ CREATE TABLE scene_release (
   effective_from DATETIME DEFAULT NULL,
   rollback_from_version INT DEFAULT NULL,
   remark VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_scene_version (scene_code, version_no),
   KEY idx_scene_publish_time (scene_code, published_at)
 );
@@ -404,9 +454,11 @@ CREATE TABLE simulation_case (
   expected_action VARCHAR(32) DEFAULT NULL,
   expected_hit_rules JSON DEFAULT NULL,
   status TINYINT NOT NULL DEFAULT 1,
-  created_by VARCHAR(64) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除'
 );
 ```
 
@@ -423,7 +475,11 @@ CREATE TABLE simulation_report (
   result_json JSON NOT NULL,
   pass_flag TINYINT NOT NULL,
   duration_ms BIGINT DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   KEY idx_case_version (case_id, version_no)
 );
 ```
@@ -446,10 +502,14 @@ CREATE TABLE decision_log (
   version_no INT NOT NULL,
   latency_ms BIGINT DEFAULT NULL,
   event_time DATETIME NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   input_json JSON DEFAULT NULL,
   feature_snapshot_json JSON DEFAULT NULL,
   hit_rules_json JSON DEFAULT NULL,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   KEY idx_trace_id (trace_id),
   KEY idx_event_id (event_id),
   KEY idx_scene_time (scene_code, event_time)
@@ -468,7 +528,11 @@ CREATE TABLE rule_hit_log (
   hit_flag TINYINT NOT NULL,
   hit_value_json JSON DEFAULT NULL,
   score INT DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   KEY idx_decision_rule (decision_id, rule_code)
 );
 ```
@@ -486,8 +550,11 @@ CREATE TABLE sys_user (
   password_hash VARCHAR(256) NOT NULL,
   real_name VARCHAR(64) DEFAULT NULL,
   status TINYINT NOT NULL DEFAULT 1,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除'
 );
 ```
 
@@ -501,8 +568,11 @@ CREATE TABLE sys_role (
   role_code VARCHAR(64) NOT NULL UNIQUE,
   role_name VARCHAR(64) NOT NULL,
   status TINYINT NOT NULL DEFAULT 1,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除'
 );
 ```
 
@@ -515,6 +585,11 @@ CREATE TABLE sys_user_role (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
   role_id BIGINT NOT NULL,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_user_role (user_id, role_id)
 );
 ```
@@ -533,9 +608,13 @@ CREATE TABLE sys_audit_log (
   before_json JSON DEFAULT NULL,
   after_json JSON DEFAULT NULL,
   remark VARCHAR(512) DEFAULT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新者',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   KEY idx_biz (biz_type, biz_code),
-  KEY idx_operator_time (operator_id, created_at)
+  KEY idx_operator_time (operator_id, create_time)
 );
 ```
 
@@ -942,7 +1021,7 @@ DDL 不只是“字段写出来”，还要考虑查询和唯一性边界。
 ### 审计表
 
 - `(biz_type, biz_code)`
-- `(operator_id, created_at)`
+- `(operator_id, create_time)`
 
 ---
 
