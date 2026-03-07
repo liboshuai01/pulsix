@@ -2,16 +2,23 @@ import request from '@/config/axios'
 
 // ERP 销售订单 VO
 export interface SaleOrderVO {
-  id: number // 订单工单编号
-  no: string // 销售订单号
-  customerId: number // 客户编号
-  orderTime: Date // 订单时间
-  totalCount: number // 合计数量
-  totalPrice: number // 合计金额，单位：元
-  status: number // 状态
-  remark: string // 备注
-  outCount: number // 销售出库数量
-  returnCount: number // 销售退货数量
+  id?: number // 订单工单编号
+  no?: string // 销售订单号
+  customerId?: number // 客户编号
+  accountId?: number // 结算账户
+  saleUserId?: number // 销售人员
+  orderTime?: Date // 订单时间
+  totalCount?: number // 合计数量
+  totalPrice?: number // 合计金额，单位：元
+  status?: number // 状态
+  remark?: string // 备注
+  outCount?: number // 销售出库数量
+  returnCount?: number // 销售退货数量
+  discountPercent?: number // 优惠率
+  discountPrice?: number // 优惠金额
+  depositPrice?: number // 定金
+  fileUrl?: string // 附件
+  items?: Array<Record<string, any>> // 订单项
 }
 
 // ERP 销售订单 API

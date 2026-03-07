@@ -29,11 +29,11 @@ export const createEditorConfig = (
         metaWithUrl: true,
 
         // 自定义增加 http  header
-        headers: {
-          Accept: '*',
+        headers: new Headers({
+          Accept: '*/*',
           Authorization: 'Bearer ' + getAccessToken(),
-          'tenant-id': getTenantId()
-        },
+          'tenant-id': String(getTenantId())
+        }),
 
         // 跨域是否传递 cookie ，默认为 false
         withCredentials: true,
@@ -43,25 +43,26 @@ export const createEditorConfig = (
 
         // form-data fieldName，后端接口参数名称，默认值wangeditor-uploaded-image
         fieldName: 'file',
+        base64LimitSize: 0,
 
         // 上传之前触发
-        onBeforeUpload(file: File) {
-          console.log(file)
-          return file
+        onBeforeUpload(files) {
+          console.log(files)
+          return files
         },
         // 上传进度的回调函数
         onProgress(progress: number) {
           // progress 是 0-100 的数字
           console.log('progress', progress)
         },
-        onSuccess(file: File, res: any) {
+        onSuccess(file, res: any) {
           console.log('onSuccess', file, res)
         },
-        onFailed(file: File, res: any) {
+        onFailed(file, res: any) {
           message.alertError(res.message)
           console.log('onFailed', file, res)
         },
-        onError(file: File, err: any, res: any) {
+        onError(file, err: any, res: any) {
           message.alertError(err.message)
           console.error('onError', file, err, res)
         },

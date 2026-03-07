@@ -116,7 +116,7 @@ const emits = defineEmits<{
   ]
 }>()
 
-const currentNode = useWatchNode(props)
+const currentNode = useWatchNode(props as { flowNode: SimpleFlowNode })
 
 // 用于删除节点
 const handleModelValueUpdate = (updateValue) => {

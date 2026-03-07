@@ -120,7 +120,6 @@ const echartsOption = reactive<EChartsOption>({
       type: 'value',
       name: '',
       axisTick: {
-        alignWithLabel: true,
         lineStyle: {
           width: 0
         }

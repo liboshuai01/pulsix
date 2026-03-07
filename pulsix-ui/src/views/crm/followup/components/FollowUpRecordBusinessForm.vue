@@ -20,17 +20,22 @@
 
 <script lang="ts" setup>
 import { erpPriceTableColumnFormatter } from '@/utils'
+import * as BusinessApi from '@/api/crm/business'
+import { PropType } from 'vue'
 
-const props = defineProps<{
-  businesses: undefined
-}>()
-const formData = ref([])
+const props = defineProps({
+  businesses: {
+    type: Array as PropType<BusinessApi.BusinessVO[]>,
+    default: () => []
+  }
+})
+const formData = ref<BusinessApi.BusinessVO[]>([])
 
 /** 初始化商机列表 */
 watch(
   () => props.businesses,
-  async (val) => {
-    formData.value = val
+  (val) => {
+    formData.value = val ?? []
   },
   { immediate: true }
 )

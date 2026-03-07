@@ -327,15 +327,15 @@ const previewResult = ref('')
 const previewType = ref('xml')
 const recoverable = ref(false)
 const revocable = ref(false)
-const additionalModules = computed(() => {
+const additionalModules = computed<any[]>(() => {
   console.log(props.additionalModel, 'additionalModel')
   const Modules: any[] = []
   // 仅保留用户自定义扩展模块
   if (props.onlyCustomizeAddi) {
     if (Object.prototype.toString.call(props.additionalModel) == '[object Array]') {
-      return props.additionalModel || []
+      return (props.additionalModel as any[]) || []
     }
-    return [props.additionalModel]
+    return props.additionalModel ? [props.additionalModel] : []
   }
 
   // 插入用户自定义扩展模块

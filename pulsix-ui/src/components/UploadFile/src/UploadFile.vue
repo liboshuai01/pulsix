@@ -98,6 +98,14 @@ const uploadNumber = ref<number>(0)
 
 const { uploadUrl, httpRequest } = useUpload(props.directory)
 
+type UploadResponse = {
+  data: string
+}
+
+const getUploadResponseData = (response: unknown) => {
+  return (response as UploadResponse | undefined)?.data
+}
+
 // 文件上传之前判断
 const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
   if (fileList.value.length >= props.limit) {
@@ -134,9 +142,14 @@ const beforeUpload: UploadProps['beforeUpload'] = (file: UploadRawFile) => {
 const handleFileSuccess: UploadProps['onSuccess'] = (res: any): void => {
   message.success('上传成功')
   // 删除自身
-  const index = fileList.value.findIndex((item) => item.response?.data === res.data)
-  fileList.value.splice(index, 1)
-  uploadList.value.push({ name: res.data, url: res.data })
+  const response = res as UploadResponse
+  const index = fileList.value.findIndex(
+    (item) => getUploadResponseData(item.response) === response.data
+  )
+  if (index > -1) {
+    fileList.value.splice(index, 1)
+  }
+  uploadList.value.push({ name: response.data, url: response.data })
   if (uploadList.value.length == uploadNumber.value) {
     fileList.value.push(...uploadList.value)
     uploadList.value = []

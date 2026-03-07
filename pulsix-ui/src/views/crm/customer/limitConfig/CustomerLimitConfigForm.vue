@@ -60,7 +60,6 @@ import { defaultProps, handleTree } from '@/utils/tree'
 import * as UserApi from '@/api/system/user'
 import { cloneDeep } from 'lodash-es'
 import { LimitConfType } from '@/api/crm/customer/limitConfig'
-import { aw } from '../../../../../dist-prod/assets/index-9eac537b'
 
 const { t } = useI18n() // 国际化
 const message = useMessage() // 消息弹窗

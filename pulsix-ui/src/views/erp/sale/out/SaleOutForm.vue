@@ -196,19 +196,24 @@ const dialogVisible = ref(false) // 弹窗的是否展示
 const dialogTitle = ref('') // 弹窗的标题
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
 const formType = ref('') // 表单的类型：create - 新增；update - 修改；detail - 详情
-const formData = ref({
+type SaleOutFormData = SaleOutVO & {
+  items: Array<Record<string, any>>
+}
+
+const formData = ref<SaleOutFormData>({
   id: undefined,
+  orderId: undefined,
+  orderNo: undefined,
   customerId: undefined,
   accountId: undefined,
   saleUserId: undefined,
   outTime: undefined,
   remark: undefined,
-  fileUrl: '',
+  fileUrl: undefined,
   discountPercent: 0,
   discountPrice: 0,
   totalPrice: 0,
   otherPrice: 0,
-  orderNo: undefined,
   items: [],
   no: undefined // 出库单号，后端返回
 })
@@ -278,6 +283,7 @@ const openSaleOrderOutEnableList = () => {
 }
 
 const handleSaleOrderChange = (order: SaleOrderVO) => {
+  const orderItems = order.items ?? []
   // 将订单设置到出库单
   formData.value.orderId = order.id
   formData.value.orderNo = order.no
@@ -288,13 +294,13 @@ const handleSaleOrderChange = (order: SaleOrderVO) => {
   formData.value.remark = order.remark
   formData.value.fileUrl = order.fileUrl
   // 将订单项设置到出库单项
-  order.items.forEach((item) => {
+  orderItems.forEach((item) => {
     item.totalCount = item.count
     item.count = item.totalCount - item.outCount
     item.orderItemId = item.id
     item.id = undefined
   })
-  formData.value.items = order.items.filter((item) => item.count > 0)
+  formData.value.items = orderItems.filter((item) => item.count > 0)
 }
 
 /** 提交表单 */
@@ -306,7 +312,7 @@ const submitForm = async () => {
   // 提交请求
   formLoading.value = true
   try {
-    const data = formData.value as unknown as SaleOutVO
+    const data = formData.value
     if (formType.value === 'create') {
       await SaleOutApi.createSaleOut(data)
       message.success(t('common.createSuccess'))
@@ -326,6 +332,8 @@ const submitForm = async () => {
 const resetForm = () => {
   formData.value = {
     id: undefined,
+    orderId: undefined,
+    orderNo: undefined,
     customerId: undefined,
     accountId: undefined,
     saleUserId: undefined,

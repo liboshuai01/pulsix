@@ -1,5 +1,5 @@
 <template>
-  <el-table :data="contacts" :show-overflow-tooltip="true" :stripe="true" height="150">
+  <el-table :data="formData" :show-overflow-tooltip="true" :stripe="true" height="150">
     <el-table-column label="姓名" fixed="left" align="center" prop="name">
       <template #default="scope">
         <el-link type="primary" :underline="false" @click="openDetail(scope.row.id)">
@@ -17,7 +17,7 @@
     </el-table-column>
     <el-table-column align="center" fixed="right" label="操作" width="130">
       <template #default="scope">
-        <el-button link type="danger" @click="handleDelete(scope.row.id)"> 移除</el-button>
+        <el-button link type="danger" @click="handleDelete(scope.$index)"> 移除</el-button>
       </template>
     </el-table-column>
   </el-table>
@@ -25,17 +25,22 @@
 
 <script lang="ts" setup>
 import { DICT_TYPE } from '@/utils/dict'
+import * as ContactApi from '@/api/crm/contact'
+import { PropType } from 'vue'
 
-const props = defineProps<{
-  contacts: undefined
-}>()
-const formData = ref([])
+const props = defineProps({
+  contacts: {
+    type: Array as PropType<ContactApi.ContactVO[]>,
+    default: () => []
+  }
+})
+const formData = ref<ContactApi.ContactVO[]>([])
 
 /** 初始化联系人列表 */
 watch(
   () => props.contacts,
-  async (val) => {
-    formData.value = val
+  (val) => {
+    formData.value = val ?? []
   },
   { immediate: true }
 )
@@ -43,5 +48,10 @@ watch(
 /** 删除按钮操作 */
 const handleDelete = (index: number) => {
   formData.value.splice(index, 1)
+}
+
+const { push } = useRouter()
+const openDetail = (id: number) => {
+  push({ name: 'CrmContactDetail', params: { id } })
 }
 </script>

@@ -224,6 +224,7 @@ const formData = ref({
   ownerUserId: undefined,
   discountPercent: 0,
   totalProductPrice: undefined,
+  totalPrice: undefined,
   remark: undefined,
   products: []
 })
@@ -336,6 +337,7 @@ const resetForm = () => {
     ownerUserId: undefined,
     discountPercent: 0,
     totalProductPrice: undefined,
+    totalPrice: undefined,
     remark: undefined,
     products: []
   }

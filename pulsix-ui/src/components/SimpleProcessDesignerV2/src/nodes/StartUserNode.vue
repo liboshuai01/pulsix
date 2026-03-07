@@ -123,7 +123,7 @@ const emits = defineEmits<{
   'update:modelValue': [node: SimpleFlowNode | undefined]
 }>()
 // 监控节点变化
-const currentNode = useWatchNode(props)
+const currentNode = useWatchNode(props as { flowNode: SimpleFlowNode })
 // 节点名称编辑
 const { showInput, blurEvent, clickTitle } = useNodeName2(currentNode, NodeType.START_USER_NODE)
 

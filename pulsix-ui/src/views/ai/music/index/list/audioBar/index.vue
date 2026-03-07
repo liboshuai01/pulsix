@@ -41,7 +41,7 @@ defineOptions({ name: 'Index' })
 
 const currentSong = inject('currentSong', {})
 
-const audioRef = ref<Nullable<HTMLElement>>(null)
+const audioRef = ref<HTMLAudioElement | null>(null)
   // 音频相关属性https://www.runoob.com/tags/ref-av-dom.html
 const audioProps = reactive({
   autoplay: true,
@@ -52,10 +52,14 @@ const audioProps = reactive({
   volume: 50,
 })
 
-function toggleStatus (type: string) {
-  audioProps[type] = !audioProps[type]
-  if (type === 'paused' && audioRef.value) {
-    if (audioProps[type]) {
+function toggleStatus (type: 'paused' | 'muted') {
+  if (type === 'muted') {
+    audioProps.muted = !audioProps.muted
+    return
+  }
+  audioProps.paused = !audioProps.paused
+  if (audioRef.value) {
+    if (audioProps.paused) {
       audioRef.value.pause()
     } else {
       audioRef.value.play()

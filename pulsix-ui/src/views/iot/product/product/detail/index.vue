@@ -28,7 +28,7 @@ const { currentRoute } = useRouter()
 
 const route = useRoute()
 const message = useMessage()
-const id = route.params.id // 编号
+const id = Number(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id) // 编号
 const loading = ref(true) // 加载中
 const product = ref<ProductVO>({} as ProductVO) // 详情
 const activeTab = ref('info') // 默认为 info 标签页
@@ -64,9 +64,9 @@ onMounted(async () => {
   }
   await getProductData(id)
   // 处理 tab 参数
-  const { tab } = route.query
-  if (tab) {
-    activeTab.value = tab as string
+  const tab = Array.isArray(route.query.tab) ? route.query.tab[0] : route.query.tab
+  if (typeof tab === 'string') {
+    activeTab.value = tab
   }
   // 查询设备数量
   if (product.value.id) {

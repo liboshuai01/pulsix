@@ -2,16 +2,24 @@ import request from '@/config/axios'
 
 // ERP 采购入库 VO
 export interface PurchaseInVO {
-  id: number // 入库工单编号
-  no: string // 采购入库号
-  customerId: number // 客户编号
-  inTime: Date // 入库时间
-  totalCount: number // 合计数量
-  totalPrice: number // 合计金额，单位：元
-  status: number // 状态
-  remark: string // 备注
-  outCount: number // 采购出库数量
-  returnCount: number // 采购退货数量
+  id?: number // 入库工单编号
+  no?: string // 采购入库号
+  orderId?: number // 关联采购订单编号
+  orderNo?: string // 关联采购订单号
+  supplierId?: number // 供应商编号
+  accountId?: number // 结算账户
+  inTime?: Date // 入库时间
+  totalCount?: number // 合计数量
+  totalPrice?: number // 合计金额，单位：元
+  status?: number // 状态
+  remark?: string // 备注
+  discountPercent?: number // 优惠率
+  discountPrice?: number // 优惠金额
+  otherPrice?: number // 其他费用
+  fileUrl?: string // 附件
+  items?: Array<Record<string, any>> // 入库项
+  outCount?: number // 采购出库数量
+  returnCount?: number // 采购退货数量
 }
 
 // ERP 采购入库 API

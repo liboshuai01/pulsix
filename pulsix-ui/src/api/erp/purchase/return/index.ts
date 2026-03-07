@@ -2,14 +2,22 @@ import request from '@/config/axios'
 
 // ERP 采购退货 VO
 export interface PurchaseReturnVO {
-  id: number // 采购退货编号
-  no: string // 采购退货号
-  customerId: number // 客户编号
-  returnTime: Date // 退货时间
-  totalCount: number // 合计数量
-  totalPrice: number // 合计金额，单位：元
-  status: number // 状态
-  remark: string // 备注
+  id?: number // 采购退货编号
+  no?: string // 采购退货号
+  orderId?: number // 关联采购订单编号
+  orderNo?: string // 关联采购订单号
+  supplierId?: number // 供应商编号
+  accountId?: number // 结算账户
+  returnTime?: Date // 退货时间
+  totalCount?: number // 合计数量
+  totalPrice?: number // 合计金额，单位：元
+  status?: number // 状态
+  remark?: string // 备注
+  discountPercent?: number // 优惠率
+  discountPrice?: number // 优惠金额
+  otherPrice?: number // 其他费用
+  fileUrl?: string // 附件
+  items?: Array<Record<string, any>> // 退货项
 }
 
 // ERP 采购退货 API

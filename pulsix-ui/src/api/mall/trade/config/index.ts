@@ -1,15 +1,17 @@
 import request from '@/config/axios'
 
 export interface ConfigVO {
+  deliveryExpressFreePrice: number
   brokerageEnabled: boolean
   brokerageEnabledCondition: number
   brokerageBindMode: number
-  brokeragePosterUrls: string
+  brokeragePosterUrls: string[]
   brokerageFirstPercent: number
   brokerageSecondPercent: number
   brokerageWithdrawMinPrice: number
+  brokerageWithdrawFeePercent: number
   brokerageFrozenDays: number
-  brokerageWithdrawTypes: string
+  brokerageWithdrawTypes: string[]
 }
 
 // 查询交易中心配置详情

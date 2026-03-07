@@ -31,19 +31,17 @@ export interface ContractVO {
   creator: string
   creatorName: string
   updateTime?: Date
-  products?: [
-    {
-      id: number
-      productId: number
-      productName: string
-      productNo: string
-      productUnit: number
-      productPrice: number
-      contractPrice: number
-      count: number
-      totalPrice: number
-    }
-  ]
+  products?: Array<{
+    id: number
+    productId: number
+    productName: string
+    productNo: string
+    productUnit: number
+    productPrice: number
+    contractPrice: number
+    count: number
+    totalPrice: number
+  }>
 }
 
 // 查询 CRM 合同列表

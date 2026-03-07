@@ -1,12 +1,14 @@
 import request from '@/config/axios'
 
 export interface DeliveryExpressTemplateVO {
-  id: number
+  id?: number
   name: string
   chargeMode: number
   sort: number
-  templateCharge: ExpressTemplateChargeVO[]
-  templateFree: ExpressTemplateFreeVO[]
+  charges?: ExpressTemplateChargeVO[]
+  frees?: ExpressTemplateFreeVO[]
+  templateCharge?: ExpressTemplateChargeVO[]
+  templateFree?: ExpressTemplateFreeVO[]
 }
 
 export declare type ExpressTemplateChargeVO = {

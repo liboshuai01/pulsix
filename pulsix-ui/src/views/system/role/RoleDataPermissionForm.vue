@@ -140,13 +140,13 @@ const resetForm = () => {
   deptExpand.value = true
   checkStrictly.value = true
   // 重置表单
-  formData.value = {
+  Object.assign(formData, {
     id: undefined,
     name: '',
     code: '',
     dataScope: undefined,
     dataScopeDeptIds: []
-  }
+  })
   treeRef.value?.setCheckedNodes([])
   formRef.value?.resetFields()
 }

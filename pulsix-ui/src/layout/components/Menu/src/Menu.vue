@@ -99,7 +99,7 @@ export default defineComponent({
         >
           {{
             default: () => {
-              const { renderMenuItem } = useRenderMenuItem(unref(menuMode))
+              const { renderMenuItem } = useRenderMenuItem()
               return renderMenuItem(unref(routers))
             }
           }}

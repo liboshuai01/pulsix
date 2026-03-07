@@ -25,6 +25,11 @@ export const StockRecordApi = {
     return await request.get({ url: `/erp/stock-record/get?id=` + id })
   },
 
+  // 删除产品库存明细
+  deleteStockRecord: async (id: number) => {
+    return await request.delete({ url: `/erp/stock-record/delete?id=` + id })
+  },
+
   // 导出产品库存明细 Excel
   exportStockRecord: async (params) => {
     return await request.download({ url: `/erp/stock-record/export-excel`, params })

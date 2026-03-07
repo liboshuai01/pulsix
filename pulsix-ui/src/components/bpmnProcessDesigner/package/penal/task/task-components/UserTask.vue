@@ -228,7 +228,12 @@ const props = defineProps({
   type: String
 })
 const prefix = inject('prefix')
-const userTaskForm = ref({
+type UserTaskFormType = {
+  candidateStrategy: number | undefined
+  candidateParam: Array<number | string> | number | string
+  skipExpression: string
+}
+const userTaskForm = ref<UserTaskFormType>({
   candidateStrategy: undefined, // 分配规则
   candidateParam: [], // 分配选项
   skipExpression: '' // 跳过表达式

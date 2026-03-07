@@ -163,10 +163,23 @@ const { t } = useI18n() // 国际化
 const message = useMessage() // 消息弹窗
 const { params } = useRoute() // 查询参数
 const { push, currentRoute } = useRouter() // 路由
-const formData = ref({
+type TradeAfterSaleDetailVO = AfterSaleApi.TradeAfterSaleVO & {
+  order: Record<string, any>
+  orderItem?: Record<string, any>
+  user?: {
+    nickname?: string
+  }
+  logs: Array<Record<string, any>>
+  applyPicUrls: Array<{
+    url: string
+  }>
+}
+
+const formData = ref<TradeAfterSaleDetailVO>({
   order: {},
-  logs: []
-})
+  logs: [],
+  applyPicUrls: []
+} as TradeAfterSaleDetailVO)
 const updateAuditReasonFormRef = ref() // 拒绝售后表单 Ref
 
 /** 获得 userType 颜色 */

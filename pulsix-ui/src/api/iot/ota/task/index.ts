@@ -6,7 +6,7 @@ export interface OtaTask {
   name: string // 任务名称
   description?: string // 任务描述
   firmwareId?: number // 固件编号
-  status: number // 任务状态
+  status?: number // 任务状态
   deviceScope?: number // 升级范围
   deviceIds?: number[] // 指定设备ID列表（当升级范围为指定设备时使用）
   deviceTotalCount?: number // 设备总共数量

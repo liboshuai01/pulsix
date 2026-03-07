@@ -81,7 +81,7 @@ const formRules = reactive({
   benefitScores: [{ required: true, message: '服务星级不能为空', trigger: 'blur' }]
 })
 const formRef = ref() // 表单 Ref
-const skuData = ref({
+const skuData = ref<Partial<ProductSpuApi.Sku>>({
   id: -1,
   name: '',
   picUrl: ''

@@ -97,26 +97,45 @@
 import * as ProductApi from '@/api/crm/product'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import { DICT_TYPE } from '@/utils/dict'
+import type { FormInstance } from 'element-plus'
+import { PropType } from 'vue'
 
-const props = defineProps<{
-  products: undefined
-  disabled: false
-}>()
+type BusinessProductItem = {
+  id?: number
+  productId?: number
+  productUnit?: number
+  productNo?: string
+  productPrice?: number
+  businessPrice?: number
+  count?: number
+  totalPrice?: number
+}
+
+const props = defineProps({
+  products: {
+    type: Array as PropType<BusinessProductItem[]>,
+    default: () => []
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  }
+})
 const formLoading = ref(false) // 表单的加载中
-const formData = ref([])
+const formData = ref<BusinessProductItem[]>([])
 const formRules = reactive({
   productId: [{ required: true, message: '产品不能为空', trigger: 'blur' }],
   businessPrice: [{ required: true, message: '合同价格不能为空', trigger: 'blur' }],
   count: [{ required: true, message: '产品数量不能为空', trigger: 'blur' }]
 })
-const formRef = ref([]) // 表单 Ref
+const formRef = ref<FormInstance>() // 表单 Ref
 const productList = ref<ProductApi.ProductVO[]>([]) // 产品列表
 
 /** 初始化设置产品项 */
 watch(
   () => props.products,
-  async (val) => {
-    formData.value = val
+  (val) => {
+    formData.value = val ?? []
   },
   { immediate: true }
 )
@@ -160,7 +179,7 @@ const handleDelete = (index: number) => {
 }
 
 /** 处理产品变更 */
-const onChangeProduct = (productId, row) => {
+const onChangeProduct = (productId: number, row: BusinessProductItem) => {
   const product = productList.value.find((item) => item.id === productId)
   if (product) {
     row.productUnit = product.unit
@@ -172,7 +191,7 @@ const onChangeProduct = (productId, row) => {
 
 /** 表单校验 */
 const validate = () => {
-  return formRef.value.validate()
+  return formRef.value?.validate() ?? Promise.resolve(true)
 }
 defineExpose({ validate })
 

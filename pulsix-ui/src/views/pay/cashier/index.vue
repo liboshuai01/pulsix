@@ -142,7 +142,19 @@ const route = useRoute() // 路由
 const { push, currentRoute } = useRouter() // 路由
 const { delView } = useTagsViewStore() // 视图操作
 
-const id = ref(undefined) // 支付单号
+const getQueryString = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : undefined
+  }
+  return typeof value === 'string' ? value : undefined
+}
+
+const getQueryNumber = (value: unknown) => {
+  const normalizedValue = getQueryString(value)
+  return normalizedValue ? Number(normalizedValue) : undefined
+}
+
+const id = ref<number | undefined>(undefined) // 支付单号
 const returnUrl = ref<string | undefined>(undefined) // 支付完的回调地址
 const loading = ref(false) // 支付信息的 loading
 const payOrder = ref({}) // 支付信息
@@ -454,9 +466,10 @@ const goReturnUrl = (payResult) => {
 
 /** 初始化 */
 onMounted(() => {
-  id.value = route.query.id
-  if (route.query.returnUrl) {
-    returnUrl.value = decodeURIComponent(route.query.returnUrl)
+  id.value = getQueryNumber(route.query.id)
+  const encodedReturnUrl = getQueryString(route.query.returnUrl)
+  if (encodedReturnUrl) {
+    returnUrl.value = decodeURIComponent(encodedReturnUrl)
   }
   getDetail()
 })

@@ -262,7 +262,8 @@ const resetForm = () => {
     discountPrice: 0,
     totalPrice: 0,
     depositPrice: 0,
-    items: []
+    items: [],
+    no: undefined
   }
   formRef.value?.resetFields()
 }

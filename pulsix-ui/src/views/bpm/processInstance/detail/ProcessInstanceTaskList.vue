@@ -72,7 +72,7 @@ const props = defineProps({
 const tasks = ref([]) // 流程任务的数组
 
 /** 查看表单 */
-const fApi = ref<ApiAttrs>() // form-create 的 API 操作类
+const fApi = ref<any>() // form-create 的 API 操作类
 const taskForm = ref({
   rule: [],
   option: {},

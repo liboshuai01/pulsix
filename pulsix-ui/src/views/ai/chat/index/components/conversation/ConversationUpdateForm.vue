@@ -72,7 +72,12 @@ const message = useMessage() // 消息弹窗
 
 const dialogVisible = ref(false) // 弹窗的是否展示
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
-const formData = ref({
+type ConversationFormData = Pick<
+  ChatConversationVO,
+  'id' | 'systemMessage' | 'modelId' | 'temperature' | 'maxTokens' | 'maxContexts'
+>
+
+const createFormData = (): ConversationFormData => ({
   id: undefined,
   systemMessage: undefined,
   modelId: undefined,
@@ -80,6 +85,8 @@ const formData = ref({
   maxTokens: undefined,
   maxContexts: undefined
 })
+
+const formData = ref<ConversationFormData>(createFormData())
 const formRules = reactive({
   modelId: [{ required: true, message: '模型不能为空', trigger: 'blur' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'blur' }],
@@ -99,12 +106,14 @@ const open = async (id: number) => {
     formLoading.value = true
     try {
       const data = await ChatConversationApi.getChatConversationMy(id)
-      formData.value = Object.keys(formData.value).reduce((obj, key) => {
-        if (data.hasOwnProperty(key)) {
-          obj[key] = data[key]
-        }
-        return obj
-      }, {})
+      formData.value = {
+        id: data.id,
+        systemMessage: data.systemMessage,
+        modelId: data.modelId,
+        temperature: data.temperature,
+        maxTokens: data.maxTokens,
+        maxContexts: data.maxContexts
+      }
     } finally {
       formLoading.value = false
     }
@@ -135,14 +144,7 @@ const submitForm = async () => {
 
 /** 重置表单 */
 const resetForm = () => {
-  formData.value = {
-    id: undefined,
-    systemMessage: undefined,
-    modelId: undefined,
-    temperature: undefined,
-    maxTokens: undefined,
-    maxContexts: undefined
-  }
+  formData.value = createFormData()
   formRef.value?.resetFields()
 }
 </script>

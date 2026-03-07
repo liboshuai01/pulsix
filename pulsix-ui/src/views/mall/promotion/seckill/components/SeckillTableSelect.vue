@@ -180,7 +180,8 @@ const queryParams = ref({
   pageNo: 1,
   pageSize: 10,
   name: null,
-  status: undefined
+  status: undefined,
+  createTime: []
 })
 
 /** 打开弹窗 */
@@ -234,6 +235,7 @@ const resetQuery = () => {
     pageNo: 1,
     pageSize: 10,
     name: undefined,
+    status: undefined,
     createTime: []
   }
   getList()

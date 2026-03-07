@@ -24,8 +24,8 @@ export interface Demo03Student {
   sex?: number; // 性别
   birthday?: string | Dayjs; // 出生日期
   description?: string; // 简介
-  demo03courses?: Demo03Course[]
-  demo03grade?: Demo03Grade
+  demo03Courses?: Demo03Course[]
+  demo03Grade?: Demo03Grade
 }
 
 // 学生 API

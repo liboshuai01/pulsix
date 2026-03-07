@@ -51,7 +51,6 @@ import {
   ElMenu,
   ElMenuItem,
   ElFooter,
-  ElMessage,
   ElCollapse,
   ElCollapseItem,
   ElCard,
@@ -105,7 +104,6 @@ const components = [
   ElMenu,
   ElMenuItem,
   ElFooter,
-  ElMessage,
   // ElFormItem,
   // ElOption,
   UploadImg,
@@ -129,6 +127,6 @@ export const setupFormCreate = (app: App<Element>) => {
     app.component(component.name, component)
   })
   formCreate.use(install)
-  app.use(formCreate)
+  app.use(formCreate as any)
   app.use(FcDesigner)
 }

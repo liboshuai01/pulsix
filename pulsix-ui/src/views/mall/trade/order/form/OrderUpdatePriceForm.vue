@@ -55,7 +55,7 @@ const open = async (row: TradeOrderApi.OrderVO) => {
   resetForm()
   formData.value.id = row.id!
   // 设置数据
-  formData.value.adjustPrice = formatToFraction(row.adjustPrice!)
+  formData.value.adjustPrice = Number(formatToFraction(row.adjustPrice!))
   formData.value.payPrice = floatToFixed2(row.payPrice!) + '元'
   formData.value.newPayPrice = formData.value.payPrice
   dialogVisible.value = true

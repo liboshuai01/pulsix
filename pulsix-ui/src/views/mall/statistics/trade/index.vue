@@ -322,10 +322,10 @@ const getTradeStatisticsList = async () => {
   const list = await TradeStatisticsApi.getTradeStatisticsList({ times })
   // 处理数据
   for (let item of list) {
-    item.turnoverPrice = fenToYuan(item.turnoverPrice)
-    item.orderPayPrice = fenToYuan(item.orderPayPrice)
-    item.rechargePrice = fenToYuan(item.rechargePrice)
-    item.expensePrice = fenToYuan(item.expensePrice)
+    item.turnoverPrice = Number(fenToYuan(item.turnoverPrice))
+    item.orderPayPrice = Number(fenToYuan(item.orderPayPrice))
+    item.rechargePrice = Number(fenToYuan(item.rechargePrice))
+    item.expensePrice = Number(fenToYuan(item.expensePrice))
   }
   // 更新 Echarts 数据
   if (lineChartOptions.dataset && lineChartOptions.dataset['source']) {

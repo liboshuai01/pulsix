@@ -330,7 +330,8 @@ const formData = ref({
   subJoinColumnId: undefined,
   subJoinMany: undefined,
   treeParentColumnId: undefined,
-  treeNameColumnId: undefined
+  treeNameColumnId: undefined,
+  dataSourceConfigId: undefined
 })
 
 const rules = reactive({

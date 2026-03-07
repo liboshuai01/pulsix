@@ -9,6 +9,7 @@ export type LeaveVO = {
   startTime: string
   endTime: string
   createTime: string
+  startUserSelectAssignees?: Record<string, number[]>
 }
 
 // 创建请假申请

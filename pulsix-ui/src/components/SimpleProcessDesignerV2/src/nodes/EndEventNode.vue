@@ -74,7 +74,7 @@ const props = defineProps({
   }
 })
 // 监控节点变化
-const currentNode = useWatchNode(props)
+const currentNode = useWatchNode(props as { flowNode: SimpleFlowNode })
 // 是否只读
 const readonly = inject<Boolean>('readonly')
 const processInstance = inject<Ref<any>>('processInstance', ref({}))

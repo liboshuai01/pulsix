@@ -493,26 +493,21 @@ const validateData = (propertyList: any[]) => {
 }
 
 /** 构建所有排列组合 */
-const build = (propertyValuesList: Property[][]) => {
+const build = (propertyValuesList: Property[][]): Property[][] => {
   if (propertyValuesList.length === 0) {
     return []
-  } else if (propertyValuesList.length === 1) {
-    return propertyValuesList[0]
-  } else {
-    const result: Property[][] = []
-    const rest = build(propertyValuesList.slice(1))
-    for (let i = 0; i < propertyValuesList[0].length; i++) {
-      for (let j = 0; j < rest.length; j++) {
-        // 第一次不是数组结构，后面的都是数组结构
-        if (Array.isArray(rest[j])) {
-          result.push([propertyValuesList[0][i], ...rest[j]])
-        } else {
-          result.push([propertyValuesList[0][i], rest[j]])
-        }
-      }
-    }
-    return result
   }
+  if (propertyValuesList.length === 1) {
+    return propertyValuesList[0].map((property) => [property])
+  }
+  const result: Property[][] = []
+  const rest = build(propertyValuesList.slice(1))
+  for (const property of propertyValuesList[0]) {
+    for (const combination of rest) {
+      result.push([property, ...combination])
+    }
+  }
+  return result
 }
 
 /** 监听属性列表，生成相关参数和表头 */
@@ -578,7 +573,7 @@ const getSkuTableRef = () => {
 defineExpose({ generateTableData, validateSku, getSkuTableRef })
 </script>
 <style>
-// 避免滚动条遮挡最后一行数据
+/* 避免滚动条遮挡最后一行数据 */
 /*noinspection CssUnusedSymbol*/
 .el-table.tabNumWidth .el-scrollbar {
   padding-bottom: 10px;

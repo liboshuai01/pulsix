@@ -123,7 +123,7 @@ const createLogoCode = (canvasRef: HTMLCanvasElement) => {
     borderRadius = 8,
     logoRadius = 0
   } = logoOptions
-  const logoSrc = isString(props.logo) ? props.logo : props.logo.src
+  const logoSrc = isString(props.logo) ? props.logo : (props.logo as Partial<QrcodeLogo>).src ?? ''
   const logoWidth = canvasWidth * logoSize
   const logoXY = (canvasWidth * (1 - logoSize)) / 2
   const logoBgWidth = canvasWidth * (logoSize + borderSize)

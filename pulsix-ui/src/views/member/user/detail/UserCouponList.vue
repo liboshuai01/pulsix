@@ -121,8 +121,8 @@ const queryParams = reactive({
 })
 const queryFormRef = ref() // 搜索的表单
 
-const activeTab = ref('all') // Tab 筛选
-const statusTabs = reactive([
+const activeTab = ref<string | number>('all') // Tab 筛选
+const statusTabs = reactive<Array<{ label: string; value: string | number }>>([
   {
     label: '全部',
     value: 'all'
@@ -171,7 +171,7 @@ const handleDelete = async (id: number) => {
 }
 
 /** tab 切换 */
-const onTabChange = (tabName) => {
+const onTabChange = (tabName: string | number) => {
   queryParams.status = tabName === 'all' ? undefined : tabName
   getList()
 }
@@ -183,7 +183,7 @@ onMounted(() => {
   for (const dict of getIntDictOptions(DICT_TYPE.PROMOTION_COUPON_STATUS)) {
     statusTabs.push({
       label: dict.label,
-      value: dict.value as string
+      value: dict.value
     })
   }
 })
