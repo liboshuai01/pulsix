@@ -16,7 +16,7 @@
 1. 控制平台能完成场景、特征、规则、策略、发布、仿真、日志管理
 2. Flink 能消费发布后的快照并执行
 3. Redis 能承担名单、画像、热点 lookup 的职责
-4. Kafka 能清楚地区分事件流、配置流、决策流、日志流
+4. Kafka 能清楚地区分事件流、决策流、日志流；配置流默认走 MySQL CDC，按需再接 Kafka
 
 ---
 
@@ -886,7 +886,11 @@ pulsix.event.trade
 
 ---
 
-## D.11.2 配置快照 Topic
+## D.11.2 可选：配置快照 Topic
+
+先说明边界：**Flink CDC 从 MySQL 同步配置到 Flink，不需要先经过 Kafka。**
+
+如果你已经让 Flink 直接监听发布表，那么这一节里的 Topic 是可选增强项，不是必选基础设施。
 
 ```latex
 pulsix.config.snapshot
@@ -1054,9 +1058,12 @@ Redis 先只做：
 Kafka 先只保留：
 
 - `pulsix.event.raw`
-- `pulsix.config.snapshot`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
+
+如确实需要额外配置总线，再补：
+
+- `pulsix.config.snapshot`
 
 这样足够跑通 MVP。
 
@@ -1070,7 +1077,7 @@ Kafka 先只保留：
 - **发布中心能产出运行态快照**
 - **Flink 能拿到快照并执行**
 - **Redis 能承担在线 lookup**
-- **Kafka 能承载配置流、事件流、决策流、日志流**
+- **Kafka 能承载事件流、决策流、日志流；配置流默认由 MySQL CDC 直连**
 
 如果你后面进入真正编码阶段，我建议你最先落地的表是：
 

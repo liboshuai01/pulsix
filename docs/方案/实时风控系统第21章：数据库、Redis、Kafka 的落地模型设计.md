@@ -295,7 +295,7 @@
 正确方式是：
 
 - MySQL 存版本产物
-- 配置通过 Kafka 广播
+- 配置通过 MySQL CDC 或主动推送进入 Flink，Kafka 只作为可选总线
 - Flink 存 Broadcast State
 
 ---
@@ -543,12 +543,13 @@ Redis 不适合用来做：
 
 > **所有需要异步传播、解耦处理、顺序消费、扩展下游的流动数据，都优先通过 Kafka 来承载。**
 
-对于你的项目，一期建议 Kafka 至少承载下面 4 类流：
+对于你的项目，一期建议 Kafka 至少承载下面 3 类主流：
 
 1. 原始事件流
-2. 配置快照流
-3. 决策结果流
-4. 日志流
+2. 决策结果流
+3. 日志流
+
+配置快照流不属于 Flink CDC 的必需链路。更简单的做法，是让 Flink 直接通过 MySQL CDC 读取发布表；只有在需要额外解耦或多下游分发时，再把配置快照补到 Kafka。
 
 ---
 
@@ -584,7 +585,17 @@ Redis 不适合用来做：
 
 ---
 
-### 21.7.2 配置快照流 Topic
+### 21.7.2 可选：配置快照流 Topic
+
+先说明一个边界：**Flink CDC 同步 MySQL 配置到 Flink，不需要先经过 Kafka。**
+
+如果你让 Flink 直接订阅 `scene_release` 等发布表，那么配置快照就是直接从 MySQL 快照 + binlog 进入 Flink 的。
+
+只有在下面场景，才建议额外保留配置 Topic：
+
+- 需要把同一份配置同时分发给多个下游
+- 想把发布总线和数据库 CDC 解耦
+- 想统一做配置消息审计 / 回放
 
 建议：
 
@@ -840,13 +851,13 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 ### 21.11.3 Kafka
 
-先规划 5 类 Topic：
+先规划 4 类必需 Topic，外加 1 类可选 Topic：
 
 - `pulsix.event.raw`
-- `pulsix.config.snapshot`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
+- `pulsix.config.snapshot`（可选）
 
 ### 21.11.4 Flink
 
@@ -1014,10 +1025,10 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 建议至少有：
 
 - `pulsix.event.raw`
-- `pulsix.config.snapshot`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
+- `pulsix.config.snapshot`（可选）
 
 ### 4）Flink State 是流式中间态主场
 
@@ -1037,7 +1048,7 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 - MySQL 扛设计态和日志查询
 - Redis 扛名单与画像
-- Kafka 扛事件、配置、结果、日志流
+- Kafka 扛事件、结果、日志流；配置流默认可由 MySQL CDC 直连
 - Flink 扛状态计算和执行
 
 ---

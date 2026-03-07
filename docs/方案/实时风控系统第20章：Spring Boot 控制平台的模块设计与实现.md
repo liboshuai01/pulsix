@@ -558,7 +558,7 @@ cn.liboshuai.pulsix.module.risk
 - 组装发布上下文
 - 调用 snapshotCompiler
 - 持久化 scene\_release
-- 推送 config topic
+- 触发配置下发链路（优先 MySQL CDC，必要时再主动推送）
 - 写审计日志
 
 它通常不会自己干所有细节，而是调用一组协作者。
@@ -634,7 +634,7 @@ cn.liboshuai.pulsix.module.risk
 - KafkaProducerReleasePublisher
 - DbOnlyReleasePublisher（只落库）
 
-这样你就能灵活切换“直接推 Kafka”和“后续用 CDC”的策略。
+这样你就能灵活切换“只落库给 MySQL CDC 读取”和“额外主动推送”的策略。
 
 ---
 
@@ -988,7 +988,7 @@ public class ReleaseApplicationService {
 - 发布中心
 - 快照编译器
 - 依赖分析器
-- 推 Kafka / CDC 链路
+- 打通 MySQL CDC / 可选主动推送链路
 
 ### 第四阶段
 
