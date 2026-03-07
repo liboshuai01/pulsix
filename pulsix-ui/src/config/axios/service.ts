@@ -49,8 +49,9 @@ const service: AxiosInstance = axios.create({
 // request拦截器
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const headers = (config.headers || {}) as Record<string, any>
     // 是否需要设置 token
-    let isToken = (config!.headers || {}).isToken === false
+    let isToken = headers.isToken === false
     whiteList.some((v) => {
       if (config.url && config.url.indexOf(v) > -1) {
         return (isToken = false)
@@ -77,7 +78,7 @@ service.interceptors.request.use(
     }
     // 自定义参数序列化函数
     else if (method === 'POST') {
-      const contentType = config.headers['Content-Type'] || config.headers['content-type']
+      const contentType = headers['Content-Type'] || headers['content-type']
       if (contentType === 'application/x-www-form-urlencoded') {
         if (config.data && typeof config.data !== 'string') {
           config.data = qs.stringify(config.data)
@@ -85,7 +86,7 @@ service.interceptors.request.use(
       }
     }
     // 是否 API 加密
-    if ((config!.headers || {}).isEncrypt && !(config!.headers || {}).isEncrypted) {
+    if (headers.isEncrypt && !headers.isEncrypted) {
       try {
         // 加密请求数据
         if (config.data) {
@@ -169,8 +170,9 @@ service.interceptors.response.use(
             cb()
           })
           requestList = []
-          if ((config!.headers || {}).isEncrypt){
-            (config!.headers || {}).isEncrypted = true
+          const headers = (config.headers || {}) as Record<string, any>
+          if (headers.isEncrypt) {
+            headers.isEncrypted = true
           }
           return service(config)
         } catch (e) {

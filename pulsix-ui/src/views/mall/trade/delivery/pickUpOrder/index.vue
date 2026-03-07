@@ -231,9 +231,9 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 const message = useMessage() // 消息弹窗
 
-const port = ref('')
-const ports = ref([])
-const reader = ref('')
+const port = ref<SerialPortLike | null>(null)
+const ports = ref<SerialPortLike[]>([])
+const reader = ref<SerialReaderLike | null>(null)
 
 defineOptions({ name: 'PickUpOrder' })
 
@@ -334,27 +334,22 @@ const handlePickup = () => {
 /** 连接扫码枪 */
 const connectToSerialPort = async () => {
   try {
-    // 判断浏览器支持串口通信
-    if (
-      'serial' in navigator &&
-      navigator.serial != null &&
-      typeof navigator.serial === 'object' &&
-      'requestPort' in navigator.serial
-    ) {
-      // 提示用户选择一个串口
-      port.value = await navigator.serial.requestPort()
-    } else {
+    const navigatorSerial = navigator.serial
+    if (!navigatorSerial || typeof navigatorSerial.requestPort !== 'function') {
       message.error('浏览器不支持扫码枪连接，请更换浏览器重试')
       return
     }
 
+    const selectedPort = await navigatorSerial.requestPort()
+    port.value = selectedPort
+
     // 获取用户之前授予该网站访问权限的所有串口。
-    ports.value = await navigator.serial.getPorts()
+    ports.value = await navigatorSerial.getPorts()
 
     // console.log(port.value, ports.value);
     // console.log(port.value)
     // 等待串口打开
-    await port.value.open({ baudRate: 9600, dataBits: 8, stopBits: 2 })
+    await selectedPort.open({ baudRate: 9600, dataBits: 8, stopBits: 2 })
 
     // console.log(typeof port.value);
     message.success('成功连接扫码枪')
@@ -369,14 +364,19 @@ const connectToSerialPort = async () => {
 
 /** 监听扫码枪输入 */
 const readData = async () => {
-  reader.value = port.value.readable.getReader()
+  const currentPort = port.value
+  if (!currentPort?.readable) {
+    return
+  }
+  const currentReader = currentPort.readable.getReader()
+  reader.value = currentReader
   let data = '' //扫码数据
   // 监听来自串口的数据
   while (true) {
-    const { value, done } = await reader.value.read()
+    const { value, done } = await currentReader.read()
     if (done) {
       // 允许稍后关闭串口
-      reader.value.releaseLock()
+      currentReader.releaseLock()
       break
     }
     // 获取发送的数据
@@ -395,10 +395,12 @@ const readData = async () => {
 
 /** 断开扫码枪 */
 const cutPort = async () => {
-  if (port.value !== '') {
-    await reader.value.cancel()
-    await port.value.close()
-    port.value = ''
+  const currentPort = port.value
+  if (currentPort) {
+    await reader.value?.cancel()
+    await currentPort.close()
+    port.value = null
+    reader.value = null
     console.log('断开扫码枪连接')
     message.success('已成功断开扫码枪连接')
     serialPort.value = false

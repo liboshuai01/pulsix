@@ -157,7 +157,7 @@ const props = defineProps({
 })
 
 const processCanvas = ref()
-const bpmnViewer = ref<BpmnViewer | null>(null)
+const bpmnViewer = ref<any>(null)
 const customDefs = ref()
 const defaultZoom = ref(1) // 默认缩放比例
 const isLoading = ref(false) // 是否加载中
@@ -262,8 +262,8 @@ const importXML = async (xml: string) => {
         container: processCanvas.value
       })
       // 增加点击事件
-      bpmnViewer.value.on('element.click', ({ element }) => {
-        onSelectElement(element)
+      bpmnViewer.value.on('element.click', (event: any) => {
+        onSelectElement(event.element)
       })
 
       // 初始化 BPMN 视图

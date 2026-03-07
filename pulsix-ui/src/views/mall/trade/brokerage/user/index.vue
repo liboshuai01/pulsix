@@ -289,7 +289,7 @@ const openUpdateBindUserForm = (row: BrokerageUserApi.BrokerageUserVO) => {
 }
 
 /** 创建分销员 */
-const createFormRef = ref<InstanceType<typeof CreateUserForm>>()
+const createFormRef = ref<InstanceType<typeof BrokerageUserCreateForm>>()
 const openCreateUserForm = () => {
   createFormRef.value?.open()
 }

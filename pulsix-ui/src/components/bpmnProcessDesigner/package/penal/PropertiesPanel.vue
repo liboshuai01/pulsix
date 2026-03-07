@@ -272,7 +272,7 @@ function updateNode() {
   const elementRegistry = window.bpmnInstances?.elementRegistry
   if (!moddle || !modeling || !elementRegistry) return
 
-  const element = elementRegistry.get(props.businessObject.id)
+  const element = elementRegistry.get(elementBusinessObject.value?.id)
   if (!element) return
 
   let timerDef = moddle.create('bpmn:TimerEventDefinition', {})
@@ -291,8 +291,8 @@ function updateNode() {
 
 // 初始化和监听
 function syncFromBusinessObject() {
-  if (props.businessObject) {
-    const timerDef = (props.businessObject.eventDefinitions || [])[0]
+  if (elementBusinessObject.value) {
+    const timerDef = (elementBusinessObject.value.eventDefinitions || [])[0]
     if (timerDef) {
       if (timerDef.timeDate) {
         type.value = 'time'
@@ -308,5 +308,5 @@ function syncFromBusinessObject() {
   }
 }
 onMounted(syncFromBusinessObject)
-watch(() => props.businessObject, syncFromBusinessObject, { deep: true })
+watch(() => elementBusinessObject.value, syncFromBusinessObject, { deep: true })
 </script>

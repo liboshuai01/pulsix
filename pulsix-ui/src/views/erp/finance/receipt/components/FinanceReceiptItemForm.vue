@@ -77,18 +77,18 @@ import { ErpBizType } from '@/utils/constants'
 import { SaleReturnVO } from '@/api/erp/sale/return'
 
 const props = defineProps<{
-  items: undefined
-  customerId: undefined
-  disabled: false
+  items: any[]
+  customerId: number | undefined
+  disabled: boolean
 }>()
 const message = useMessage()
 
 const formLoading = ref(false) // 表单的加载中
-const formData = ref([])
+const formData = ref<any[]>([])
 const formRules = reactive({
   receiptPrice: [{ required: true, message: '本次收款不能为空', trigger: 'blur' }]
 })
-const formRef = ref([]) // 表单 Ref
+const formRef = ref<any>() // 表单 Ref
 const productList = ref<ProductVO[]>([]) // 产品列表
 
 /** 初始化设置出库项 */
@@ -128,7 +128,7 @@ const handleOpenSaleOut = () => {
   }
   saleOutReceiptEnableListRef.value.open(props.customerId)
 }
-const handleAddSaleOut = (rows: SaleOutVO[]) => {
+const handleAddSaleOut = (rows: any[]) => {
   rows.forEach((row) => {
     formData.value.push({
       bizId: row.id,
@@ -150,7 +150,7 @@ const handleOpenSaleReturn = () => {
   }
   saleReturnRefundEnableListRef.value.open(props.customerId)
 }
-const handleAddSaleReturn = (rows: SaleReturnVO[]) => {
+const handleAddSaleReturn = (rows: any[]) => {
   rows.forEach((row) => {
     formData.value.push({
       bizId: row.id,

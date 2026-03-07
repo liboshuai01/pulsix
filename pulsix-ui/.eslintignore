@@ -6,3 +6,6 @@
 /node_modules/*
 /dist*
 /src/main.ts
+/src/components/Tinyflow/ui/**/*.js
+/src/**/*.umd.js
+/src/**/*.min.js

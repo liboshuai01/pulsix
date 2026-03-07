@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": true,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "tsBuildInfoFile": "./node_modules/.cache/vue-tsc/tsconfig.check.tsbuildinfo"
+  },
+  "vueCompilerOptions": {
+    "strictTemplates": false,
+    "skipTemplateCodegen": true
+  },
+  "exclude": [
+    "dist",
+    "target",
+    "node_modules",
+    "src/components/Tinyflow/ui/**/*.js",
+    "src/**/*.umd.js",
+    "src/**/*.min.js"
+  ]
+}

@@ -23,6 +23,8 @@
     "paths": {
       "@/*": ["src/*"]
     },
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
     "types": [
       // "@intlify/unplugin-vue-i18n/types",
       "vite/client"
@@ -35,9 +37,14 @@
   },
   "include": [
     "src",
-    "types/**/*.d.ts",
-    "src/types/auto-imports.d.ts",
-    "src/types/auto-components.d.ts"
+    "types/**/*.d.ts"
   ],
-  "exclude": ["dist", "target", "node_modules"]
+  "exclude": [
+    "dist",
+    "target",
+    "node_modules",
+    "src/components/Tinyflow/ui/**/*.js",
+    "src/**/*.umd.js",
+    "src/**/*.min.js"
+  ]
 }

@@ -48,5 +48,9 @@ dist-ssr
 /dist*
 pnpm-debug
 auto-*.d.ts
+pulsix-ui/.eslintcache
+pulsix-ui/dist-test/
+!pulsix-ui/types/auto-imports.d.ts
+!pulsix-ui/types/auto-components.d.ts
 .idea
 .history
