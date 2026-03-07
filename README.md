@@ -1,392 +1,316 @@
-<p align="center">
- <img src="https://img.shields.io/badge/Spring%20Boot-3.4.5-blue.svg" alt="Downloads">
- <img src="https://img.shields.io/badge/Vue-3.2-blue.svg" alt="Downloads">
- <img src="https://img.shields.io/github/license/YunaiV/ruoyi-vue-pro" alt="Downloads" />
-</p>
+# Pulsix（脉流）
 
-**严肃声明：现在、未来都不会有商业版本，所有代码全部开源!！**
-
-**「我喜欢写代码，乐此不疲」**  
-**「我喜欢做开源，以此为乐」**
-
-我 🐶 在上海艰苦奋斗，早中晚在 top3 大厂认真搬砖，夜里为开源做贡献。
-
-如果这个项目让你有所收获，记得 Star 关注哦，这对我是非常不错的鼓励与支持。
-
-## 🐶 新手必读
-
-* 演示地址【Vue3 + element-plus】：<http://dashboard-vue3.pulsix.iocoder.cn>
-* 演示地址【Vue3 + vben(ant-design-vue)】：<http://dashboard-vben.pulsix.iocoder.cn>
-* 演示地址【Vue2 + element-ui】：<http://dashboard.pulsix.iocoder.cn>
-* 启动文档：<https://doc.iocoder.cn/quick-start/>
-* 视频教程：<https://doc.iocoder.cn/video/>
-
-## 🐰 版本说明
-
-| 版本                                                                  | JDK 8 + Spring Boot 2.7                                                   | JDK 17/21 + Spring Boot 3.2                                                           |
-|---------------------------------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| 【完整版】[ruoyi-vue-pro](https://gitee.com/zhijiantianya/ruoyi-vue-pro) | [`master`](https://gitee.com/zhijiantianya/ruoyi-vue-pro/tree/master/) 分支 | [`master-jdk17`](https://gitee.com/zhijiantianya/ruoyi-vue-pro/tree/master-jdk17/) 分支 |
-| 【精简版】[pulsix-boot-mini](https://gitee.com/pulsixcode/pulsix-boot-mini) | [`master`](https://gitee.com/pulsixcode/pulsix-boot-mini/tree/master/) 分支   | [`master-jdk17`](https://gitee.com/pulsixcode/pulsix-boot-mini/tree/master-jdk17/) 分支   |
-
-* 【完整版】：包括系统功能、基础设施、会员中心、数据报表、工作流程、商城系统、微信公众号、CRM、ERP 等功能
-* 【精简版】：只包括系统功能、基础设施功能，不包括会员中心、数据报表、工作流程、商城系统、微信公众号、CRM、ERP 等功能
-
-可参考 [《迁移文档》](https://doc.iocoder.cn/migrate-module/) ，只需要 5-10 分钟，即可将【完整版】按需迁移到【精简版】
-
-## 🐯 平台简介
-
-**芋道**，以开发者为中心，打造中国第一流的快速开发平台，全部开源，个人与企业可 100% 免费使用。
-
-> 有任何问题，或者想要的功能，可以在 _Issues_ 中提给艿艿。
+> 基于 `Spring Boot 3.5`、`Flink 1.20`、`Vue 3` 的实时风控平台。
 >
-> 😜 给项目点点 Star 吧，这对我们真的很重要！
+> 本仓库以 `docs/方案` 下的设计文档为蓝图，围绕“控制面 + 计算面 + 分析面”构建一套可发布、可追溯、可仿真、可演进的实时风控系统。
 
-![架构图](/.image/common/ruoyi-vue-pro-architecture.png)
+## 项目定位
 
-* Java 后端：`master` 分支为 JDK 8 + Spring Boot 2.7，`master-jdk17` 分支为 JDK 17/21 + Spring Boot 3.2
-* 管理后台的电脑端：Vue3 提供 `element-plus`、`vben(ant-design-vue)` 两个版本，Vue2 提供 `element-ui` 版本
-* 管理后台的移动端：采用 `uni-app` 方案，一份代码多终端适配，同时支持 APP、小程序、H5！
-* 后端采用 Spring Boot 多模块架构、MySQL + MyBatis Plus、Redis + Redisson
-* 数据库可使用 MySQL、Oracle、PostgreSQL、SQL Server、MariaDB、国产达梦 DM、TiDB 等
-* 消息队列可使用 Event、Redis、RabbitMQ、Kafka、RocketMQ 等
-* 权限认证使用 Spring Security & Token & Redis，支持多终端、多种用户的认证系统，支持 SSO 单点登录
-* 支持加载动态权限菜单，按钮级别权限控制，Redis 缓存提升性能
-* 支持 SaaS 多租户，可自定义每个租户的权限，提供透明化的多租户底层封装
-* 工作流使用 Flowable，支持动态表单、在线设计流程、会签 / 或签、多种任务分配方式
-* 高效率开发，使用代码生成器可以一键生成 Java、Vue 前后端代码、SQL 脚本、接口文档，支持单表、树表、主子表
-* 实时通信，采用 Spring WebSocket 实现，内置 Token 身份校验，支持 WebSocket 集群
-* 集成微信小程序、微信公众号、企业微信、钉钉等三方登陆，集成支付宝、微信等支付与退款
-* 集成阿里云、腾讯云等短信渠道，集成 MinIO、阿里云、腾讯云、七牛云等云存储服务
-* 集成报表设计器、大屏设计器，通过拖拽即可生成酷炫的报表与大屏
+`Pulsix` 不是普通的 CRUD 后台，也不是只靠几条表达式拼起来的规则引擎。
 
-##  🐳 项目关系
+按照 `docs/方案` 中的整体设计，它要解决的是一类更完整的实时决策问题：
 
-![架构演进](/.image/common/pulsix-roadmap.png)
+- 以事件驱动，而不是以页面表单驱动
+- 以状态和上下文决策，而不是只看当前一条记录
+- 以“设计态 / 运行态”分离为前提，而不是直接让引擎读取多张配置表
+- 以运行时快照发布为核心，而不是“改表即上线”
+- 以可解释、可审计、可回放、可回滚为平台能力，而不只是单点规则执行
 
-三个项目的功能对比，可见社区共同整理的 [国产开源项目对比](https://www.yuque.com/xiatian-bsgny/lm0ec1/wqf8mn) 表格。
+当前仓库仍处在从通用后台脚手架向风控平台演进的过程中：
 
-### 后端项目
+- `system / infra / ui / server` 已具备较完整的基础能力
+- `risk / kernel / engine` 已完成模块占位和依赖边界定义
+- 风控主链路将按 `docs/方案` 的章节设计逐步落地
 
-| 项目                                                              | Star                                                                                                                                                                                                                                                                                             | 简介                          |
-|-----------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
-| [ruoyi-vue-pro](https://gitee.com/zhijiantianya/ruoyi-vue-pro)  | [![Gitee star](https://gitee.com/zhijiantianya/ruoyi-vue-pro/badge/star.svg?theme=white)](https://gitee.com/zhijiantianya/ruoyi-vue-pro) [![GitHub stars](https://img.shields.io/github/stars/YunaiV/ruoyi-vue-pro.svg?style=social&label=Stars)](https://github.com/YunaiV/ruoyi-vue-pro)       | 基于 Spring Boot 多模块架构        |
-| [pulsix-cloud](https://gitee.com/zhijiantianya/pulsix-cloud)      | [![Gitee star](https://gitee.com/zhijiantianya/pulsix-cloud/badge/star.svg?theme=white)](https://gitee.com/zhijiantianya/pulsix-cloud) [![GitHub stars](https://img.shields.io/github/stars/YunaiV/pulsix-cloud.svg?style=social&label=Stars)](https://github.com/YunaiV/pulsix-cloud)               | 基于 Spring Cloud 微服务架构       |
-| [Spring-Boot-Labs](https://gitee.com/pulsixcode/SpringBoot-Labs) | [![Gitee star](https://gitee.com/pulsixcode/SpringBoot-Labs/badge/star.svg?theme=white)](https://gitee.com/zhijiantianya/pulsix-cloud) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/SpringBoot-Labs.svg?style=social&label=Stars)](https://github.com/pulsixcode/SpringBoot-Labs) | 系统学习 Spring Boot & Cloud 专栏 |
+换句话说，这个仓库既包含**当前可运行的基础底座**，也包含**目标风控平台的架构方向**。
 
-### 前端项目
+## 核心设计原则
 
-| 项目                                                                         | Star                                                                                                                                                                                                                                                                                                                     | 简介                                     |
-|----------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
-| [pulsix-ui-admin-vue3](https://gitee.com/pulsixcode/pulsix-ui-admin-vue3)     | [![Gitee star](https://gitee.com/pulsixcode/pulsix-ui-admin-vue3/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-ui-admin-vue3) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-ui-admin-vue3.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-ui-admin-vue3)         | 基于 Vue3 + element-plus 实现的管理后台         |
-| [pulsix-ui-admin-vben](https://gitee.com/pulsixcode/pulsix-ui-admin-vben)     | [![Gitee star](https://gitee.com/pulsixcode/pulsix-ui-admin-vben/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-ui-admin-vben) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-ui-admin-vben.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-ui-admin-vben)         | 基于 Vue3 + vben(ant-design-vue) 实现的管理后台 |
-| [pulsix-mall-uniapp](https://gitee.com/pulsixcode/pulsix-mall-uniapp)         | [![Gitee star](https://gitee.com/pulsixcode/pulsix-mall-uniapp/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-mall-uniapp) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-mall-uniapp.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-mall-uniapp)                 | 基于 uni-app 实现的商城小程序                    |
-| [pulsix-ui-admin-vue2](https://gitee.com/pulsixcode/pulsix-ui-admin-vue2)     | [![Gitee star](https://gitee.com/pulsixcode/pulsix-ui-admin-vue2/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-ui-admin-vue2) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-ui-admin-vue2.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-ui-admin-vue2)         | 基于 Vue2 + element-ui 实现的管理后台           |
-| [pulsix-ui-admin-uniapp](https://gitee.com/pulsixcode/pulsix-ui-admin-uniapp) | [![Gitee star](https://gitee.com/pulsixcode/pulsix-ui-admin-uniapp/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-ui-admin-uniapp) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-ui-admin-uniapp.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-ui-admin-uniapp) | 基于 Vue2 + element-ui 实现的管理后台           |
-| [pulsix-ui-go-view](https://gitee.com/pulsixcode/pulsix-ui-go-view)           | [![Gitee star](https://gitee.com/pulsixcode/pulsix-ui-go-view/badge/star.svg?theme=white)](https://gitee.com/pulsixcode/pulsix-ui-go-view) [![GitHub stars](https://img.shields.io/github/stars/pulsixcode/pulsix-ui-go-view.svg?style=social&label=Stars)](https://github.com/pulsixcode/pulsix-ui-go-view)                     | 基于 Vue3 + naive-ui 实现的大屏报表             |
+### 1. 控制面、计算面、分析面分离
 
-## 😎 开源协议
+- **控制面**：定义场景、事件模型、特征、名单、规则、策略，完成校验、依赖分析、发布和仿真
+- **计算面**：消费事件流和快照流，维护状态，执行实时特征与规则策略，输出决策结果
+- **分析面**：承接日志、指标、命中明细、版本效果分析与运维观测
 
-**为什么推荐使用本项目？**
+### 2. 设计态与运行态分离
 
-① 本项目采用比 Apache 2.0 更宽松的 [MIT License](https://gitee.com/zhijiantianya/ruoyi-vue-pro/blob/master/LICENSE) 开源协议，个人与企业可 100% 免费使用，不用保留类作者、Copyright 信息。
+后台管理的是结构化设计对象；引擎执行的是发布后生成的 `SceneSnapshot`。这意味着：
 
-② 代码全部开源，不会像其他项目一样，只开源部分代码，让你无法了解整个项目的架构设计。[国产开源项目对比](https://www.yuque.com/xiatian-bsgny/lm0ec1/wqf8mn)
+- Flink 不直接拼装几十张配置表
+- 历史决策能够准确追溯到具体版本
+- 配置发布、回滚、恢复都有明确边界
 
-![开源项目对比](/.image/common/project-vs.png)
+### 3. 仿真与线上尽量复用同一套执行内核
 
-③ 代码整洁、架构整洁，遵循《阿里巴巴 Java 开发手册》规范，代码注释详细，113770 行 Java 代码，42462 行代码注释。
+统一执行内核是平台可信度的基础。目标状态下：
 
-## 🤝 项目外包
+- 控制平台仿真使用同一套规则执行核心
+- Flink 线上执行也复用同一套核心能力
+- 避免“仿真命中、线上不命中”的双实现偏差
 
-我们也是接外包滴，如果你有项目想要外包，可以微信联系【**Aix9975**】。
+### 4. 先打通主链路，再扩展能力面
 
-团队包含专业的项目经理、架构师、前端工程师、后端工程师、测试工程师、运维工程师，可以提供全流程的外包服务。
+仓库优先落地的主线是：
 
-项目可以是商城、SCRM 系统、OA 系统、物流系统、ERP 系统、CMS 系统、HIS 系统、支付系统、IM 聊天、微信公众号、微信小程序等等。
+`场景配置 -> 快照发布 -> 事件进入 -> 特征计算 -> 规则执行 -> 策略收敛 -> 决策输出 -> 日志分析`
 
-## 🐼 内置功能
+## 总体架构
 
-系统内置多种多种业务功能，可以用于快速你的业务系统：
+```mermaid
+flowchart LR
+    UI[Vue3 控制台] --> SERVER[pulsix-server\n控制平台]
+    SERVER --> MYSQL[(MySQL\n元数据 / 发布记录 / 查询库)]
+    SERVER --> SNAPSHOT[运行时快照\nSceneSnapshot]
 
-![功能分层](/.image/common/ruoyi-vue-pro-biz.png)
+    BIZ[业务系统 / Mock / HTTP Ingest] --> EVENT[Kafka Event Topic]
+    SNAPSHOT --> CONFIG[MySQL CDC / Kafka Snapshot Topic]
 
-* 通用模块（必选）：系统功能、基础设施
-* 通用模块（可选）：工作流程、支付系统、数据报表、会员中心
-* 业务系统（按需）：ERP 系统、CRM 系统、商城系统、微信公众号、AI 大模型
+    EVENT --> ENGINE[pulsix-engine\nFlink 决策引擎]
+    CONFIG --> ENGINE
+    ENGINE --> REDIS[(Redis\n名单 / 画像 / Lookup)]
+    ENGINE --> DECISION[Kafka Decision Topic]
+    ENGINE --> LOG[Kafka Log Topic]
 
-> 友情提示：本项目基于 RuoYi-Vue 修改，**重构优化**后端的代码，**美化**前端的界面。
+    DECISION --> ANALYSIS[日志查询 / 分析 / Dashboard]
+    LOG --> ANALYSIS
+    ANALYSIS --> UI
+```
+
+从职责上看，这套系统的核心分工非常明确：
+
+- `pulsix-server` 负责定义和发布逻辑
+- `pulsix-engine` 负责执行逻辑
+- 查询分析链路负责解释逻辑和观测逻辑
+
+## 核心领域模型
+
+`docs/方案` 将风控平台抽象为一组稳定的领域对象，整个项目都会围绕这些对象组织：
+
+| 对象 | 说明 |
+| --- | --- |
+| `Scene` | 场景，风控能力的一级组织边界，如登录风控、注册反作弊、交易风控 |
+| `Event` | 事件，实时决策的输入起点 |
+| `Entity` | 决策关注的主体，如用户、设备、手机号、IP、银行卡 |
+| `Feature` | 特征，来自流式统计、实时查询或派生计算的风险观测值 |
+| `List` | 名单，黑名单、白名单、灰名单或高风险集合 |
+| `Rule` | 规则，对事件和特征做判断的最小逻辑单元 |
+| `Policy` | 策略，对多条规则进行收敛，产出最终动作 |
+| `Decision` | 决策结果，包含动作、命中规则、命中原因、版本、耗时等信息 |
+| `SceneSnapshot` | 运行时快照，设计态配置编译后的可执行版本 |
+
+一个统一的决策抽象可以表示为：
+
+```text
+Decision = Policy(Event + StreamFeatures + LookupFeatures + Context)
+```
+
+## 技术栈
+
+| 层次 | 技术选型 |
+| --- | --- |
+| 后端控制平台 | `Spring Boot 3.5.9`、`MyBatis-Plus`、`Druid`、`Redis` |
+| 实时计算引擎 | `Apache Flink 1.20.3`、`Kafka`、`MySQL CDC` |
+| 表达式 / 规则 | `Aviator`、`Groovy` |
+| 前端控制台 | `Vue 3`、`Vite 5`、`TypeScript`、`Element Plus` |
+| 元数据与查询存储 | `MySQL 8` |
+| 实时查询 / 名单 / 热点特征 | `Redis` |
+| 构建方式 | `Maven` 多模块、`pnpm` |
+
+## 仓库结构
+
+```text
+pulsix/
+├── docs/
+│   ├── 方案/
+│   └── sql/
+├── pulsix-dependencies/
+├── pulsix-framework/
+│   ├── pulsix-common/
+│   ├── pulsix-kernel/
+│   └── pulsix-spring-boot-starter-*/
+├── pulsix-server/
+├── pulsix-module-system/
+├── pulsix-module-infra/
+├── pulsix-module-risk/
+├── pulsix-engine/
+└── pulsix-ui/
+```
+
+各模块职责如下：
+
+| 模块 | 当前状态 | 职责 |
+| --- | --- | --- |
+| `pulsix-dependencies` | 已可用 | 统一 BOM 与版本管理 |
+| `pulsix-framework/pulsix-common` | 已可用 | 公共工具、通用 DTO、基础枚举与错误码 |
+| `pulsix-framework/pulsix-kernel` | 骨架阶段 | 统一规则执行内核，目标供仿真与 Flink 共用 |
+| `pulsix-framework/pulsix-spring-boot-starter-*` | 已可用 | Web、安全、Redis、MQ、任务、监控等基础组件 |
+| `pulsix-module-system` | 已可用 | 用户、角色、菜单、租户、通知等系统域能力 |
+| `pulsix-module-infra` | 已可用 | 配置、文件、代码生成、任务、日志等基础设施能力 |
+| `pulsix-module-risk` | 模块已创建 | 风控控制面核心业务：场景、特征、名单、规则、策略、发布、仿真、日志 |
+| `pulsix-server` | 已可启动 | Spring Boot 启动器，当前主要聚合 `system` 与 `infra` |
+| `pulsix-engine` | 模块已创建 | Flink 实时风控引擎，依赖和打包方式已定义 |
+| `pulsix-ui` | 已可启动 | 控制台前端，当前保留通用管理后台能力 |
+
+## 当前进度
+
+以下状态以当前仓库代码为准，而不是以规划目标为准：
+
+- [x] Maven 多模块工程骨架已建立
+- [x] `system / infra / server / ui` 基线能力可用
+- [x] `docs/方案` 已形成完整的架构、领域、快照、执行、测试与部署设计文档
+- [x] `pulsix-module-risk`、`pulsix-engine`、`pulsix-kernel` 已完成模块边界占位
+- [ ] 风控域数据模型与控制面 CRUD
+- [ ] 运行时快照编译器与发布中心
+- [ ] 控制平台仿真能力
+- [ ] Flink 最小执行链路
+- [ ] 决策日志、回滚、Dashboard 与监控闭环
+
+这意味着：**当前仓库适合先验证基础底座和工程结构，风控主链路仍在按文档逐步实现。**
+
+## 快速开始（当前仓库）
+
+> 当前仓库以“本地开发模式”为主。
 >
-> * 额外新增的功能，我们使用 🚀 标记。
-> * 重新实现的功能，我们使用 ⭐️ 标记。
+> `risk / engine` 主链路尚未完全落地，因此下面的步骤主要用于启动现有基础底座，而不是完整风控演示环境。
 
-🙂 所有功能，都通过 **单元测试** 保证高质量。
+### 1. 准备环境
 
-### 系统功能
+- `JDK 17`
+- `Maven 3.9+`
+- `Node.js >= 16`，推荐 `Node.js 20`
+- `pnpm >= 8.6`
+- `MySQL 8.x`
+- `Redis 7.x`
 
-|     | 功能    | 描述                              |
-|-----|-------|---------------------------------|
-|     | 用户管理  | 用户是系统操作者，该功能主要完成系统用户配置          |
-| ⭐️  | 在线用户  | 当前系统中活跃用户状态监控，支持手动踢下线           |
-|     | 角色管理  | 角色菜单权限分配、设置角色按机构进行数据范围权限划分      |
-|     | 菜单管理  | 配置系统菜单、操作权限、按钮权限标识等，本地缓存提供性能    |
-|     | 部门管理  | 配置系统组织机构（公司、部门、小组），树结构展现支持数据权限  |
-|     | 岗位管理  | 配置系统用户所属担任职务                    |
-| 🚀  | 租户管理  | 配置系统租户，支持 SaaS 场景下的多租户功能        |
-| 🚀  | 租户套餐  | 配置租户套餐，自定每个租户的菜单、操作、按钮的权限       |
-|     | 字典管理  | 对系统中经常使用的一些较为固定的数据进行维护          |
-| 🚀  | 短信管理  | 短信渠道、短息模板、短信日志，对接阿里云、腾讯云等主流短信平台 |
-| 🚀  | 邮件管理  | 邮箱账号、邮件模版、邮件发送日志，支持所有邮件平台       |
-| 🚀  | 站内信   | 系统内的消息通知，提供站内信模版、站内信消息          |
-| 🚀  | 操作日志  | 系统正常操作日志记录和查询，集成 Swagger 生成日志内容 |
-| ⭐️  | 登录日志  | 系统登录日志记录查询，包含登录异常               |
-| 🚀  | 错误码管理 | 系统所有错误码的管理，可在线修改错误提示，无需重启服务     |
-|     | 通知公告  | 系统通知公告信息发布维护                    |
-| 🚀  | 敏感词   | 配置系统敏感词，支持标签分组                  |
-| 🚀  | 应用管理  | 管理 SSO 单点登录的应用，支持多种 OAuth2 授权方式 |
-| 🚀  | 地区管理  | 展示省份、城市、区镇等城市信息，支持 IP 对应城市      |
+后续当 `pulsix-engine` 落地时，再补充：
 
-![功能图](/.image/common/system-feature.png)
+- `Kafka`
+- `Flink`
 
-### 工作流程
+### 2. 初始化数据库
 
-![功能图](/.image/common/bpm-feature.png)
+当前仓库已提供基础系统与基础设施 SQL：
 
-基于 Flowable 构建，可支持信创（国产）数据库，满足中国特色流程操作：
+- `docs/sql/pulsix-system-infra.sql`
 
-| BPMN 设计器                     | 钉钉/飞书设计器                       |
-|------------------------------|--------------------------------|
-| ![](/.image/工作流设计器-bpmn.jpg) | ![](/.image/工作流设计器-simple.jpg) |
+示例：
 
-> 历经头部企业生产验证，工作流引擎须标配仿钉钉/飞书 + BPMN 双设计器！！！
->
-> 前者支持轻量配置简单流程，后者实现复杂场景深度编排
+```bash
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS pulsix DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -uroot -p pulsix < docs/sql/pulsix-system-infra.sql
+```
 
-| 功能列表       | 功能描述                                                                                | 是否完成 |
-|------------|-------------------------------------------------------------------------------------|------|
-| SIMPLE 设计器 | 仿钉钉/飞书设计器，支持拖拽搭建表单流程，10 分钟快速完成审批流程配置                                                | ✅    |
-| BPMN 设计器   | 基于 BPMN 标准开发，适配复杂业务场景，满足多层级审批及流程自动化需求                                               | ✅    |
-| 会签         | 同一个审批节点设置多个人（如 A、B、C 三人，三人会同时收到待办任务），需全部同意之后，审批才可到下一审批节点                            | ✅    |
-| 或签         | 同一个审批节点设置多个人，任意一个人处理后，就能进入下一个节点                                                     | ✅    |
-| 依次审批       | （顺序会签）同一个审批节点设置多个人（如 A、B、C 三人），三人按顺序依次收到待办，即 A 先审批，A 提交后 B 才能审批，需全部同意之后，审批才可到下一审批节点 | ✅    |
-| 抄送         | 将审批结果通知给抄送人，同一个审批默认排重，不重复抄送给同一人                                                     | ✅    |
-| 驳回         | （退回）将审批重置发送给某节点，重新审批。可驳回至发起人、上一节点、任意节点                                              | ✅    |
-| 转办         | A 转给其 B 审批，B 审批后，进入下一节点                                                             | ✅    |
-| 委派         | A 转给其 B 审批，B 审批后，转给 A，A 继续审批后进入下一节点                                                 | ✅    |
-| 加签         | 允许当前审批人根据需要，自行增加当前节点的审批人，支持向前、向后加签                                                  | ✅    |
-| 减签         | （取消加签）在当前审批人操作之前，减少审批人                                                              | ✅    |
-| 撤销         | （取消流程）流程发起人，可以对流程进行撤销处理                                                             | ✅    |
-| 终止         | 系统管理员，在任意节点终止流程实例                                                                   | ✅    |
-| 表单权限       | 支持拖拉拽配置表单，每个审批节点可配置只读、编辑、隐藏权限                                                       | ✅    |
-| 超时审批       | 配置超时审批时间，超时后自动触发审批通过、不通过、驳回等操作                                                      | ✅    |
-| 自动提醒       | 配置提醒时间，到达时间后自动触发短信、邮箱、站内信等通知提醒，支持自定义重复提醒频次                                          | ✅    |
-| 父子流程       | 主流程设置子流程节点，子流程节点会自动触发子流程。子流程结束后，主流程才会执行（继续往下下执行），支持同步子流程、异步子流程                      | ✅    |
-| 条件分支       | （排它分支）用于在流程中实现决策，即根据条件选择一个分支执行                                                      | ✅    |
-| 并行分支       | 允许将流程分成多条分支，不进行条件判断，所有分支都会执行                                                        | ✅    |
-| 包容分支       | （条件分支 + 并行分支的结合体）允许基于条件选择多条分支执行，但如果没有任何一个分支满足条件，则可以选择默认分支                           | ✅    |
-| 路由分支       | 根据条件选择一个分支执行（重定向到指定配置节点），也可以选择默认分支执行（继续往下执行）                                        | ✅    |
-| 触发节点       | 执行到该节点，触发 HTTP 请求、HTTP 回调、更新数据、删除数据等                                                | ✅    |
-| 延迟节点       | 执行到该节点，审批等待一段时间再执行，支持固定时长、固定日期等                                                     | ✅    |
-| 拓展设置       | 流程前置/后置通知，节点（任务）前置、后置通知，流程报表，自动审批去重，自定流程编号、标题、摘要，流程报表等                              | ✅    |
+注意：
 
-### 支付系统
+- 当前 SQL 主要覆盖 `system` 和 `infra` 基线表
+- 风控域 DDL 会随着 `pulsix-module-risk` 的实现逐步补齐
 
-|     | 功能   | 描述                        |
-|-----|------|---------------------------|
-| 🚀  | 应用信息 | 配置商户的应用信息，对接支付宝、微信等多个支付渠道 |
-| 🚀  | 支付订单 | 查看用户发起的支付宝、微信等的【支付】订单     |
-| 🚀  | 退款订单 | 查看用户发起的支付宝、微信等的【退款】订单     |
-| 🚀  | 回调通知 | 查看支付回调业务的【支付】【退款】的通知结果    |
-| 🚀  | 接入示例 | 提供接入支付系统的【支付】【退款】的功能实战    |
+### 3. 修改本地配置
 
-### 基础设施
+后端本地配置文件：
 
-|     | 功能        | 描述                                           |
-|-----|-----------|----------------------------------------------|
-| 🚀  | 代码生成      | 前后端代码的生成（Java、Vue、SQL、单元测试），支持 CRUD 下载       |
-| 🚀  | 系统接口      | 基于 Swagger 自动生成相关的 RESTful API 接口文档          |
-| 🚀  | 数据库文档     | 基于 Screw 自动生成数据库文档，支持导出 Word、HTML、MD 格式      |
-|     | 表单构建      | 拖动表单元素生成相应的 HTML 代码，支持导出 JSON、Vue 文件         |
-| 🚀  | 配置管理      | 对系统动态配置常用参数，支持 SpringBoot 加载                 |
-| ⭐️  | 定时任务      | 在线（添加、修改、删除)任务调度包含执行结果日志                     |
-| 🚀  | 文件服务      | 支持将文件存储到 S3（MinIO、阿里云、腾讯云、七牛云）、本地、FTP、数据库等   | 
-| 🚀  | WebSocket | 提供 WebSocket 接入示例，支持一对一、一对多发送方式              | 
-| 🚀  | API 日志    | 包括 RESTful API 访问日志、异常日志两部分，方便排查 API 相关的问题   |
-|     | MySQL 监控  | 监视当前系统数据库连接池状态，可进行分析SQL找出系统性能瓶颈              |
-|     | Redis 监控  | 监控 Redis 数据库的使用情况，使用的 Redis Key 管理           |
-| 🚀  | 消息队列      | 基于 Redis 实现消息队列，Stream 提供集群消费，Pub/Sub 提供广播消费 |
-| 🚀  | Java 监控   | 基于 Spring Boot Admin 实现 Java 应用的监控           |
-| 🚀  | 链路追踪      | 接入 SkyWalking 组件，实现链路追踪                      |
-| 🚀  | 日志中心      | 接入 SkyWalking 组件，实现日志中心                      |
-| 🚀  | 服务保障      | 基于 Redis 实现分布式锁、幂等、限流功能，满足高并发场景              |
-| 🚀  | 日志服务      | 轻量级日志中心，查看远程服务器的日志                           |
-| 🚀  | 单元测试      | 基于 JUnit + Mockito 实现单元测试，保证功能的正确性、代码的质量等    |
+- `pulsix-server/src/main/resources/application-local.yaml`
 
-![功能图](/.image/common/infra-feature.png)
+请先确认以下配置已改成你的本地环境：
 
-### 数据报表
+- MySQL 地址、库名、用户名、密码
+- Redis 地址、端口、密码
 
-|     | 功能    | 描述                 |
-|-----|-------|--------------------|
-| 🚀  | 报表设计器 | 支持数据报表、图形报表、打印设计等  |
-| 🚀  | 大屏设计器 | 拖拽生成数据大屏，内置几十种图表组件 |
+仓库当前默认值使用了 `test` 作为主机名，直接本地运行前需要先改成可访问的实例地址，例如 `127.0.0.1`。
 
-### 微信公众号
+### 4. 启动后端
 
-|    | 功能     | 描述                            |
-|----|--------|-------------------------------|
-| 🚀 | 账号管理   | 配置接入的微信公众号，可支持多个公众号           |
-| 🚀 | 数据统计   | 统计公众号的用户增减、累计用户、消息概况、接口分析等数据  |
-| 🚀 | 粉丝管理   | 查看已关注、取关的粉丝列表，可对粉丝进行同步、打标签等操作 |
-| 🚀 | 消息管理   | 查看粉丝发送的消息列表，可主动回复粉丝消息         |
-| 🚀 | 模版消息   | 配置和发送模版消息，用于向粉丝推送通知类消息        |
-| 🚀 | 自动回复   | 自动回复粉丝发送的消息，支持关注回复、消息回复、关键字回复 |
-| 🚀 | 标签管理   | 对公众号的标签进行创建、查询、修改、删除等操作       |
-| 🚀 | 菜单管理   | 自定义公众号的菜单，也可以从公众号同步菜单         |
-| 🚀 | 素材管理   | 管理公众号的图片、语音、视频等素材，支持在线播放语音、视频 |
-| 🚀 | 图文草稿箱  | 新增常用的图文素材到草稿箱，可发布到公众号         |
-| 🚀 | 图文发表记录 | 查看已发布成功的图文素材，支持删除操作           |
+在仓库根目录执行：
 
-### 商城系统
+```bash
+mvn -pl pulsix-server -am spring-boot:run
+```
 
-演示地址：<https://doc.iocoder.cn/mall-preview/>
+默认访问地址：
 
-![功能图](/.image/common/mall-feature.png)
+- 后端服务：`http://localhost:48080`
+- OpenAPI / Swagger：`http://localhost:48080/swagger-ui`
 
-![功能图](/.image/common/mall-preview.png)
+### 5. 启动前端
 
-### 会员中心
+进入前端目录：
 
-|     | 功能   | 描述                               |
-|-----|------|----------------------------------|
-| 🚀  | 会员管理 | 会员是 C 端的消费者，该功能用于会员的搜索与管理        |
-| 🚀  | 会员标签 | 对会员的标签进行创建、查询、修改、删除等操作           |
-| 🚀  | 会员等级 | 对会员的等级、成长值进行管理，可用于订单折扣等会员权益      |
-| 🚀  | 会员分组 | 对会员进行分组，用于用户画像、内容推送等运营手段         |
-| 🚀  | 积分签到 | 回馈给签到、消费等行为的积分，会员可订单抵现、积分兑换等途径消耗 |
+```bash
+cd pulsix-ui
+pnpm install
+pnpm dev
+```
 
-### ERP 系统
+默认前端会读取：
 
-演示地址：<https://doc.iocoder.cn/erp-preview/>
+- `pulsix-ui/.env`
+- `pulsix-ui/.env.local`
 
-![功能图](/.image/common/erp-feature.png)
+注意两点：
 
-### CRM 系统
+1. `pulsix-ui/.env.local` 默认指向 `http://localhost:48080`
+2. `pulsix-ui/.env` 中 `VITE_PORT=80`，在 Linux / macOS 非特权环境下通常无法直接监听 `80` 端口，建议改成 `3000` 或 `5173`
 
-演示地址：<https://doc.iocoder.cn/crm-preview/>
+### 6. 当前可验证的内容
 
-![功能图](/.image/common/crm-feature.png)
+在风控主链路尚未接入前，你可以先验证：
 
-### AI 大模型
+- 基础登录与权限框架
+- 系统管理与基础设施模块
+- OpenAPI 文档、日志、任务、文件等基础能力
+- 多模块工程结构与前后端联调链路
 
-演示地址：<https://doc.iocoder.cn/ai-preview/>
+## 风控主链路落地方向
 
-![功能图](/.image/common/ai-feature.png)
+结合 `docs/方案`，仓库后续将按下面的顺序逐步补齐：
 
-![功能图](/.image/common/ai-preview.gif)
+1. **设计态对象管理**：场景、事件模型、特征、名单、规则、策略
+2. **快照发布**：校验、依赖分析、编译 `SceneSnapshot`、发布与回滚
+3. **统一执行内核**：抽出 `pulsix-kernel`，供仿真与线上复用
+4. **最小 Flink 执行链路**：事件接入、快照切换、特征计算、规则策略执行
+5. **仿真与日志分析**：单条事件仿真、命中明细、版本回放、效果追踪
+6. **监控与工程化**：指标、压测、部署脚本、演示环境与开源包装
 
-## 🐨 技术栈
+## 文档导航
 
-### 模块
+如果你想理解这个项目为什么这样拆，以及后续应该如何实现，建议按下面顺序阅读 `docs/方案`：
 
-| 项目                    | 说明                 |
-|-----------------------|--------------------|
-| `pulsix-dependencies`  | Maven 依赖版本管理       |
-| `pulsix-framework`     | Java 框架拓展          |
-| `pulsix-server`        | 管理后台 + 用户 APP 的服务端 |
-| `pulsix-module-system` | 系统功能的 Module 模块    |
-| `pulsix-module-member` | 会员中心的 Module 模块    |
-| `pulsix-module-infra`  | 基础设施的 Module 模块    |
-| `pulsix-module-bpm`    | 工作流程的 Module 模块    |
-| `pulsix-module-pay`    | 支付系统的 Module 模块    |
-| `pulsix-module-mall`   | 商城系统的 Module 模块    |
-| `pulsix-module-erp`    | ERP 系统的 Module 模块  |
-| `pulsix-module-crm`    | CRM 系统的 Module 模块  |
-| `pulsix-module-ai`     | AI 大模型的 Module 模块  |
-| `pulsix-module-mp`     | 微信公众号的 Module 模块   |
-| `pulsix-module-report` | 大屏报表 Module 模块     |
+| 主题 | 推荐文档 |
+| --- | --- |
+| 项目认知与边界 | `第1章`、`第2章`、`第3章` |
+| 总体架构与职责划分 | `第4章`、`第5章`、`第6章` |
+| 控制平台数据模型与发布机制 | `第7章`、`第8章`、`第9章`、`第10章` |
+| Flink 引擎与执行链路 | `第11章` 到 `第19章` |
+| 控制平台与工程结构 | `第20章`、`第21章`、`第22章` |
+| 测试、部署与开源包装 | `第23章`、`第24章` |
+| 参考样例 | `附录A` 到 `附录E` |
 
-### 框架
+其中最值得优先阅读的文档包括：
 
-| 框架                                                                                          | 说明               | 版本             | 学习指南                                                           |
-|---------------------------------------------------------------------------------------------|------------------|----------------|----------------------------------------------------------------|
-| [Spring Boot](https://spring.io/projects/spring-boot)                                       | 应用开发框架           | 3.5.5          | [文档](https://github.com/YunaiV/SpringBoot-Labs)                |
-| [MySQL](https://www.mysql.com/cn/)                                                          | 数据库服务器           | 5.7 / 8.0+     |                                                                |
-| [Druid](https://github.com/alibaba/druid)                                                   | JDBC 连接池、监控组件    | 1.2.27         | [文档](http://www.iocoder.cn/Spring-Boot/datasource-pool/?pulsix) |
-| [MyBatis Plus](https://mp.baomidou.com/)                                                    | MyBatis 增强工具包    | 3.5.12         | [文档](http://www.iocoder.cn/Spring-Boot/MyBatis/?pulsix)         |
-| [Dynamic Datasource](https://dynamic-datasource.com/)                                       | 动态数据源            | 4.3.1          | [文档](http://www.iocoder.cn/Spring-Boot/datasource-pool/?pulsix) |
-| [Redis](https://redis.io/)                                                                  | key-value 数据库    | 5.0 / 6.0 /7.0 |                                                                |
-| [Redisson](https://github.com/redisson/redisson)                                            | Redis 客户端        | 3.35.0         | [文档](http://www.iocoder.cn/Spring-Boot/Redis/?pulsix)           |
-| [Spring MVC](https://github.com/spring-projects/spring-framework/tree/master/spring-webmvc) | MVC 框架           | 6.2.9          | [文档](http://www.iocoder.cn/SpringMVC/MVC/?pulsix)               |
-| [Spring Security](https://github.com/spring-projects/spring-security)                       | Spring 安全框架      | 6.5.2          | [文档](http://www.iocoder.cn/Spring-Boot/Spring-Security/?pulsix) |
-| [Hibernate Validator](https://github.com/hibernate/hibernate-validator)                     | 参数校验组件           | 8.0.2          | [文档](http://www.iocoder.cn/Spring-Boot/Validation/?pulsix)      |
-| [Flowable](https://github.com/flowable/flowable-engine)                                     | 工作流引擎            | 7.0.0          | [文档](https://doc.iocoder.cn/bpm/)                              |
-| [Quartz](https://github.com/quartz-scheduler)                                               | 任务调度组件           | 2.5.0          | [文档](http://www.iocoder.cn/Spring-Boot/Job/?pulsix)             |
-| [Springdoc](https://springdoc.org/)                                                         | Swagger 文档       | 2.8.9          | [文档](http://www.iocoder.cn/Spring-Boot/Swagger/?pulsix)         |
-| [SkyWalking](https://skywalking.apache.org/)                                                | 分布式应用追踪系统        | 9.5.0          | [文档](http://www.iocoder.cn/Spring-Boot/SkyWalking/?pulsix)      |
-| [Spring Boot Admin](https://github.com/codecentric/spring-boot-admin)                       | Spring Boot 监控平台 | 3.5.2          | [文档](http://www.iocoder.cn/Spring-Boot/Admin/?pulsix)           |
-| [Jackson](https://github.com/FasterXML/jackson)                                             | JSON 工具库         | 2.30.14        |                                                                |
-| [MapStruct](https://mapstruct.org/)                                                         | Java Bean 转换     | 1.6.3          | [文档](http://www.iocoder.cn/Spring-Boot/MapStruct/?pulsix)       |
-| [Lombok](https://projectlombok.org/)                                                        | 消除冗长的 Java 代码    | 1.18.38        | [文档](http://www.iocoder.cn/Spring-Boot/Lombok/?pulsix)          |
-| [JUnit](https://junit.org/junit5/)                                                          | Java 单元测试框架      | 5.12.2         | -                                                              |
-| [Mockito](https://github.com/mockito/mockito)                                               | Java Mock 框架     | 5.17.0         | -                                                              |
+- `docs/方案/实时风控系统第1章：什么是真正的实时风控系统.md`
+- `docs/方案/实时风控系统第4章：系统总体架构设计总览.md`
+- `docs/方案/实时风控系统第8章：发布机制设计——为什么必须生成运行时快照.md`
+- `docs/方案/实时风控系统第20章：Spring Boot 控制平台的模块设计与实现.md`
+- `docs/方案/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`
+- `docs/方案/实时风控系统第24章：部署、监控、性能优化与开源包装.md`
 
-## 🐷 演示图
+## 为什么 README 会同时写“现状”和“目标”
 
-### 系统功能
+因为这个仓库目前有两个层面同时存在：
 
-| 模块       | biu                         | biu                       | biu                      |
-|----------|-----------------------------|---------------------------|--------------------------|
-| 登录 & 首页  | ![登录](/.image/登录.jpg)       | ![首页](/.image/首页.jpg)     | ![个人中心](/.image/个人中心.jpg) |
-| 用户 & 应用  | ![用户管理](/.image/用户管理.jpg)   | ![令牌管理](/.image/令牌管理.jpg) | ![应用管理](/.image/应用管理.jpg) |
-| 租户 & 套餐  | ![租户管理](/.image/租户管理.jpg)   | ![租户套餐](/.image/租户套餐.png) | -                        |
-| 部门 & 岗位  | ![部门管理](/.image/部门管理.jpg)   | ![岗位管理](/.image/岗位管理.jpg) | -                        |
-| 菜单 & 角色  | ![菜单管理](/.image/菜单管理.jpg)   | ![角色管理](/.image/角色管理.jpg) | -                        |
-| 审计日志     | ![操作日志](/.image/操作日志.jpg)   | ![登录日志](/.image/登录日志.jpg) | -                        |
-| 短信       | ![短信渠道](/.image/短信渠道.jpg)   | ![短信模板](/.image/短信模板.jpg) | ![短信日志](/.image/短信日志.jpg) |
-| 字典 & 敏感词 | ![字典类型](/.image/字典类型.jpg)   | ![字典数据](/.image/字典数据.jpg) | ![敏感词](/.image/敏感词.jpg)  |
-| 错误码 & 通知 | ![错误码管理](/.image/错误码管理.jpg) | ![通知公告](/.image/通知公告.jpg) | -                        |
+1. **现有可运行底座**：来自成熟后台工程的系统、基础设施和前端能力
+2. **正在收敛的风控主线**：来自 `docs/方案` 的实时风控平台设计与实现路线
 
-### 工作流程
+这个 README 的目标不是把规划写成既成事实，而是：
 
-| 模块      | biu                             | biu                             | biu                             |
-|---------|---------------------------------|---------------------------------|---------------------------------|
-| 流程模型    | ![流程模型-列表](/.image/流程模型-列表.jpg) | ![流程模型-设计](/.image/流程模型-设计.jpg) | ![流程模型-定义](/.image/流程模型-定义.jpg) |
-| 表单 & 分组 | ![流程表单](/.image/流程表单.jpg)       | ![用户分组](/.image/用户分组.jpg)       | -                               |
-| 我的流程    | ![我的流程-列表](/.image/我的流程-列表.jpg) | ![我的流程-发起](/.image/我的流程-发起.jpg) | ![我的流程-详情](/.image/我的流程-详情.jpg) |
-| 待办 & 已办 | ![任务列表-审批](/.image/任务列表-审批.jpg) | ![任务列表-待办](/.image/任务列表-待办.jpg) | ![任务列表-已办](/.image/任务列表-已办.jpg) |
-| OA 请假   | ![OA请假-列表](/.image/OA请假-列表.jpg) | ![OA请假-发起](/.image/OA请假-发起.jpg) | ![OA请假-详情](/.image/OA请假-详情.jpg) |
+- 让你快速理解这个项目真正想做什么
+- 让你知道当前代码已经做到哪一步
+- 让你知道下一步应该从哪里继续推进
 
-### 基础设施
+## 致谢
 
-| 模块            | biu                           | biu                         | biu                       |
-|---------------|-------------------------------|-----------------------------|---------------------------|
-| 代码生成          | ![代码生成](/.image/代码生成.jpg)     | ![生成效果](/.image/生成效果.jpg)   | -                         |
-| 文档            | ![系统接口](/.image/系统接口.jpg)     | ![数据库文档](/.image/数据库文档.jpg) | -                         |
-| 文件 & 配置       | ![文件配置](/.image/文件配置.jpg)     | ![文件管理](/.image/文件管理2.jpg)  | ![配置管理](/.image/配置管理.jpg) |
-| 定时任务          | ![定时任务](/.image/定时任务.jpg)     | ![任务日志](/.image/任务日志.jpg)   | -                         |
-| API 日志        | ![访问日志](/.image/访问日志.jpg)     | ![错误日志](/.image/错误日志.jpg)   | -                         |
-| MySQL & Redis | ![MySQL](/.image/MySQL.jpg)   | ![Redis](/.image/Redis.jpg) | -                         |
-| 监控平台          | ![Java监控](/.image/Java监控.jpg) | ![链路追踪](/.image/链路追踪.jpg)   | ![日志中心](/.image/日志中心.jpg) |
+当前仓库在工程底座层面沿用了 `ruoyi-vue-pro` 风格的多模块组织方式，并在此基础上逐步收敛为专注实时风控场景的 `Pulsix` 平台。
 
-### 支付系统
+## License
 
-| 模块      | biu                       | biu                             | biu                             |
-|---------|---------------------------|---------------------------------|---------------------------------|
-| 商家 & 应用 | ![商户信息](/.image/商户信息.jpg) | ![应用信息-列表](/.image/应用信息-列表.jpg) | ![应用信息-编辑](/.image/应用信息-编辑.jpg) |
-| 支付 & 退款 | ![支付订单](/.image/支付订单.jpg) | ![退款订单](/.image/退款订单.jpg)       | ---                             |
-### 数据报表
-
-| 模块    | biu                             | biu                             | biu                                   |
-|-------|---------------------------------|---------------------------------|---------------------------------------|
-| 报表设计器 | ![数据报表](/.image/报表设计器-数据报表.jpg) | ![图形报表](/.image/报表设计器-图形报表.jpg) | ![报表设计器-打印设计](/.image/报表设计器-打印设计.jpg) |
-| 大屏设计器 | ![大屏列表](/.image/大屏设计器-列表.jpg)   | ![大屏预览](/.image/大屏设计器-预览.jpg)   | ![大屏编辑](/.image/大屏设计器-编辑.jpg)         |
-
-### 移动端（管理后台）
-
-| biu                              | biu                              | biu                              |
-|----------------------------------|----------------------------------|----------------------------------|
-| ![](/.image/admin-uniapp/01.png) | ![](/.image/admin-uniapp/02.png) | ![](/.image/admin-uniapp/03.png) |
-| ![](/.image/admin-uniapp/04.png) | ![](/.image/admin-uniapp/05.png) | ![](/.image/admin-uniapp/06.png) |
-| ![](/.image/admin-uniapp/07.png) | ![](/.image/admin-uniapp/08.png) | ![](/.image/admin-uniapp/09.png) |
-
-目前已经实现登录、我的、工作台、编辑资料、头像修改、密码修改、常见问题、关于我们等基础功能。
+本项目使用仓库根目录中的 `LICENSE`。
