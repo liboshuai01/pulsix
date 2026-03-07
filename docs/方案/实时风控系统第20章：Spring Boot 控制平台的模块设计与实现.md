@@ -631,7 +631,7 @@ cn.liboshuai.pulsix.module.risk
 
 实现上可以是：
 
-- KafkaProducerReleasePublisher
+- ConfigPushReleasePublisher（主动推送，可落 Kafka / HTTP）
 - DbOnlyReleasePublisher（只落库）
 
 这样你就能灵活切换“只落库给 MySQL CDC 读取”和“额外主动推送”的策略。
