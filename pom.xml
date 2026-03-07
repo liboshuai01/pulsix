@@ -4,27 +4,17 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>cn.liboshuai.pulsix</groupId>
-    <artifactId>pulsix</artifactId>
+    <artifactId>pulsix-parent</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
         <module>pulsix-dependencies</module>
         <module>pulsix-framework</module>
-        <!-- Server 主项目 -->
         <module>pulsix-server</module>
-        <!-- 各种 module 拓展 -->
         <module>pulsix-module-system</module>
         <module>pulsix-module-infra</module>
-<!--        <module>pulsix-module-member</module>-->
-<!--        <module>pulsix-module-bpm</module>-->
-<!--        <module>pulsix-module-report</module>-->
-<!--        <module>pulsix-module-mp</module>-->
-<!--        <module>pulsix-module-pay</module>-->
-<!--        <module>pulsix-module-mall</module>-->
-<!--        <module>pulsix-module-crm</module>-->
-<!--        <module>pulsix-module-erp</module>-->
-<!--        <module>pulsix-module-ai</module>-->
-<!--        <module>pulsix-module-iot</module>-->
+        <module>pulsix-engine</module>
+        <module>pulsix-module-risk</module>
     </modules>
 
     <name>${project.artifactId}</name>

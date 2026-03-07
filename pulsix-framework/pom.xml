@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>pulsix</artifactId>
+        <artifactId>pulsix-parent</artifactId>
         <groupId>cn.liboshuai.pulsix</groupId>
         <version>${revision}</version>
     </parent>
@@ -27,6 +27,7 @@
         <module>pulsix-spring-boot-starter-biz-tenant</module>
         <module>pulsix-spring-boot-starter-biz-data-permission</module>
         <module>pulsix-spring-boot-starter-biz-ip</module>
+        <module>pulsix-kernel</module>
     </modules>
 
     <artifactId>pulsix-framework</artifactId>
