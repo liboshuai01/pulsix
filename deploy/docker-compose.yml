@@ -1,1 +1,115 @@
-services: {}
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pulsix}
+      MYSQL_USER: ${MYSQL_USER:-pulsix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pulsix}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../docs/sql/pulsix-system-infra.sql:/docker-entrypoint-initdb.d/00-pulsix-system-infra.sql:ro
+
+  redis:
+    image: redis:7.2
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command:
+      - sh
+      - -ec
+      - |
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"
+        fi
+        exec redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  kafka:
+    image: bitnami/kafka:3.7
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_PORT:-29092}:29092"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      KAFKA_ENABLE_KRAFT: "yes"
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENERS: INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:${KAFKA_PORT:-29092}
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_KRAFT_CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka_data:/bitnami/kafka
+
+  jobmanager:
+    image: flink:1.20.3-scala_2.12-java17
+    restart: unless-stopped
+    command: jobmanager
+    ports:
+      - "${FLINK_JOBMANAGER_PORT:-8081}:8081"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+        rest.port: 8081
+        parallelism.default: ${FLINK_PARALLELISM:-2}
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/savepoints
+    volumes:
+      - flink_checkpoints:/opt/flink/checkpoints
+      - flink_savepoints:/opt/flink/savepoints
+
+  taskmanager:
+    image: flink:1.20.3-scala_2.12-java17
+    restart: unless-stopped
+    command: taskmanager
+    depends_on:
+      - jobmanager
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: ${FLINK_TASK_SLOTS:-2}
+        parallelism.default: ${FLINK_PARALLELISM:-2}
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/savepoints
+    volumes:
+      - flink_checkpoints:/opt/flink/checkpoints
+      - flink_savepoints:/opt/flink/savepoints
+
+volumes:
+  mysql_data:
+  redis_data:
+  kafka_data:
+  flink_checkpoints:
+  flink_savepoints:
