@@ -54,3 +54,6 @@ pulsix-ui/dist-test/
 !pulsix-ui/types/auto-components.d.ts
 .idea
 .history
+
+### deploy ###
+deploy/.env

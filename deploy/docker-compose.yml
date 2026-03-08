@@ -1,0 +1,133 @@
+name: ${COMPOSE_PROJECT_NAME:-pulsix-infra}
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4.6}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pulsix_root_123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pulsix}
+      MYSQL_USER: ${MYSQL_USER:-pulsix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pulsix_123}
+    command:
+      - --character-set-server=${MYSQL_CHARACTER_SET:-utf8mb4}
+      - --collation-server=${MYSQL_COLLATION:-utf8mb4_0900_ai_ci}
+      - --skip-name-resolve
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ../docs/sql/pulsix-system-infra.sql:/opt/pulsix/init/pulsix-system-infra.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - pulsix-infra
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4.7}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-pulsix_redis_123}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-pulsix_redis_123}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - pulsix-infra
+
+  kafka:
+    image: ${KAFKA_IMAGE:-bitnami/kafka:3.9.1}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_ENABLE_KRAFT: "yes"
+      KAFKA_KRAFT_CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      KAFKA_CFG_NODE_ID: ${KAFKA_NODE_ID:-1}
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_LISTENERS: INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:${KAFKA_EXTERNAL_PORT:-29092}
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID:-1}@kafka:9093
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-29092}:29092"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/127.0.0.1/9092'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks:
+      - pulsix-infra
+
+  kafka-init:
+    image: ${KAFKA_IMAGE:-bitnami/kafka:3.9.1}
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KAFKA_INIT_MARKER_FILE: /var/lib/pulsix-kafka-init/.topics-initialized
+      KAFKA_INIT_TOPICS: ${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq,pulsix.config.snapshot}
+      KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}
+    entrypoint:
+      - /bin/bash
+      - /opt/pulsix/init/01-create-topics.sh
+    volumes:
+      - ./kafka/init:/opt/pulsix/init:ro
+      - kafka-init-state:/var/lib/pulsix-kafka-init
+    networks:
+      - pulsix-infra
+
+volumes:
+  mysql-data:
+  redis-data:
+  kafka-data:
+  kafka-init-state:
+
+networks:
+  pulsix-infra:
+    name: ${PULSIX_NETWORK_NAME:-pulsix-infra}
