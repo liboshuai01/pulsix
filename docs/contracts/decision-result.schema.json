@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DecisionResult",
+  "description": "统一决策结果契约。用于下游结果流、决策日志、仿真输出与版本追溯。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "traceId",
+    "sceneCode",
+    "version",
+    "snapshotId",
+    "policyCode",
+    "finalAction",
+    "hitRules",
+    "featureSnapshot",
+    "latencyMs",
+    "decisionTime"
+  ],
+  "properties": {
+    "eventId": {
+      "$ref": "#/$defs/idString",
+      "description": "对应输入事件的 eventId。"
+    },
+    "traceId": {
+      "$ref": "#/$defs/idString",
+      "description": "对应输入事件的 traceId。"
+    },
+    "sceneCode": {
+      "$ref": "#/$defs/sceneCode",
+      "description": "参与决策的场景编码。"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "单条事件绑定执行的快照版本。"
+    },
+    "snapshotId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "单条事件绑定执行的快照标识。"
+    },
+    "policyCode": {
+      "$ref": "#/$defs/policyCode",
+      "description": "参与最终收敛的策略编码。"
+    },
+    "finalAction": {
+      "$ref": "#/$defs/actionType",
+      "description": "策略收敛后的最终动作。"
+    },
+    "finalScore": {
+      "type": "integer",
+      "description": "最终分值。FIRST_HIT 场景可省略，SCORE_CARD 场景推荐填写。"
+    },
+    "hitRules": {
+      "type": "array",
+      "description": "最终命中的规则明细。用于业务展示和主日志。",
+      "items": {
+        "$ref": "#/$defs/hitRule"
+      }
+    },
+    "allEvaluatedRules": {
+      "type": "array",
+      "description": "可选的全量规则执行结果。用于排障、仿真对比、版本分析。",
+      "items": {
+        "$ref": "#/$defs/ruleEvalResult"
+      }
+    },
+    "featureSnapshot": {
+      "type": "object",
+      "description": "参与本次决策的关键特征快照，按 EvalContext 命名空间输出。",
+      "additionalProperties": false,
+      "required": [
+        "stream",
+        "lookup",
+        "derived"
+      ],
+      "properties": {
+        "base": {
+          "$ref": "#/$defs/valueMap"
+        },
+        "stream": {
+          "$ref": "#/$defs/valueMap"
+        },
+        "lookup": {
+          "$ref": "#/$defs/valueMap"
+        },
+        "derived": {
+          "$ref": "#/$defs/valueMap"
+        },
+        "ext": {
+          "$ref": "#/$defs/extObject"
+        }
+      }
+    },
+    "latencyMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "从事件进入决策链路到形成结果的耗时。"
+    },
+    "decisionTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "决策结果生成时间。"
+    },
+    "decisionReason": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "面向日志和展示的最终解释文本。"
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/extObject",
+      "description": "非主链路诊断信息，例如 fallback、脚本异常摘要、lookup 警告等。"
+    },
+    "ext": {
+      "$ref": "#/$defs/extObject",
+      "description": "不会改变核心决策语义的补充字段。"
+    }
+  },
+  "$defs": {
+    "idString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "sceneCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "policyCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 128
+    },
+    "ruleCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 128
+    },
+    "actionType": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "REVIEW",
+        "REJECT"
+      ]
+    },
+    "valueMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/jsonValue"
+      }
+    },
+    "hitRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleCode",
+        "hitAction"
+      ],
+      "properties": {
+        "ruleCode": {
+          "$ref": "#/$defs/ruleCode"
+        },
+        "ruleName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "hitAction": {
+          "$ref": "#/$defs/actionType"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "detail": {
+          "$ref": "#/$defs/valueMap"
+        },
+        "ext": {
+          "$ref": "#/$defs/extObject"
+        }
+      }
+    },
+    "ruleEvalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleCode",
+        "hit"
+      ],
+      "properties": {
+        "ruleCode": {
+          "$ref": "#/$defs/ruleCode"
+        },
+        "ruleName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "hit": {
+          "type": "boolean"
+        },
+        "hitAction": {
+          "$ref": "#/$defs/actionType"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "costNanos": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ext": {
+          "$ref": "#/$defs/extObject"
+        }
+      }
+    },
+    "extObject": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/jsonValue"
+      }
+    },
+    "jsonValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ]
+    }
+  }
+}
