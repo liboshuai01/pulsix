@@ -24,7 +24,7 @@ for topic in "${topics[@]}"; do
   fi
 
   echo "[kafka-init] 创建 Topic: ${topic}"
-  /opt/bitnami/kafka/bin/kafka-topics.sh \
+  /opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server "${bootstrap_server}" \
     --create \
     --if-not-exists \
