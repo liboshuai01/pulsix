@@ -857,12 +857,12 @@ pulsix-{domain}-{name}
 
 ---
 
-## D.11.1 原始事件 Topic
+## D.11.1 标准事件 Topic
 
-### 统一原始事件流
+### 统一标准事件流
 
 ```latex
-pulsix.event.raw
+pulsix.event.standard
 ```
 
 事件体中带：
@@ -870,7 +870,7 @@ pulsix.event.raw
 - `sceneCode`
 - `eventType`
 
-这是 MVP 阶段最推荐的方式。
+这是 MVP 阶段最推荐的方式。接入层完成鉴权、标准化和公共字段补齐后，再写入该 Topic。
 
 ---
 
@@ -882,7 +882,7 @@ pulsix.event.register
 pulsix.event.trade
 ```
 
-一期不一定需要，统一 raw topic 更简单。
+一期不一定需要，统一标准事件 Topic 更简单。
 
 ---
 
@@ -1057,7 +1057,7 @@ Redis 先只做：
 
 Kafka 先只保留：
 
-- `pulsix.event.raw`
+- `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 

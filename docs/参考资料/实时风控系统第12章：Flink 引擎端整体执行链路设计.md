@@ -170,7 +170,7 @@ Broadcast State + 本地运行时编译缓存
 
 ### 事件主流
 
-- 从 Kafka `pulsix.event.raw` 读取
+- 从 Kafka `pulsix.event.standard` 读取
 - 解析成 `RiskEvent`
 - 按需要做 `keyBy`
 

@@ -555,11 +555,11 @@ Redis 不适合用来做：
 
 ### 21.7.1 原始事件流 Topic
 
-建议统一一个主事件 Topic 即可，减少复杂度。
+结合当前接入层方案，一期更建议统一一个主标准事件 Topic 即可，减少复杂度。
 
 例如：
 
-- `pulsix.event.raw`
+- `pulsix.event.standard`
 
 事件体中包含：
 
@@ -852,12 +852,13 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 ### 21.11.3 Kafka
 
-先规划 4 类必需 Topic，外加 1 类可选 Topic：
+先规划 4 类必需 Topic，外加 2 类可选 Topic：
 
-- `pulsix.event.raw`
+- `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
+- `pulsix.ingest.error`（可选）
 - `pulsix.config.snapshot`（可选）
 
 ### 21.11.4 Flink
@@ -1025,10 +1026,11 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 建议至少有：
 
-- `pulsix.event.raw`
+- `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
+- `pulsix.ingest.error`（可选）
 - `pulsix.config.snapshot`（可选）
 
 ### 4）Flink State 是流式中间态主场

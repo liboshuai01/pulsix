@@ -320,6 +320,22 @@ pulsix-module-risk
 
 ---
 
+### 20.5.10 接入治理模块
+
+建议做，但保持轻量。
+
+负责：
+
+- 接入源管理
+- 鉴权配置管理
+- 来源启停与基础限流配置
+- 错误事件 / `DLQ` 查询
+- 接入监控与 SDK 接入指引
+
+这部分的目标不是做一个重型“接入平台”，而是给 `pulsix-access/pulsix-ingest` 和 `pulsix-access/pulsix-sdk` 提供基本治理能力。
+
+---
+
 ## 20.6 推荐的代码分层方式
 
 这一节非常关键。很多人项目后面难维护，问题就出在这里。
@@ -468,6 +484,7 @@ cn.liboshuai.pulsix.module.risk
 ├── api/
 │   ├── scene/
 │   ├── feature/
+│   ├── access/
 │   ├── release/
 │   ├── simulation/
 │   └── log/
@@ -479,6 +496,7 @@ cn.liboshuai.pulsix.module.risk
 │       ├── list/
 │       ├── rule/
 │       ├── policy/
+│       ├── access/
 │       ├── release/
 │       ├── simulation/
 │       └── log/
@@ -486,6 +504,7 @@ cn.liboshuai.pulsix.module.risk
 │   ├── scene/
 │   ├── event/
 │   ├── feature/
+│   ├── access/
 │   ├── list/
 │   ├── rule/
 │   ├── policy/
@@ -957,6 +976,7 @@ public class ReleaseApplicationService {
 9. simulation
 10. decision-log
 11. audit
+12. access-ingest-governance
 
 其中真正的主链路优先级是：
 
@@ -989,6 +1009,7 @@ public class ReleaseApplicationService {
 - 特征中心
 - 规则中心
 - 策略中心
+- 接入治理（来源、鉴权、DLQ 查询）
 
 ### 第三阶段
 
