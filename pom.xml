@@ -15,6 +15,7 @@
         <module>pulsix-module-infra</module>
         <module>pulsix-engine</module>
         <module>pulsix-module-risk</module>
+        <module>pulsix-access</module>
     </modules>
 
     <name>${project.artifactId}</name>
