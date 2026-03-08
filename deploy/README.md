@@ -24,6 +24,8 @@ docker compose up -d
 docker compose up -d
 ```
 
+默认会使用 `pulsix` 作为 Compose 项目前缀和 Docker 网络名，因此生成的容器、数据卷、网络资源会以 `pulsix` 开头。
+
 ## 首次初始化行为
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
@@ -78,3 +80,4 @@ docker compose down -v
 - 这套编排面向单机开发、联调和本地演示，不包含高可用能力。
 - 数据通过 Docker Volume 持久化，执行 `docker compose down` 不会删除数据。
 - 如果端口冲突，修改 `.env` 中的 `MYSQL_PORT`、`REDIS_PORT`、`KAFKA_EXTERNAL_PORT` 后重新执行 `docker compose up -d` 即可。
+- 如果你之前已经复制过旧版 `.env`，请同步将 `COMPOSE_PROJECT_NAME` 和 `PULSIX_NETWORK_NAME` 改为 `pulsix`，否则仍会继续生成 `pulsix-infra` 前缀资源。

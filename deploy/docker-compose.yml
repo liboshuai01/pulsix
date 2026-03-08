@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-pulsix-infra}
+name: ${COMPOSE_PROJECT_NAME:-pulsix}
 
 services:
   mysql:
@@ -31,7 +31,7 @@ services:
       retries: 10
       start_period: 30s
     networks:
-      - pulsix-infra
+      - pulsix
 
   redis:
     image: ${REDIS_IMAGE:-redis:7.4.7}
@@ -60,7 +60,7 @@ services:
       retries: 10
       start_period: 10s
     networks:
-      - pulsix-infra
+      - pulsix
 
   kafka:
     image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
@@ -97,7 +97,7 @@ services:
       retries: 15
       start_period: 20s
     networks:
-      - pulsix-infra
+      - pulsix
 
   kafka-init:
     image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
@@ -119,7 +119,7 @@ services:
       - ./kafka/init:/opt/pulsix/init:ro
       - kafka-init-state:/var/lib/pulsix-kafka-init
     networks:
-      - pulsix-infra
+      - pulsix
 
 volumes:
   mysql-data:
@@ -128,5 +128,5 @@ volumes:
   kafka-init-state:
 
 networks:
-  pulsix-infra:
-    name: ${PULSIX_NETWORK_NAME:-pulsix-infra}
+  pulsix:
+    name: ${PULSIX_NETWORK_NAME:-pulsix}
