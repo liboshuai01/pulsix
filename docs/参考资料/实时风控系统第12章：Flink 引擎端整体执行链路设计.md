@@ -92,7 +92,7 @@
 Kafka Event Stream
       │
       ▼
-事件反序列化 / 标准化
+事件反序列化 / 标准化 / 预处理
       │
       ▼
 Connect 配置广播流
@@ -219,6 +219,10 @@ DataStream<DecisionResult> resultStream = keyedEventStream
 - 事件反序列化
 - 基础字段标准化
 - sceneCode / eventType 校验
+- 字段映射与别名归一
+- 时间 / 金额 / 枚举格式转换
+- 公共字段补齐与默认值填充
+- 不合法事件打入错误流 / DLQ
 
 ### 2）Snapshot Runtime Manager
 
