@@ -121,12 +121,85 @@ services:
     networks:
       - pulsix
 
+  doris-fe:
+    image: ${DORIS_FE_IMAGE:-apache/doris:fe-3.0.4}
+    hostname: doris-fe
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FE_SERVERS: fe1:${DORIS_FE_IP:-172.28.0.21}:9010
+      FE_ID: ${DORIS_FE_ID:-1}
+    ports:
+      - "${DORIS_FE_HTTP_PORT:-8030}:8030"
+      - "${DORIS_FE_QUERY_PORT:-9030}:9030"
+    volumes:
+      - doris-fe-meta:/opt/apache-doris/fe/doris-meta
+      - doris-fe-log:/opt/apache-doris/fe/log
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/${DORIS_FE_IP:-172.28.0.21}/9010 && echo > /dev/tcp/127.0.0.1/9030'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+    ulimits:
+      nofile:
+        soft: ${DORIS_NOFILE_SOFT:-1048576}
+        hard: ${DORIS_NOFILE_HARD:-1048576}
+    networks:
+      pulsix:
+        ipv4_address: ${DORIS_FE_IP:-172.28.0.21}
+
+  doris-be:
+    image: ${DORIS_BE_IMAGE:-apache/doris:be-3.0.4}
+    hostname: doris-be
+    restart: unless-stopped
+    depends_on:
+      doris-fe:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FE_SERVERS: fe1:${DORIS_FE_IP:-172.28.0.21}:9010
+      BE_ADDR: ${DORIS_BE_IP:-172.28.0.22}:9050
+    ports:
+      - "${DORIS_BE_HTTP_PORT:-8040}:8040"
+    volumes:
+      - doris-be-storage:/opt/apache-doris/be/storage
+      - doris-be-log:/opt/apache-doris/be/log
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/127.0.0.1/8040 && echo > /dev/tcp/${DORIS_BE_IP:-172.28.0.22}/9050'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 150s
+    ulimits:
+      nofile:
+        soft: ${DORIS_NOFILE_SOFT:-1048576}
+        hard: ${DORIS_NOFILE_HARD:-1048576}
+    networks:
+      pulsix:
+        ipv4_address: ${DORIS_BE_IP:-172.28.0.22}
+
 volumes:
   mysql-data:
   redis-data:
   kafka-data:
   kafka-init-state:
+  doris-fe-meta:
+  doris-fe-log:
+  doris-be-storage:
+  doris-be-log:
 
 networks:
   pulsix:
     name: ${PULSIX_NETWORK_NAME:-pulsix}
+    ipam:
+      config:
+        - subnet: ${PULSIX_SUBNET:-172.28.0.0/24}
