@@ -16,6 +16,7 @@
  3. 表结构尽量对齐 pulsix-system-infra.sql 的风格：bigint 主键、utf8mb4_unicode_ci、BaseDO 公共字段、deleted 逻辑删除。
  4. 设计态对象优先结构化；发布态通过 scene_release.snapshot_json 固化为运行时快照。
  5. 推荐能力中的审计日志可同时复用 system_operate_log；这里额外给出 risk_audit_log，用于记录风险对象的 before/after 细粒度差异。
+ 6. 相比附录 D 的第一版 DDL，本文件额外补齐了若干子表的 scene_code 维度，避免跨场景复用 code 时出现配置冲突或发布歧义。
 */
 
 SET NAMES utf8mb4;
@@ -287,6 +288,7 @@ CREATE TABLE `scene_release`  (
 DROP TABLE IF EXISTS `policy_score_band`;
 CREATE TABLE `policy_score_band`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '策略分段主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证场景内策略分段独立演进',
   `policy_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '策略编码，对应 policy_def.policy_code',
   `band_no` int NOT NULL DEFAULT 0 COMMENT '分段顺序，越小越优先匹配',
   `min_score` int NOT NULL DEFAULT 0 COMMENT '最小分值（含）',
@@ -300,8 +302,8 @@ CREATE TABLE `policy_score_band`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_policy_band`(`policy_code` ASC, `band_no` ASC) USING BTREE,
-  INDEX `idx_policy_score`(`policy_code` ASC, `min_score` ASC, `max_score` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_policy_band`(`scene_code` ASC, `policy_code` ASC, `band_no` ASC) USING BTREE,
+  INDEX `idx_scene_policy_score`(`scene_code` ASC, `policy_code` ASC, `min_score` ASC, `max_score` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '策略分值分段表（P1-推荐），用于 SCORE_CARD 策略把累计分值映射为最终动作' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -310,6 +312,7 @@ CREATE TABLE `policy_score_band`  (
 DROP TABLE IF EXISTS `policy_rule_ref`;
 CREATE TABLE `policy_rule_ref`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '策略规则关联主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证场景内策略与规则关联关系独立',
   `policy_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '策略编码',
   `rule_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '规则编码',
   `order_no` int NOT NULL DEFAULT 0 COMMENT '规则顺序；FIRST_HIT 场景严格按该顺序执行',
@@ -323,8 +326,8 @@ CREATE TABLE `policy_rule_ref`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_policy_rule`(`policy_code` ASC, `rule_code` ASC) USING BTREE,
-  INDEX `idx_policy_order`(`policy_code` ASC, `order_no` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_policy_rule`(`scene_code` ASC, `policy_code` ASC, `rule_code` ASC) USING BTREE,
+  INDEX `idx_scene_policy_order`(`scene_code` ASC, `policy_code` ASC, `order_no` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '策略规则关联表（P0-必须），定义规则在策略中的顺序、分值权重和分支条件' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -386,6 +389,7 @@ CREATE TABLE `rule_def`  (
 DROP TABLE IF EXISTS `list_item`;
 CREATE TABLE `list_item`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '名单条目主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于按场景隔离名单条目',
   `list_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名单集合编码',
   `match_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '可选匹配键名，例如 deviceId、userId、ip；纯一维名单时可为空',
   `match_value` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '匹配值，例如设备号、用户号、IP、手机号',
@@ -401,9 +405,9 @@ CREATE TABLE `list_item`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_list_value`(`list_code` ASC, `match_value` ASC) USING BTREE,
-  INDEX `idx_list_code`(`list_code` ASC) USING BTREE,
-  INDEX `idx_match_value`(`match_value` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_list_value`(`scene_code` ASC, `list_code` ASC, `match_value` ASC) USING BTREE,
+  INDEX `idx_scene_list_code`(`scene_code` ASC, `list_code` ASC) USING BTREE,
+  INDEX `idx_scene_match_value`(`scene_code` ASC, `match_value` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '名单条目表（P1-推荐），用于存放黑白名单的具体匹配值和过期时间' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -439,6 +443,7 @@ CREATE TABLE `list_set`  (
 DROP TABLE IF EXISTS `feature_derived_conf`;
 CREATE TABLE `feature_derived_conf`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '派生特征配置主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证派生特征配置按场景归档',
   `feature_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '特征编码，对应 feature_def.feature_code',
   `engine_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'AVIATOR' COMMENT '表达式引擎类型，例如 AVIATOR、GROOVY',
   `expr_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '派生表达式内容，基于字段/特征二次推导',
@@ -454,7 +459,8 @@ CREATE TABLE `feature_derived_conf`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_feature_derived`(`feature_code` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_feature_derived`(`scene_code` ASC, `feature_code` ASC) USING BTREE,
+  INDEX `idx_scene_derived_status`(`scene_code` ASC, `status` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '派生特征配置表（P0-必须），用于表达式/Groovy 驱动的二次推导特征' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -463,6 +469,7 @@ CREATE TABLE `feature_derived_conf`  (
 DROP TABLE IF EXISTS `feature_lookup_conf`;
 CREATE TABLE `feature_lookup_conf`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '查询特征配置主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证 lookup 特征配置按场景隔离',
   `feature_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '特征编码，对应 feature_def.feature_code',
   `lookup_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'REDIS_STRING' COMMENT '查询类型，例如 REDIS_SET、REDIS_HASH、REDIS_STRING、DICT',
   `key_expr` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '构造 lookup key 的表达式，例如 userId、deviceId、ip',
@@ -478,7 +485,8 @@ CREATE TABLE `feature_lookup_conf`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_feature_lookup`(`feature_code` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_feature_lookup`(`scene_code` ASC, `feature_code` ASC) USING BTREE,
+  INDEX `idx_scene_lookup_status`(`scene_code` ASC, `status` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '查询特征配置表（P0-必须），用于 Redis/字典/名单类 lookup 特征定义' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -487,6 +495,7 @@ CREATE TABLE `feature_lookup_conf`  (
 DROP TABLE IF EXISTS `feature_stream_conf`;
 CREATE TABLE `feature_stream_conf`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '流式特征配置主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证流式特征配置按场景隔离',
   `feature_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '特征编码，对应 feature_def.feature_code',
   `source_event_codes` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '来源事件编码，多个事件用英文逗号分隔，例如 login,trade',
   `entity_key_expr` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '实体键表达式，例如 userId、deviceId、ip',
@@ -506,7 +515,8 @@ CREATE TABLE `feature_stream_conf`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_feature_stream`(`feature_code` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_feature_stream`(`scene_code` ASC, `feature_code` ASC) USING BTREE,
+  INDEX `idx_scene_stream_status`(`scene_code` ASC, `status` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '流式特征配置表（P0-必须），定义窗口统计、实体聚合和状态提示信息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -560,7 +570,7 @@ CREATE TABLE `ingest_mapping_def`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_source_event_target`(`source_code` ASC, `event_code` ASC, `target_field_code` ASC) USING BTREE,
+  UNIQUE INDEX `uk_source_scene_event_target`(`source_code` ASC, `scene_code` ASC, `event_code` ASC, `target_field_code` ASC) USING BTREE,
   INDEX `idx_scene_event_sort`(`scene_code` ASC, `event_code` ASC, `sort_no` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '接入字段映射与标准化表（P0-必须），定义原始报文字段如何映射为标准 RiskEvent 字段' ROW_FORMAT = Dynamic;
 
@@ -623,6 +633,7 @@ CREATE TABLE `event_sample`  (
 DROP TABLE IF EXISTS `event_field_def`;
 CREATE TABLE `event_field_def`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '事件字段主键',
+  `scene_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属场景编码，用于保证事件字段定义按场景归档',
   `event_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '所属事件编码',
   `field_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段编码，即标准事件里的技术字段名，例如 userId、amount',
   `field_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '字段中文名称',
@@ -643,8 +654,8 @@ CREATE TABLE `event_field_def`  (
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_event_field`(`event_code` ASC, `field_code` ASC) USING BTREE,
-  INDEX `idx_event_sort`(`event_code` ASC, `sort_no` ASC) USING BTREE
+  UNIQUE INDEX `uk_scene_event_field`(`scene_code` ASC, `event_code` ASC, `field_code` ASC) USING BTREE,
+  INDEX `idx_scene_event_sort`(`scene_code` ASC, `event_code` ASC, `sort_no` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '事件字段定义表（P0-必须），定义字段类型、必填性、默认值和基础校验规则' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -751,28 +762,28 @@ INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `eve
 -- ----------------------------
 -- Records of event_field_def
 -- ----------------------------
-INSERT INTO `event_field_def` (`id`, `event_code`, `field_code`, `field_name`, `field_type`, `field_path`, `standard_field_flag`, `required_flag`, `nullable_flag`, `default_value`, `sample_value`, `validation_rule_json`, `description`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1301, 'login', 'eventId', '事件编号', 'STRING', '$.eventId', 1, 1, 0, NULL, 'E_LOGIN_0003', '{"maxLength":64}', '业务事件唯一编号', 1, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1302, 'login', 'traceId', '链路号', 'STRING', '$.traceId', 1, 1, 0, NULL, 'T_LOGIN_0003', '{"maxLength":64}', '贯穿接入、引擎、日志查询的追踪号', 2, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1303, 'login', 'sceneCode', '场景编码', 'STRING', '$.sceneCode', 1, 1, 0, 'LOGIN_RISK', 'LOGIN_RISK', '{"enum":["LOGIN_RISK"]}', '标准事件场景编码', 3, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1304, 'login', 'eventType', '事件类型', 'STRING', '$.eventType', 1, 1, 0, 'login', 'login', '{"enum":["login"]}', '标准事件类型', 4, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1305, 'login', 'eventTime', '事件时间', 'DATETIME', '$.eventTime', 1, 1, 0, NULL, '2026-03-07T09:20:00', '{"formats":["ISO8601","yyyy-MM-dd HH:mm:ss","epoch_millis"]}', '事件发生时间', 5, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1306, 'login', 'userId', '用户编号', 'STRING', '$.userId', 1, 1, 0, NULL, 'U1001', '{"maxLength":64}', '用户主键', 6, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1307, 'login', 'deviceId', '设备编号', 'STRING', '$.deviceId', 1, 1, 0, NULL, 'D9002', '{"maxLength":64}', '设备主键', 7, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1308, 'login', 'ip', 'IP 地址', 'STRING', '$.ip', 1, 1, 0, NULL, '10.20.30.40', '{"format":"IPV4"}', '请求来源 IP', 8, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1309, 'login', 'channel', '渠道', 'STRING', '$.channel', 0, 0, 1, 'APP', 'APP', '{"enum":["APP","WEB","H5"]}', '登录渠道', 9, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1310, 'login', 'loginResult', '登录结果', 'STRING', '$.loginResult', 0, 1, 0, NULL, 'FAIL', '{"enum":["SUCCESS","FAIL"]}', '登录结果，流式失败次数特征依赖该字段', 10, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1321, 'trade', 'eventId', '事件编号', 'STRING', '$.eventId', 1, 1, 0, NULL, 'E_TRADE_0001', '{"maxLength":64}', '业务事件唯一编号', 1, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1322, 'trade', 'traceId', '链路号', 'STRING', '$.traceId', 1, 1, 0, NULL, 'T_TRADE_0001', '{"maxLength":64}', '链路追踪号', 2, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1323, 'trade', 'sceneCode', '场景编码', 'STRING', '$.sceneCode', 1, 1, 0, 'TRADE_RISK', 'TRADE_RISK', '{"enum":["TRADE_RISK"]}', '标准事件场景编码', 3, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1324, 'trade', 'eventType', '事件类型', 'STRING', '$.eventType', 1, 1, 0, 'trade', 'trade', '{"enum":["trade"]}', '标准事件类型', 4, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1325, 'trade', 'eventTime', '事件时间', 'DATETIME', '$.eventTime', 1, 1, 0, NULL, '2026-03-07T11:00:00', '{"formats":["ISO8601","yyyy-MM-dd HH:mm:ss","epoch_millis"]}', '交易发生时间', 5, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1326, 'trade', 'userId', '用户编号', 'STRING', '$.userId', 1, 1, 0, NULL, 'U5001', '{"maxLength":64}', '用户主键', 6, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1327, 'trade', 'deviceId', '设备编号', 'STRING', '$.deviceId', 1, 1, 0, NULL, 'D5001', '{"maxLength":64}', '设备主键', 7, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1328, 'trade', 'ip', 'IP 地址', 'STRING', '$.ip', 1, 1, 0, NULL, '66.77.88.99', '{"format":"IPV4"}', '交易请求 IP', 8, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1329, 'trade', 'amount', '交易金额', 'DECIMAL', '$.amount', 0, 1, 0, NULL, '6800', '{"min":0}', '交易金额，单位元', 9, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1330, 'trade', 'merchantId', '商户编号', 'STRING', '$.merchantId', 0, 1, 0, NULL, 'M1001', '{"maxLength":64}', '商户主键', 10, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
-(1331, 'trade', 'payMethod', '支付方式', 'STRING', '$.payMethod', 0, 0, 1, 'CARD', 'CARD', '{"enum":["CARD","BALANCE","WALLET"]}', '支付方式', 11, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0');
+INSERT INTO `event_field_def` (`id`, `scene_code`, `event_code`, `field_code`, `field_name`, `field_type`, `field_path`, `standard_field_flag`, `required_flag`, `nullable_flag`, `default_value`, `sample_value`, `validation_rule_json`, `description`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1301, 'LOGIN_RISK', 'login', 'eventId', '事件编号', 'STRING', '$.eventId', 1, 1, 0, NULL, 'E_LOGIN_0003', '{"maxLength":64}', '业务事件唯一编号', 1, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1302, 'LOGIN_RISK', 'login', 'traceId', '链路号', 'STRING', '$.traceId', 1, 1, 0, NULL, 'T_LOGIN_0003', '{"maxLength":64}', '贯穿接入、引擎、日志查询的追踪号', 2, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1303, 'LOGIN_RISK', 'login', 'sceneCode', '场景编码', 'STRING', '$.sceneCode', 1, 1, 0, 'LOGIN_RISK', 'LOGIN_RISK', '{"enum":["LOGIN_RISK"]}', '标准事件场景编码', 3, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1304, 'LOGIN_RISK', 'login', 'eventType', '事件类型', 'STRING', '$.eventType', 1, 1, 0, 'login', 'login', '{"enum":["login"]}', '标准事件类型', 4, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1305, 'LOGIN_RISK', 'login', 'eventTime', '事件时间', 'DATETIME', '$.eventTime', 1, 1, 0, NULL, '2026-03-07T09:20:00', '{"formats":["ISO8601","yyyy-MM-dd HH:mm:ss","epoch_millis"]}', '事件发生时间', 5, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1306, 'LOGIN_RISK', 'login', 'userId', '用户编号', 'STRING', '$.userId', 1, 1, 0, NULL, 'U1001', '{"maxLength":64}', '用户主键', 6, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1307, 'LOGIN_RISK', 'login', 'deviceId', '设备编号', 'STRING', '$.deviceId', 1, 1, 0, NULL, 'D9002', '{"maxLength":64}', '设备主键', 7, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1308, 'LOGIN_RISK', 'login', 'ip', 'IP 地址', 'STRING', '$.ip', 1, 1, 0, NULL, '10.20.30.40', '{"format":"IPV4"}', '请求来源 IP', 8, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1309, 'LOGIN_RISK', 'login', 'channel', '渠道', 'STRING', '$.channel', 0, 0, 1, 'APP', 'APP', '{"enum":["APP","WEB","H5"]}', '登录渠道', 9, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1310, 'LOGIN_RISK', 'login', 'loginResult', '登录结果', 'STRING', '$.loginResult', 0, 1, 0, NULL, 'FAIL', '{"enum":["SUCCESS","FAIL"]}', '登录结果，流式失败次数特征依赖该字段', 10, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1321, 'TRADE_RISK', 'trade', 'eventId', '事件编号', 'STRING', '$.eventId', 1, 1, 0, NULL, 'E_TRADE_0001', '{"maxLength":64}', '业务事件唯一编号', 1, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1322, 'TRADE_RISK', 'trade', 'traceId', '链路号', 'STRING', '$.traceId', 1, 1, 0, NULL, 'T_TRADE_0001', '{"maxLength":64}', '链路追踪号', 2, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1323, 'TRADE_RISK', 'trade', 'sceneCode', '场景编码', 'STRING', '$.sceneCode', 1, 1, 0, 'TRADE_RISK', 'TRADE_RISK', '{"enum":["TRADE_RISK"]}', '标准事件场景编码', 3, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1324, 'TRADE_RISK', 'trade', 'eventType', '事件类型', 'STRING', '$.eventType', 1, 1, 0, 'trade', 'trade', '{"enum":["trade"]}', '标准事件类型', 4, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1325, 'TRADE_RISK', 'trade', 'eventTime', '事件时间', 'DATETIME', '$.eventTime', 1, 1, 0, NULL, '2026-03-07T11:00:00', '{"formats":["ISO8601","yyyy-MM-dd HH:mm:ss","epoch_millis"]}', '交易发生时间', 5, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1326, 'TRADE_RISK', 'trade', 'userId', '用户编号', 'STRING', '$.userId', 1, 1, 0, NULL, 'U5001', '{"maxLength":64}', '用户主键', 6, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1327, 'TRADE_RISK', 'trade', 'deviceId', '设备编号', 'STRING', '$.deviceId', 1, 1, 0, NULL, 'D5001', '{"maxLength":64}', '设备主键', 7, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1328, 'TRADE_RISK', 'trade', 'ip', 'IP 地址', 'STRING', '$.ip', 1, 1, 0, NULL, '66.77.88.99', '{"format":"IPV4"}', '交易请求 IP', 8, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1329, 'TRADE_RISK', 'trade', 'amount', '交易金额', 'DECIMAL', '$.amount', 0, 1, 0, NULL, '6800', '{"min":0}', '交易金额，单位元', 9, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1330, 'TRADE_RISK', 'trade', 'merchantId', '商户编号', 'STRING', '$.merchantId', 0, 1, 0, NULL, 'M1001', '{"maxLength":64}', '商户主键', 10, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0'),
+(1331, 'TRADE_RISK', 'trade', 'payMethod', '支付方式', 'STRING', '$.payMethod', 0, 0, 1, 'CARD', 'CARD', '{"enum":["CARD","BALANCE","WALLET"]}', '支付方式', 11, 1, 'admin', '2026-03-08 09:03:00', 'admin', '2026-03-08 09:03:00', b'0');
 
 -- ----------------------------
 -- Records of event_sample
@@ -835,29 +846,29 @@ INSERT INTO `feature_def` (`id`, `scene_code`, `feature_code`, `feature_name`, `
 -- ----------------------------
 -- Records of feature_stream_conf
 -- ----------------------------
-INSERT INTO `feature_stream_conf` (`id`, `feature_code`, `source_event_codes`, `entity_key_expr`, `agg_type`, `value_expr`, `filter_expr`, `window_type`, `window_size`, `window_slide`, `include_current_event`, `ttl_seconds`, `state_hint_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1801, 'user_login_fail_cnt_10m', 'login', 'userId', 'COUNT', NULL, 'loginResult == ''FAIL''', 'SLIDING', '10m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
-(1802, 'ip_login_fail_cnt_10m', 'login', 'ip', 'COUNT', NULL, 'loginResult == ''FAIL''', 'SLIDING', '10m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
-(1803, 'device_login_user_cnt_1h', 'login', 'deviceId', 'DISTINCT_COUNT', 'userId', NULL, 'SLIDING', '1h', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb","expectedCardinality":"medium"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
-(1804, 'user_trade_cnt_5m', 'trade', 'userId', 'COUNT', NULL, NULL, 'SLIDING', '5m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
-(1805, 'user_trade_amt_sum_30m', 'trade', 'userId', 'SUM', 'amount', NULL, 'SLIDING', '30m', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
-(1806, 'device_bind_user_cnt_1h', 'trade', 'deviceId', 'DISTINCT_COUNT', 'userId', NULL, 'SLIDING', '1h', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb","expectedCardinality":"medium"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0');
+INSERT INTO `feature_stream_conf` (`id`, `scene_code`, `feature_code`, `source_event_codes`, `entity_key_expr`, `agg_type`, `value_expr`, `filter_expr`, `window_type`, `window_size`, `window_slide`, `include_current_event`, `ttl_seconds`, `state_hint_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1801, 'LOGIN_RISK', 'user_login_fail_cnt_10m', 'login', 'userId', 'COUNT', NULL, 'loginResult == ''FAIL''', 'SLIDING', '10m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
+(1802, 'LOGIN_RISK', 'ip_login_fail_cnt_10m', 'login', 'ip', 'COUNT', NULL, 'loginResult == ''FAIL''', 'SLIDING', '10m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
+(1803, 'LOGIN_RISK', 'device_login_user_cnt_1h', 'login', 'deviceId', 'DISTINCT_COUNT', 'userId', NULL, 'SLIDING', '1h', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb","expectedCardinality":"medium"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
+(1804, 'TRADE_RISK', 'user_trade_cnt_5m', 'trade', 'userId', 'COUNT', NULL, NULL, 'SLIDING', '5m', '1m', 1, 3600, '{"bucketHint":"1m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
+(1805, 'TRADE_RISK', 'user_trade_amt_sum_30m', 'trade', 'userId', 'SUM', 'amount', NULL, 'SLIDING', '30m', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0'),
+(1806, 'TRADE_RISK', 'device_bind_user_cnt_1h', 'trade', 'deviceId', 'DISTINCT_COUNT', 'userId', NULL, 'SLIDING', '1h', '5m', 1, 7200, '{"bucketHint":"5m","stateBackend":"rocksdb","expectedCardinality":"medium"}', 1, 'admin', '2026-03-08 09:08:00', 'admin', '2026-03-08 09:08:00', b'0');
 
 -- ----------------------------
 -- Records of feature_lookup_conf
 -- ----------------------------
-INSERT INTO `feature_lookup_conf` (`id`, `feature_code`, `lookup_type`, `key_expr`, `source_ref`, `default_value`, `cache_ttl_seconds`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1811, 'device_in_blacklist', 'REDIS_SET', 'deviceId', 'LOGIN_DEVICE_BLACKLIST', 'false', 60, 20, '{"redisKeyPattern":"pulsix:list:black:device:{deviceId}","returnType":"BOOLEAN"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
-(1812, 'ip_risk_level', 'REDIS_STRING', 'ip', 'IP_RISK_PROFILE', 'LOW', 120, 20, '{"redisKeyPattern":"pulsix:profile:ip:risk:{ip}","returnType":"STRING"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
-(1813, 'user_in_white_list', 'REDIS_SET', 'userId', 'LOGIN_USER_WHITE_LIST', 'false', 60, 20, '{"redisKeyPattern":"pulsix:list:white:user:{userId}","returnType":"BOOLEAN"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
-(1814, 'user_risk_level', 'REDIS_STRING', 'userId', 'USER_RISK_PROFILE', 'L', 120, 20, '{"redisKeyPattern":"pulsix:profile:user:risk:{userId}","returnType":"STRING"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0');
+INSERT INTO `feature_lookup_conf` (`id`, `scene_code`, `feature_code`, `lookup_type`, `key_expr`, `source_ref`, `default_value`, `cache_ttl_seconds`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1811, 'LOGIN_RISK', 'device_in_blacklist', 'REDIS_SET', 'deviceId', 'LOGIN_DEVICE_BLACKLIST', 'false', 60, 20, '{"redisKeyPattern":"pulsix:list:black:device:{deviceId}","returnType":"BOOLEAN"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
+(1812, 'LOGIN_RISK', 'ip_risk_level', 'REDIS_STRING', 'ip', 'IP_RISK_PROFILE', 'LOW', 120, 20, '{"redisKeyPattern":"pulsix:profile:ip:risk:{ip}","returnType":"STRING"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
+(1813, 'LOGIN_RISK', 'user_in_white_list', 'REDIS_SET', 'userId', 'LOGIN_USER_WHITE_LIST', 'false', 60, 20, '{"redisKeyPattern":"pulsix:list:white:user:{userId}","returnType":"BOOLEAN"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0'),
+(1814, 'TRADE_RISK', 'user_risk_level', 'REDIS_STRING', 'userId', 'USER_RISK_PROFILE', 'L', 120, 20, '{"redisKeyPattern":"pulsix:profile:user:risk:{userId}","returnType":"STRING"}', 1, 'admin', '2026-03-08 09:08:30', 'admin', '2026-03-08 09:08:30', b'0');
 
 -- ----------------------------
 -- Records of feature_derived_conf
 -- ----------------------------
-INSERT INTO `feature_derived_conf` (`id`, `feature_code`, `engine_type`, `expr_content`, `depends_on_json`, `value_type`, `sandbox_flag`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1821, 'high_fail_user_flag', 'AVIATOR', 'user_login_fail_cnt_10m >= 5', '["user_login_fail_cnt_10m"]', 'BOOLEAN', 1, 50, '{"precompile":true}', 1, 'admin', '2026-03-08 09:09:00', 'admin', '2026-03-08 09:09:00', b'0'),
-(1822, 'high_risk_trade_flag', 'AVIATOR', 'amount >= 3000 && user_trade_cnt_5m >= 2 && (user_risk_level == ''M'' || user_risk_level == ''H'')', '["amount","user_trade_cnt_5m","user_risk_level"]', 'BOOLEAN', 1, 50, '{"precompile":true,"note":"当前设计态是 v2 候选表达式；线上 v1 快照仍使用更高阈值"}', 1, 'admin', '2026-03-08 09:09:00', 'admin', '2026-03-08 09:09:00', b'0');
+INSERT INTO `feature_derived_conf` (`id`, `scene_code`, `feature_code`, `engine_type`, `expr_content`, `depends_on_json`, `value_type`, `sandbox_flag`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1821, 'LOGIN_RISK', 'high_fail_user_flag', 'AVIATOR', 'user_login_fail_cnt_10m >= 5', '["user_login_fail_cnt_10m"]', 'BOOLEAN', 1, 50, '{"precompile":true}', 1, 'admin', '2026-03-08 09:09:00', 'admin', '2026-03-08 09:09:00', b'0'),
+(1822, 'TRADE_RISK', 'high_risk_trade_flag', 'AVIATOR', 'amount >= 3000 && user_trade_cnt_5m >= 2 && (user_risk_level == ''M'' || user_risk_level == ''H'')', '["amount","user_trade_cnt_5m","user_risk_level"]', 'BOOLEAN', 1, 50, '{"precompile":true,"note":"当前设计态是 v2 候选表达式；线上 v1 快照仍使用更高阈值"}', 1, 'admin', '2026-03-08 09:09:00', 'admin', '2026-03-08 09:09:00', b'0');
 
 -- ----------------------------
 -- Records of list_set
@@ -869,10 +880,10 @@ INSERT INTO `list_set` (`id`, `scene_code`, `list_code`, `list_name`, `match_typ
 -- ----------------------------
 -- Records of list_item
 -- ----------------------------
-INSERT INTO `list_item` (`id`, `list_code`, `match_key`, `match_value`, `expire_at`, `status`, `source_type`, `batch_no`, `remark`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1911, 'LOGIN_DEVICE_BLACKLIST', 'deviceId', 'D9001', '2026-12-31 23:59:59', 1, 'MANUAL', 'BATCH_20260308_01', '已确认的撞库设备', '{"riskReason":"credential_stuffing","sourceSystem":"risk_ops"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0'),
-(1912, 'LOGIN_DEVICE_BLACKLIST', 'deviceId', 'D9999', NULL, 1, 'IMPORT_FILE', 'BATCH_20260308_01', '离线导入的高危设备', '{"riskReason":"bot_device","importFile":"demo-blacklist.csv"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0'),
-(1913, 'LOGIN_USER_WHITE_LIST', 'userId', 'U8888', NULL, 1, 'MANUAL', 'BATCH_20260308_02', '高价值 VIP 用户', '{"userTier":"VIP","remark":"避免误杀"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0');
+INSERT INTO `list_item` (`id`, `scene_code`, `list_code`, `match_key`, `match_value`, `expire_at`, `status`, `source_type`, `batch_no`, `remark`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1911, 'LOGIN_RISK', 'LOGIN_DEVICE_BLACKLIST', 'deviceId', 'D9001', '2026-12-31 23:59:59', 1, 'MANUAL', 'BATCH_20260308_01', '已确认的撞库设备', '{"riskReason":"credential_stuffing","sourceSystem":"risk_ops"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0'),
+(1912, 'LOGIN_RISK', 'LOGIN_DEVICE_BLACKLIST', 'deviceId', 'D9999', NULL, 1, 'IMPORT_FILE', 'BATCH_20260308_01', '离线导入的高危设备', '{"riskReason":"bot_device","importFile":"demo-blacklist.csv"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0'),
+(1913, 'LOGIN_RISK', 'LOGIN_USER_WHITE_LIST', 'userId', 'U8888', NULL, 1, 'MANUAL', 'BATCH_20260308_02', '高价值 VIP 用户', '{"userTier":"VIP","remark":"避免误杀"}', 'admin', '2026-03-08 09:11:00', 'admin', '2026-03-08 09:11:00', b'0');
 -- ----------------------------
 -- Records of rule_def
 -- ----------------------------
@@ -895,22 +906,22 @@ INSERT INTO `policy_def` (`id`, `scene_code`, `policy_code`, `policy_name`, `dec
 -- ----------------------------
 -- Records of policy_rule_ref
 -- ----------------------------
-INSERT INTO `policy_rule_ref` (`id`, `policy_code`, `rule_code`, `order_no`, `enabled_flag`, `branch_expr`, `score_weight`, `stop_on_hit`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(2111, 'LOGIN_RISK_POLICY', 'LOGIN_R001', 1, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2112, 'LOGIN_RISK_POLICY', 'LOGIN_R003', 2, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2113, 'LOGIN_RISK_POLICY', 'LOGIN_R002', 3, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2114, 'LOGIN_RISK_POLICY', 'LOGIN_R004', 4, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2115, 'TRADE_RISK_SCORECARD', 'TRADE_R001', 1, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2116, 'TRADE_RISK_SCORECARD', 'TRADE_R002', 2, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
-(2117, 'TRADE_RISK_SCORECARD', 'TRADE_R003', 3, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0');
+INSERT INTO `policy_rule_ref` (`id`, `scene_code`, `policy_code`, `rule_code`, `order_no`, `enabled_flag`, `branch_expr`, `score_weight`, `stop_on_hit`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2111, 'LOGIN_RISK', 'LOGIN_RISK_POLICY', 'LOGIN_R001', 1, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2112, 'LOGIN_RISK', 'LOGIN_RISK_POLICY', 'LOGIN_R003', 2, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2113, 'LOGIN_RISK', 'LOGIN_RISK_POLICY', 'LOGIN_R002', 3, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2114, 'LOGIN_RISK', 'LOGIN_RISK_POLICY', 'LOGIN_R004', 4, 1, NULL, NULL, 1, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2115, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 'TRADE_R001', 1, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2116, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 'TRADE_R002', 2, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0'),
+(2117, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 'TRADE_R003', 3, 1, NULL, 1, 0, 'admin', '2026-03-08 09:13:30', 'admin', '2026-03-08 09:13:30', b'0');
 
 -- ----------------------------
 -- Records of policy_score_band
 -- ----------------------------
-INSERT INTO `policy_score_band` (`id`, `policy_code`, `band_no`, `min_score`, `max_score`, `hit_action`, `hit_reason_template`, `enabled_flag`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(2121, 'TRADE_RISK_SCORECARD', 1, 0, 49, 'PASS', '累计分值={totalScore}，低于复核阈值，直接放行', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0'),
-(2122, 'TRADE_RISK_SCORECARD', 2, 50, 79, 'REVIEW', '累计分值={totalScore}，进入人工复核区间', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0'),
-(2123, 'TRADE_RISK_SCORECARD', 3, 80, 999999, 'REJECT', '累计分值={totalScore}，超过拒绝阈值', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0');
+INSERT INTO `policy_score_band` (`id`, `scene_code`, `policy_code`, `band_no`, `min_score`, `max_score`, `hit_action`, `hit_reason_template`, `enabled_flag`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2121, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 1, 0, 49, 'PASS', '累计分值={totalScore}，低于复核阈值，直接放行', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0'),
+(2122, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 2, 50, 79, 'REVIEW', '累计分值={totalScore}，进入人工复核区间', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0'),
+(2123, 'TRADE_RISK', 'TRADE_RISK_SCORECARD', 3, 80, 999999, 'REJECT', '累计分值={totalScore}，超过拒绝阈值', 1, 'admin', '2026-03-08 09:14:00', 'admin', '2026-03-08 09:14:00', b'0');
 
 -- ----------------------------
 -- Records of scene_release
