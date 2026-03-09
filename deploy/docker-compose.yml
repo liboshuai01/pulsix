@@ -122,7 +122,7 @@ services:
       - pulsix
 
   doris-fe:
-    image: ${DORIS_FE_IMAGE:-apache/doris:fe-3.0.4}
+    image: ${DORIS_FE_IMAGE:-apache/doris:fe-3.1.4}
     hostname: doris-fe
     restart: unless-stopped
     environment:
@@ -154,7 +154,7 @@ services:
         ipv4_address: ${DORIS_FE_IP:-172.28.0.21}
 
   doris-be:
-    image: ${DORIS_BE_IMAGE:-apache/doris:be-3.0.4}
+    image: ${DORIS_BE_IMAGE:-apache/doris:be-3.1.4}
     hostname: doris-be
     restart: unless-stopped
     depends_on:
