@@ -1,0 +1,51 @@
+package cn.liboshuai.pulsix.engine.model;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+@Data
+@NoArgsConstructor
+public class SceneSnapshot implements Serializable {
+
+    private String snapshotId;
+
+    private String sceneCode;
+
+    private String sceneName;
+
+    private Integer version;
+
+    private String status;
+
+    private String checksum;
+
+    private Instant publishedAt;
+
+    private Instant effectiveFrom;
+
+    private String runtimeMode;
+
+    private SceneSpec scene;
+
+    private EventSchemaSpec eventSchema;
+
+    private Map<String, List<String>> variables;
+
+    private List<StreamFeatureSpec> streamFeatures;
+
+    private List<LookupFeatureSpec> lookupFeatures;
+
+    private List<DerivedFeatureSpec> derivedFeatures;
+
+    private List<RuleSpec> rules;
+
+    private PolicySpec policy;
+
+    private RuntimeHints runtimeHints;
+
+}
