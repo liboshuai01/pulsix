@@ -58,6 +58,14 @@ public class CompiledSceneRuntime implements Serializable {
 
         private CompiledScript filterScript;
 
+        private long windowSizeMs;
+
+        private long windowSlideMs;
+
+        private long ttlMs;
+
+        private long retentionMs;
+
     }
 
     @Data

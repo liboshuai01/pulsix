@@ -6,8 +6,10 @@ import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
+import cn.liboshuai.pulsix.engine.model.WindowType;
 import cn.liboshuai.pulsix.engine.script.CompiledScript;
 import cn.liboshuai.pulsix.engine.script.ScriptCompiler;
+import cn.liboshuai.pulsix.engine.support.DurationParser;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,6 +46,10 @@ public class RuntimeCompiler {
             compiledFeature.setEntityKeyScript(compileAviator(spec.getEntityKeyExpr()));
             compiledFeature.setValueScript(compileAviator(defaultIfBlank(spec.getValueExpr(), "1")));
             compiledFeature.setFilterScript(compileAviator(defaultIfBlank(spec.getFilterExpr(), "true")));
+            compiledFeature.setWindowSizeMs(resolveWindowSizeMs(spec));
+            compiledFeature.setWindowSlideMs(resolveWindowSlideMs(spec));
+            compiledFeature.setTtlMs(DurationParser.parse(spec.getTtl()).toMillis());
+            compiledFeature.setRetentionMs(resolveRetentionMs(compiledFeature));
             runtime.getStreamFeatures().add(compiledFeature);
         }
 
@@ -89,6 +95,32 @@ public class RuntimeCompiler {
 
     private String defaultIfBlank(String text, String defaultValue) {
         return text == null || text.isBlank() ? defaultValue : text;
+    }
+
+    private long resolveWindowSizeMs(StreamFeatureSpec spec) {
+        if (spec == null) {
+            return 0L;
+        }
+        if (spec.getWindowType() == null || spec.getWindowType() == WindowType.NONE) {
+            return DurationParser.parse(spec.getTtl()).toMillis();
+        }
+        return DurationParser.parse(spec.getWindowSize()).toMillis();
+    }
+
+    private long resolveWindowSlideMs(StreamFeatureSpec spec) {
+        if (spec == null) {
+            return 0L;
+        }
+        long parsedSlide = DurationParser.parse(spec.getWindowSlide()).toMillis();
+        if (parsedSlide > 0L) {
+            return parsedSlide;
+        }
+        long windowSizeMs = resolveWindowSizeMs(spec);
+        return windowSizeMs > 0L ? windowSizeMs : 1L;
+    }
+
+    private long resolveRetentionMs(CompiledSceneRuntime.CompiledStreamFeature feature) {
+        return Math.max(feature.getWindowSizeMs(), feature.getTtlMs());
     }
 
     private List<DerivedFeatureSpec> orderDerived(List<DerivedFeatureSpec> specs) {

@@ -4,7 +4,6 @@ import cn.liboshuai.pulsix.engine.context.EvalContext;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.model.ActionType;
-import cn.liboshuai.pulsix.engine.model.AggType;
 import cn.liboshuai.pulsix.engine.model.DecisionMode;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
@@ -12,23 +11,16 @@ import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleHit;
 import cn.liboshuai.pulsix.engine.model.ScoreBandSpec;
-import cn.liboshuai.pulsix.engine.model.WindowType;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
-import cn.liboshuai.pulsix.engine.support.DurationParser;
 import cn.liboshuai.pulsix.engine.support.TemplateRenderer;
 import cn.liboshuai.pulsix.engine.support.ValueConverter;
 
-import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.Comparator;
-import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DecisionExecutor {
@@ -104,33 +96,7 @@ public class DecisionExecutor {
     private Object executeStreamFeature(CompiledSceneRuntime.CompiledStreamFeature feature,
                                         EvalContext context,
                                         StreamFeatureStateStore stateStore) {
-        Object entityKeyValue = feature.getEntityKeyScript().execute(context);
-        String entityKey = ValueConverter.asString(entityKeyValue);
-        if (entityKey == null || entityKey.isBlank()) {
-            return defaultFeatureValue(feature.getSpec().getAggType());
-        }
-        Instant eventTime = context.getEvent().getEventTime() != null ? context.getEvent().getEventTime() : Instant.now();
-        Duration window = feature.getSpec().getWindowType() == WindowType.NONE
-                ? DurationParser.parse(feature.getSpec().getTtl())
-                : DurationParser.parse(feature.getSpec().getWindowSize());
-        long maxAgeMs = window.toMillis();
-        StreamFeatureStateStore.WindowBuffer buffer = stateStore.getWindow(context.getSceneCode(), feature.getSpec().getCode(), entityKey);
-        buffer.cleanup(eventTime, maxAgeMs);
-        boolean acceptedEventType = feature.getSpec().getSourceEventTypes() == null
-                || feature.getSpec().getSourceEventTypes().isEmpty()
-                || feature.getSpec().getSourceEventTypes().contains(context.getEvent().getEventType());
-        boolean acceptedFilter = ValueConverter.asBoolean(feature.getFilterScript().execute(context));
-        boolean accepted = acceptedEventType && acceptedFilter;
-        Object currentValue = accepted ? feature.getValueScript().execute(context) : null;
-        boolean includeCurrent = !Boolean.FALSE.equals(feature.getSpec().getIncludeCurrentEvent());
-        if (accepted && includeCurrent) {
-            buffer.add(eventTime, currentValue);
-        }
-        Object featureValue = aggregate(feature.getSpec().getAggType(), buffer.observations());
-        if (accepted && !includeCurrent) {
-            buffer.add(eventTime, currentValue);
-        }
-        return featureValue;
+        return stateStore.evaluate(feature, context);
     }
 
     private Object executeLookupFeature(CompiledSceneRuntime.CompiledLookupFeature feature,
@@ -208,40 +174,6 @@ public class DecisionExecutor {
             featureSnapshot.put(featureCode, context.get(featureCode));
         }
         return featureSnapshot;
-    }
-
-    private Object aggregate(AggType aggType, Deque<StreamFeatureStateStore.Observation> observations) {
-        if (aggType == null || observations == null || observations.isEmpty()) {
-            return defaultFeatureValue(aggType);
-        }
-        return switch (aggType) {
-            case COUNT -> (long) observations.size();
-            case SUM -> observations.stream().map(StreamFeatureStateStore.Observation::value)
-                    .map(ValueConverter::asDecimal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            case MAX -> observations.stream().map(StreamFeatureStateStore.Observation::value)
-                    .map(ValueConverter::asDecimal)
-                    .max(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO);
-            case LATEST -> observations.peekLast().value();
-            case DISTINCT_COUNT -> (long) observations.stream()
-                    .map(StreamFeatureStateStore.Observation::value)
-                    .map(ValueConverter::asString)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet())
-                    .size();
-        };
-    }
-
-    private Object defaultFeatureValue(AggType aggType) {
-        if (aggType == null) {
-            return null;
-        }
-        return switch (aggType) {
-            case COUNT, DISTINCT_COUNT -> 0L;
-            case SUM, MAX -> BigDecimal.ZERO;
-            case LATEST -> null;
-        };
     }
 
     private record PolicyOutcome(ActionType action, int score) {

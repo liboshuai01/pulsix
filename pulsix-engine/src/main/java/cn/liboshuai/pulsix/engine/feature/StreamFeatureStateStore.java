@@ -1,23 +1,27 @@
 package cn.liboshuai.pulsix.engine.feature;
 
-import java.time.Instant;
-import java.util.Deque;
+import cn.liboshuai.pulsix.engine.context.EvalContext;
+import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 
 public interface StreamFeatureStateStore {
 
-    WindowBuffer getWindow(String sceneCode, String featureCode, String entityKey);
+    Object evaluate(CompiledSceneRuntime.CompiledStreamFeature feature, EvalContext context);
 
-    interface WindowBuffer {
-
-        void cleanup(Instant now, long maxAgeMs);
-
-        void add(Instant eventTime, Object value);
-
-        Deque<Observation> observations();
-
+    default void bindExecutionContext(StreamFeatureExecutionContext executionContext) {
     }
 
-    record Observation(Instant eventTime, Object value) {
+    default void clearExecutionContext() {
+    }
+
+    default void onTimer(long timestamp) {
+    }
+
+    interface StreamFeatureExecutionContext {
+
+        void registerEventTimeTimer(long timestamp);
+
+        long currentWatermark();
+
     }
 
 }

@@ -3,10 +3,14 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
+import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
+import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -14,26 +18,28 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 public class DecisionEngineJob {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-        env.getConfig().enableObjectReuse();
+        configureRuntime(env);
 
-        DataStream<Tuple2<String, String>> eventStream = buildDemoEventStream(env);
-        DataStream<String> configStream = buildDemoConfigStream(env);
+        DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
+        DataStream<SceneSnapshotEnvelope> configStream = buildDemoConfigStream(env);
 
-        MapStateDescriptor<String, String> snapshotStateDescriptor = new MapStateDescriptor<>(
+        MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(String.class)
+                TypeInformation.of(new TypeHint<SceneSnapshotEnvelope>() {
+                })
         );
 
-        KeyedStream<Tuple2<String, String>, String> keyedEventStream = eventStream.keyBy(value -> value.f0);
-        BroadcastStream<String> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
+        KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
+        BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
                 .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor));
@@ -45,28 +51,50 @@ public class DecisionEngineJob {
         env.execute("pulsix-engine-demo-job");
     }
 
-    private static DataStream<Tuple2<String, String>> buildDemoEventStream(StreamExecutionEnvironment env) {
+    private static void configureRuntime(StreamExecutionEnvironment env) {
+        env.setParallelism(1);
+        env.getConfig().enableObjectReuse();
+        env.enableCheckpointing(30_000L, CheckpointingMode.EXACTLY_ONCE);
+        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5_000L);
+        env.getCheckpointConfig().setCheckpointTimeout(60_000L);
+        env.getCheckpointConfig().setTolerableCheckpointFailureNumber(3);
+        String backend = System.getProperty("pulsix.engine.state-backend", "hashmap").trim().toLowerCase();
+        if ("rocksdb".equals(backend)) {
+            env.setStateBackend(new org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend(true));
+            return;
+        }
+        env.setStateBackend(new HashMapStateBackend());
+    }
+
+    private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
         return env.addSource(new DemoRiskEventSource())
+                .assignTimestampsAndWatermarks(WatermarkStrategy
+                        .<RiskEvent>forBoundedOutOfOrderness(Duration.ofSeconds(1))
+                        .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
+                            Instant eventTime = event.getEventTime();
+                            return eventTime != null ? eventTime.toEpochMilli() : timestamp;
+                        }));
+    }
+
+    private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
+        return env.addSource(new DemoSnapshotSource())
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
-    private static DataStream<String> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoSnapshotSource());
-    }
-
-    private static class DemoRiskEventSource implements SourceFunction<Tuple2<String, String>> {
+    private static class DemoRiskEventSource implements SourceFunction<RiskEvent> {
 
         private volatile boolean running = true;
 
         @Override
-        public void run(SourceContext<Tuple2<String, String>> context) {
+        public void run(SourceContext<RiskEvent> context) throws InterruptedException {
+            Thread.sleep(100L);
             List<RiskEvent> events = DemoFixtures.demoEvents();
             for (RiskEvent event : events) {
                 if (!running) {
                     return;
                 }
                 synchronized (context.getCheckpointLock()) {
-                    context.collect(Tuple2.of(event.getSceneCode(), DemoFixtures.toJson(event)));
+                    context.collect(event);
                 }
             }
         }
@@ -77,17 +105,17 @@ public class DecisionEngineJob {
         }
     }
 
-    private static class DemoSnapshotSource implements SourceFunction<String> {
+    private static class DemoSnapshotSource implements SourceFunction<SceneSnapshotEnvelope> {
 
         private volatile boolean running = true;
 
         @Override
-        public void run(SourceContext<String> context) {
+        public void run(SourceContext<SceneSnapshotEnvelope> context) {
             if (!running) {
                 return;
             }
             synchronized (context.getCheckpointLock()) {
-                context.collect(DemoFixtures.demoEnvelopeJson());
+                context.collect(DemoFixtures.demoEnvelope());
             }
         }
 

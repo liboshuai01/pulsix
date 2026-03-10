@@ -32,6 +32,7 @@ class LocalDecisionEngineTest {
         assertEquals(ActionType.REJECT, result.getFinalAction());
         assertEquals(80, result.getFinalScore());
         assertEquals("3", result.getFeatureSnapshot().get("user_trade_cnt_5m"));
+        assertEquals("7180", result.getFeatureSnapshot().get("user_trade_amt_sum_30m"));
         assertEquals("4", result.getFeatureSnapshot().get("device_bind_user_cnt_1h"));
         assertTrue(result.getRuleHits().stream().anyMatch(hit -> "R002".equals(hit.getRuleCode()) && Boolean.TRUE.equals(hit.getHit())));
         assertTrue(result.getRuleHits().stream().anyMatch(hit -> "R003".equals(hit.getRuleCode()) && Boolean.TRUE.equals(hit.getHit())));
