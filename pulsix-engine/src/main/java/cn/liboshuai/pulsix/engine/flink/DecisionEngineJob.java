@@ -7,8 +7,10 @@ import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
@@ -34,8 +36,7 @@ public class DecisionEngineJob {
         MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(new TypeHint<SceneSnapshotEnvelope>() {
-                })
+                TypeInformation.of(SceneSnapshotEnvelope.class)
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
@@ -54,6 +55,7 @@ public class DecisionEngineJob {
     private static void configureRuntime(StreamExecutionEnvironment env) {
         env.setParallelism(1);
         env.getConfig().enableObjectReuse();
+        env.configure(localExecutionConfiguration());
         env.enableCheckpointing(30_000L, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5_000L);
         env.getCheckpointConfig().setCheckpointTimeout(60_000L);
@@ -67,7 +69,7 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoRiskEventSource())
+        return env.addSource(new DemoRiskEventSource(), TypeInformation.of(RiskEvent.class))
                 .assignTimestampsAndWatermarks(WatermarkStrategy
                         .<RiskEvent>forBoundedOutOfOrderness(Duration.ofSeconds(1))
                         .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
@@ -77,8 +79,20 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoSnapshotSource())
+        return env.addSource(new DemoSnapshotSource(), TypeInformation.of(SceneSnapshotEnvelope.class))
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
+    }
+
+    private static Configuration localExecutionConfiguration() {
+        Configuration configuration = new Configuration();
+        configuration.set(TaskManagerOptions.CPU_CORES, 1.0);
+        configuration.set(TaskManagerOptions.NUM_TASK_SLOTS, 1);
+        configuration.set(TaskManagerOptions.TASK_HEAP_MEMORY, MemorySize.ofMebiBytes(256));
+        configuration.set(TaskManagerOptions.TASK_OFF_HEAP_MEMORY, MemorySize.ofMebiBytes(128));
+        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MIN, MemorySize.ofMebiBytes(64));
+        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MAX, MemorySize.ofMebiBytes(64));
+        configuration.set(TaskManagerOptions.MANAGED_MEMORY_SIZE, MemorySize.ofMebiBytes(128));
+        return configuration;
     }
 
     private static class DemoRiskEventSource implements SourceFunction<RiskEvent> {

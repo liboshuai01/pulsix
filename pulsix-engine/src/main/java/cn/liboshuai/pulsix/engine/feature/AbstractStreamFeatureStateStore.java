@@ -1,9 +1,11 @@
 package cn.liboshuai.pulsix.engine.feature;
 
 import cn.liboshuai.pulsix.engine.context.EvalContext;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import cn.liboshuai.pulsix.engine.model.AggType;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.support.ValueConverter;
+import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -332,6 +334,7 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
         };
     }
 
+    @TypeInfo(EngineTypeInfoFactories.NumericWindowStateTypeInfoFactory.class)
     public static class NumericWindowState implements Serializable {
 
         private long retentionMs;
@@ -366,13 +369,16 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
 
     }
 
+    @TypeInfo(EngineTypeInfoFactories.LatestValueStateTypeInfoFactory.class)
     public static class LatestValueState implements Serializable {
 
         private long retentionMs;
 
         private Long latestEventTimeMs;
 
-        private Object latestValue;
+        private String latestValueRaw;
+
+        private String latestValueType;
 
         public long getRetentionMs() {
             return retentionMs;
@@ -391,15 +397,54 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
         }
 
         public Object getLatestValue() {
-            return latestValue;
+            return ValueConverter.coerce(latestValueRaw, latestValueType);
         }
 
         public void setLatestValue(Object latestValue) {
-            this.latestValue = latestValue;
+            if (latestValue == null) {
+                this.latestValueRaw = null;
+                this.latestValueType = null;
+                return;
+            }
+            if (latestValue instanceof Boolean) {
+                this.latestValueType = "BOOLEAN";
+                this.latestValueRaw = String.valueOf(latestValue);
+                return;
+            }
+            if (latestValue instanceof Byte || latestValue instanceof Short
+                    || latestValue instanceof Integer || latestValue instanceof Long) {
+                this.latestValueType = "LONG";
+                this.latestValueRaw = String.valueOf(((Number) latestValue).longValue());
+                return;
+            }
+            if (latestValue instanceof Number) {
+                this.latestValueType = "DECIMAL";
+                this.latestValueRaw = ValueConverter.asDecimal(latestValue).toPlainString();
+                return;
+            }
+            this.latestValueType = "STRING";
+            this.latestValueRaw = String.valueOf(latestValue);
+        }
+
+        public String getLatestValueRaw() {
+            return latestValueRaw;
+        }
+
+        public void setLatestValueRaw(String latestValueRaw) {
+            this.latestValueRaw = latestValueRaw;
+        }
+
+        public String getLatestValueType() {
+            return latestValueType;
+        }
+
+        public void setLatestValueType(String latestValueType) {
+            this.latestValueType = latestValueType;
         }
 
     }
 
+    @TypeInfo(EngineTypeInfoFactories.DistinctWindowStateTypeInfoFactory.class)
     public static class DistinctWindowState implements Serializable {
 
         private long retentionMs;

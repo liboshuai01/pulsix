@@ -1,14 +1,17 @@
 package cn.liboshuai.pulsix.engine.model;
 
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@TypeInfo(EngineTypeInfoFactories.StreamFeatureSpecTypeInfoFactory.class)
 public class StreamFeatureSpec extends FeatureSpec {
 
     private List<String> sourceEventTypes;

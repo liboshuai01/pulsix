@@ -5,7 +5,6 @@ import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.StateTtlConfig;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 import java.util.ArrayList;
@@ -29,24 +28,21 @@ public class FlinkKeyedStateStreamFeatureStateStore extends AbstractStreamFeatur
         MapStateDescriptor<String, NumericWindowState> numericDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-numeric-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(new TypeHint<NumericWindowState>() {
-                })
+                TypeInformation.of(NumericWindowState.class)
         );
         numericDescriptor.enableTimeToLive(ttlConfig);
 
         MapStateDescriptor<String, LatestValueState> latestDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-latest-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(new TypeHint<LatestValueState>() {
-                })
+                TypeInformation.of(LatestValueState.class)
         );
         latestDescriptor.enableTimeToLive(ttlConfig);
 
         MapStateDescriptor<String, DistinctWindowState> distinctDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-distinct-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(new TypeHint<DistinctWindowState>() {
-                })
+                TypeInformation.of(DistinctWindowState.class)
         );
         distinctDescriptor.enableTimeToLive(ttlConfig);
 

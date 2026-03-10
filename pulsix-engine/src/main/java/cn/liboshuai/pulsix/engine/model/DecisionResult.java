@@ -1,7 +1,9 @@
 package cn.liboshuai.pulsix.engine.model;
 
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
+@TypeInfo(EngineTypeInfoFactories.DecisionResultTypeInfoFactory.class)
 public class DecisionResult implements Serializable {
 
     private String eventId;
