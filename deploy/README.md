@@ -93,7 +93,8 @@ docker compose up -d
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
-- `pulsix.config.snapshot`
+
+当前系统不创建配置类 Kafka Topic；MySQL 配置快照通过 `scene_release -> MySQL CDC -> Flink` 直接同步。
 
 如需调整，可修改 `.env` 中的 `KAFKA_INIT_TOPICS`、`KAFKA_DEFAULT_PARTITIONS`、`KAFKA_DEFAULT_REPLICATION_FACTOR`。
 

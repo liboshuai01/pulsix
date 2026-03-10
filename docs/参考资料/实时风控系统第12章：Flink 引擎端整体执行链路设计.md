@@ -116,7 +116,7 @@ Connect 配置广播流
 同时还有另一条配置流：
 
 ```latex
-MySQL CDC / 可选 Kafka Config Topic
+MySQL CDC（scene_release）
       │
       ▼
 快照反序列化
@@ -176,7 +176,7 @@ Broadcast State + 本地运行时编译缓存
 
 ### 配置流
 
-- 从 MySQL CDC 的发布表读取，或按需从 Kafka `pulsix.config.snapshot` 读取
+- 从 MySQL CDC 的发布表读取（当前系统唯一配置链路）
 - 解析成 `SceneSnapshotEnvelope`
 - `broadcast()` 成广播流
 

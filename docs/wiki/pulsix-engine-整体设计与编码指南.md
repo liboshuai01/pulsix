@@ -154,7 +154,7 @@ Kafka 标准事件流
     -> 输出 DecisionResult
     -> Side Output: DecisionLogRecord / EngineErrorRecord
 
-MySQL scene_release / Kafka config topic
+MySQL scene_release（Flink CDC）
     -> Flink 读取 SceneSnapshotEnvelope
     -> Broadcast State
     -> RuntimeCompiler 编译本地运行时缓存
@@ -672,8 +672,7 @@ field/value = {
 
 替换成：
 
-- Kafka config topic
-- 或 MySQL CDC -> Kafka -> Flink
+- MySQL CDC -> Flink
 
 ### 第四步：把 in-memory lookup 替换成 Redis
 
@@ -708,7 +707,7 @@ field/value = {
 ### 输入
 
 - `pulsix.event.standard`：标准事件主流
-- `pulsix.config.snapshot`：快照广播流
+- `MySQL CDC`（读取 `scene_release`）：快照广播流来源
 
 ### 输出
 
@@ -736,4 +735,3 @@ field/value = {
 5. 先把本地执行内核打磨稳定，再替换成真实 Flink State / Kafka / Redis。
 
 如果按这个思路继续写，`pulsix-engine` 的代码会越来越稳；如果一开始就把状态、规则、脚本、策略、接入全部揉在一个 `processElement` 里，后面基本一定会失控。
-

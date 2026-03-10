@@ -5,7 +5,7 @@ marker_file="${KAFKA_INIT_MARKER_FILE:-/var/lib/pulsix-kafka-init/.topics-initia
 bootstrap_server="${KAFKA_BOOTSTRAP_SERVER:-kafka:9092}"
 default_partitions="${KAFKA_DEFAULT_PARTITIONS:-3}"
 default_replication_factor="${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}"
-raw_topics="${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq,pulsix.config.snapshot}"
+raw_topics="${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq}"
 
 echo "[kafka-init] 准备检查 Topic 初始化状态"
 

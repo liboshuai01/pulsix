@@ -109,7 +109,7 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
       KAFKA_BOOTSTRAP_SERVER: kafka:9092
       KAFKA_INIT_MARKER_FILE: /var/lib/pulsix-kafka-init/.topics-initialized
-      KAFKA_INIT_TOPICS: ${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq,pulsix.config.snapshot}
+      KAFKA_INIT_TOPICS: ${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq}
       KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
       KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}
     entrypoint:

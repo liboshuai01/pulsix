@@ -586,7 +586,7 @@ cn.liboshuai.pulsix.module.risk
 - 组装发布上下文
 - 调用 snapshotCompiler
 - 持久化 scene\_release
-- 触发配置下发链路（优先 MySQL CDC，必要时再主动推送）
+- 通过 MySQL CDC 触发配置下发链路
 - 写审计日志
 
 它通常不会自己干所有细节，而是调用一组协作者。
@@ -653,16 +653,16 @@ cn.liboshuai.pulsix.module.risk
 
 ---
 
-### 20.9.5 `ReleasePublisher`
+### 20.9.5 `SceneReleaseRepository`
 
-负责把生成的 snapshot 往外推。
+负责把生成的 snapshot 写入 `scene_release`。
 
-实现上可以是：
+当前系统保持单一发布链路即可：
 
-- ConfigPushReleasePublisher（主动推送，可落 Kafka / HTTP）
-- DbOnlyReleasePublisher（只落库）
+- 控制平台落库到 `scene_release`
+- Flink 通过 MySQL CDC 感知新版本
 
-这样你就能灵活切换“只落库给 MySQL CDC 读取”和“额外主动推送”的策略。
+不再额外引入主动推送、Kafka config topic 或其他第二配置通路。
 
 ---
 
@@ -680,7 +680,6 @@ public class ReleaseApplicationService {
     private final DependencyAnalyzer dependencyAnalyzer;
     private final SceneSnapshotCompiler sceneSnapshotCompiler;
     private final SceneReleaseRepository sceneReleaseRepository;
-    private final ReleasePublisher releasePublisher;
     private final AuditLogService auditLogService;
 
     @Transactional
@@ -694,8 +693,6 @@ public class ReleaseApplicationService {
         CompiledSnapshot compiledSnapshot = sceneSnapshotCompiler.compile(bundle, dependencyGraph);
 
         SceneRelease release = sceneReleaseRepository.save(compiledSnapshot, request);
-
-        releasePublisher.publish(release);
 
         auditLogService.recordPublish(sceneCode, release.getVersionNo(), request.getRemark());
 
@@ -1018,7 +1015,7 @@ public class ReleaseApplicationService {
 - 发布中心
 - 快照编译器
 - 依赖分析器
-- 打通 MySQL CDC / 可选主动推送链路
+- 打通 `scene_release -> MySQL CDC -> Flink` 配置链路
 
 ### 第四阶段
 

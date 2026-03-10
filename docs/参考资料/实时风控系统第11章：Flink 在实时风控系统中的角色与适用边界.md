@@ -698,9 +698,10 @@ Flink 负责：
 Kafka 负责承载流：
 
 - 原始事件流
-- 配置快照流
 - 决策结果流
 - 日志流
+
+配置快照由 `scene_release -> MySQL CDC -> Flink Broadcast State` 直接同步，不经过 Kafka。
 
 Flink 负责消费与产出这些流。
 

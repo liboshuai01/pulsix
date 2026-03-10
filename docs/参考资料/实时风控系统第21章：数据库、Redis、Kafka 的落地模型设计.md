@@ -295,7 +295,7 @@
 正确方式是：
 
 - MySQL 存版本产物
-- 配置通过 MySQL CDC 或主动推送进入 Flink，Kafka 只作为可选总线
+- 配置仅通过 MySQL CDC 进入 Flink，这是当前系统唯一的配置同步链路
 - Flink 存 Broadcast State
 
 ---
@@ -549,7 +549,7 @@ Redis 不适合用来做：
 2. 决策结果流
 3. 日志流
 
-配置快照流不属于 Flink CDC 的必需链路。更简单的做法，是让 Flink 直接通过 MySQL CDC 读取发布表；只有在需要额外解耦或多下游分发时，再把配置快照补到 Kafka。
+配置快照不纳入 Kafka Topic 规划。当前系统让 Flink 直接通过 MySQL CDC 读取发布表，这是唯一的配置同步链路。
 
 ---
 
@@ -585,29 +585,21 @@ Redis 不适合用来做：
 
 ---
 
-### 21.7.2 可选：配置快照流 Topic
+### 21.7.2 配置快照下发链路（仅 MySQL CDC）
 
-先说明一个边界：**Flink CDC 同步 MySQL 配置到 Flink，不需要先经过 Kafka。**
+先说明当前系统边界：**MySQL 配置同步到 Flink 的唯一方式，就是 Flink CDC 直接读取 `scene_release` 等发布表。**
 
-如果你让 Flink 直接订阅 `scene_release` 等发布表，那么配置快照就是直接从 MySQL 快照 + binlog 进入 Flink 的。
+配置快照从 MySQL 快照 + binlog 直接进入 Flink，然后广播到各并行子任务。
 
-只有在下面场景，才建议额外保留配置 Topic：
+因此当前系统：
 
-- 需要把同一份配置同时分发给多个下游
-- 想把发布总线和数据库 CDC 解耦
-- 想统一做配置消息审计 / 回放
+- 不保留 `pulsix.config.snapshot`
+- 不通过 Kafka 传配置
+- 不通过主动推送传配置
 
-建议：
+控制面和计算面之间关于配置同步的关键桥梁只有一条：
 
-- `pulsix.config.snapshot`
-
-它承载：
-
-- 新发布的 snapshot
-- 回滚后的 snapshot
-- 生效版本通知
-
-这是控制面和计算面之间最关键的一条桥梁流。
+- `scene_release -> MySQL CDC -> Flink`
 
 #### 消息体建议包含
 
@@ -852,14 +844,13 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 ### 21.11.3 Kafka
 
-先规划 4 类必需 Topic，外加 2 类可选 Topic：
+先规划 4 类必需 Topic，外加 1 类可选 Topic：
 
 - `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
 - `pulsix.ingest.error`（可选）
-- `pulsix.config.snapshot`（可选）
 
 ### 21.11.4 Flink
 
@@ -1031,7 +1022,6 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 - `pulsix.decision.log`
 - `pulsix.event.dlq`
 - `pulsix.ingest.error`（可选）
-- `pulsix.config.snapshot`（可选）
 
 ### 4）Flink State 是流式中间态主场
 
@@ -1051,7 +1041,7 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
 
 - MySQL 扛设计态和日志查询
 - Redis 扛名单与画像
-- Kafka 扛事件、结果、日志流；配置流默认可由 MySQL CDC 直连
+- Kafka 扛事件、结果、日志流；配置快照仅通过 MySQL CDC 直连 Flink
 - Flink 扛状态计算和执行
 
 ---

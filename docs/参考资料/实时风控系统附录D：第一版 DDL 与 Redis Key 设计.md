@@ -886,30 +886,17 @@ pulsix.event.trade
 
 ---
 
-## D.11.2 可选：配置快照 Topic
+## D.11.2 配置快照下发链路（仅 MySQL CDC）
 
-先说明边界：**Flink CDC 从 MySQL 同步配置到 Flink，不需要先经过 Kafka。**
+先说明当前系统边界：**Flink CDC 从 MySQL 同步配置到 Flink，是唯一的配置同步方式。**
 
-如果你已经让 Flink 直接监听发布表，那么这一节里的 Topic 是可选增强项，不是必选基础设施。
+发布后快照落到 `scene_release`，再由 MySQL 的快照 + binlog 直接进入 Flink。
 
-```latex
-pulsix.config.snapshot
-```
+因此当前系统：
 
-用于承载：
-
-- 新发布快照
-- 回滚后的快照
-- 生效版本通知
-
-消息体建议包含：
-
-- `sceneCode`
-- `versionNo`
-- `effectiveFrom`
-- `snapshotJson`
-- `checksum`
-- `opType`（PUBLISH / ROLLBACK）
+- 不定义 `pulsix.config.snapshot`
+- 不额外增加 Kafka 配置 Topic
+- 不引入第二条配置下发链路
 
 ---
 
@@ -1060,10 +1047,6 @@ Kafka 先只保留：
 - `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
-
-如确实需要额外配置总线，再补：
-
-- `pulsix.config.snapshot`
 
 这样足够跑通 MVP。
 
