@@ -43,6 +43,14 @@ public final class DemoFixtures {
         }
     }
 
+    public static String toJson(Object value) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(value);
+        } catch (Exception exception) {
+            throw new IllegalStateException("write demo json failed", exception);
+        }
+    }
+
     public static List<RiskEvent> demoEvents() {
         return readValue(demoEventsJson(), new TypeReference<List<RiskEvent>>() {
         });

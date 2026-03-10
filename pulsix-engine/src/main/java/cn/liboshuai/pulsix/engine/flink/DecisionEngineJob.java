@@ -6,6 +6,7 @@ import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -22,7 +23,7 @@ public class DecisionEngineJob {
         env.setParallelism(1);
         env.getConfig().enableObjectReuse();
 
-        DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
+        DataStream<Tuple2<String, String>> eventStream = buildDemoEventStream(env);
         DataStream<String> configStream = buildDemoConfigStream(env);
 
         MapStateDescriptor<String, String> snapshotStateDescriptor = new MapStateDescriptor<>(
@@ -31,7 +32,7 @@ public class DecisionEngineJob {
                 TypeInformation.of(String.class)
         );
 
-        KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
+        KeyedStream<Tuple2<String, String>, String> keyedEventStream = eventStream.keyBy(value -> value.f0);
         BroadcastStream<String> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
@@ -44,7 +45,7 @@ public class DecisionEngineJob {
         env.execute("pulsix-engine-demo-job");
     }
 
-    private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
+    private static DataStream<Tuple2<String, String>> buildDemoEventStream(StreamExecutionEnvironment env) {
         return env.addSource(new DemoRiskEventSource())
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
@@ -53,19 +54,19 @@ public class DecisionEngineJob {
         return env.addSource(new DemoSnapshotSource());
     }
 
-    private static class DemoRiskEventSource implements SourceFunction<RiskEvent> {
+    private static class DemoRiskEventSource implements SourceFunction<Tuple2<String, String>> {
 
         private volatile boolean running = true;
 
         @Override
-        public void run(SourceContext<RiskEvent> context) {
+        public void run(SourceContext<Tuple2<String, String>> context) {
             List<RiskEvent> events = DemoFixtures.demoEvents();
             for (RiskEvent event : events) {
                 if (!running) {
                     return;
                 }
                 synchronized (context.getCheckpointLock()) {
-                    context.collect(event);
+                    context.collect(Tuple2.of(event.getSceneCode(), DemoFixtures.toJson(event)));
                 }
             }
         }

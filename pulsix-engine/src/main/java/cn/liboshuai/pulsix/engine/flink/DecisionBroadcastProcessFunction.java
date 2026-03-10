@@ -17,6 +17,7 @@ import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
@@ -25,7 +26,7 @@ import java.io.Serializable;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
-        extends KeyedBroadcastProcessFunction<String, RiskEvent, String, DecisionResult> {
+        extends KeyedBroadcastProcessFunction<String, Tuple2<String, String>, String, DecisionResult> {
 
     private final MapStateDescriptor<String, String> snapshotStateDescriptor;
 
@@ -70,9 +71,10 @@ public class DecisionBroadcastProcessFunction
     }
 
     @Override
-    public void processElement(RiskEvent event,
+    public void processElement(Tuple2<String, String> eventRecord,
                                ReadOnlyContext context,
                                Collector<DecisionResult> collector) throws Exception {
+        RiskEvent event = parseRiskEvent(eventRecord.f1);
         CompiledSceneRuntime runtime = resolveRuntime(event, context).orElse(null);
         if (runtime == null) {
             context.output(EngineOutputTags.ENGINE_ERROR, EngineErrorRecord.of("runtime-missing", event, null,
@@ -104,6 +106,14 @@ public class DecisionBroadcastProcessFunction
             return Optional.empty();
         }
         return Optional.of(runtimeManager.activate(envelope.getSnapshot()));
+    }
+
+    private RiskEvent parseRiskEvent(String eventJson) {
+        try {
+            return objectMapper.readValue(eventJson, RiskEvent.class);
+        } catch (Exception exception) {
+            throw new IllegalStateException("parse risk event failed", exception);
+        }
     }
 
     private SceneSnapshotEnvelope parseEnvelope(String envelopeJson) {
