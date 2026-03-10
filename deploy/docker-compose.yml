@@ -185,6 +185,33 @@ services:
       pulsix:
         ipv4_address: ${DORIS_BE_IP:-172.28.0.22}
 
+  doris-init:
+    image: ${MYSQL_IMAGE:-mysql:8.4.8}
+    restart: "no"
+    depends_on:
+      doris-fe:
+        condition: service_healthy
+      doris-be:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      DORIS_HOST: doris-fe
+      DORIS_PORT: 9030
+      DORIS_USER: ${DORIS_USER:-root}
+      DORIS_PASSWORD: ${DORIS_PASSWORD:-}
+      DORIS_DATABASE: ${DORIS_DATABASE:-pulsix_olap}
+      DORIS_INIT_SQL_FILE: /opt/pulsix/sql/01-pulsix-olap.sql
+      DORIS_INIT_MAX_ATTEMPTS: ${DORIS_INIT_MAX_ATTEMPTS:-30}
+      DORIS_INIT_RETRY_INTERVAL_SECONDS: ${DORIS_INIT_RETRY_INTERVAL_SECONDS:-5}
+    entrypoint:
+      - /bin/bash
+      - /opt/pulsix/init/01-init-doris.sh
+    volumes:
+      - ./doris/init:/opt/pulsix/init:ro
+      - ./doris/sql:/opt/pulsix/sql:ro
+    networks:
+      - pulsix
+
 volumes:
   mysql-data:
   redis-data:

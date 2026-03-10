@@ -8,6 +8,8 @@
 - `.env.template`：常用配置模板，可复制为 `.env` 后按需修改
 - `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时导入 `docs/sql/pulsix-system-infra.sql`
 - `kafka/init/01-create-topics.sh`：Kafka 启动后幂等创建默认 Topic
+- `doris/init/01-init-doris.sh`：Doris 启动后幂等执行建库建表 SQL
+- `doris/sql/01-pulsix-olap.sql`：按落地清单初始化 Doris 查询表
 
 ## 快速启动
 
@@ -55,7 +57,7 @@ docker compose up -d
 如只想单独拉起 Doris 相关服务，也可以执行：
 
 ```bash
-docker compose up -d doris-fe doris-be
+docker compose up -d doris-fe doris-be doris-init
 ```
 
 如果你的 Docker 网段和 `172.28.0.0/24` 冲突，可修改 `.env` 中的 `PULSIX_SUBNET`、`DORIS_FE_IP`、`DORIS_BE_IP`，三者需保持同一子网。
@@ -77,7 +79,8 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
 - 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql`
 - `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
-- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Kafka Topic 会进行幂等检查，不会覆盖已存在 Topic
+- `Doris` 通过 `doris-init` 初始化服务在 `docker compose up -d` 后检查并创建默认库表
+- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Kafka Topic 和 Doris 库表都会进行幂等检查，不会覆盖已存在对象
 - 由于 Doris 使用固定容器 IP，若你修改了 `PULSIX_SUBNET` 或 Doris IP 配置，需要先执行一次 `docker compose down` 以重建网络
 - `Doris` 使用独立 Docker Volume 持久化 FE 元数据和 BE 存储，重复执行 `docker compose up -d` 不会丢数据
 - 如果你已经初始化过一次，又想重新执行初始化，需要显式删除数据卷后重建：
@@ -109,6 +112,18 @@ docker compose up -d
 
 如需调整，可修改 `.env` 中的 `KAFKA_INIT_TOPIC_SPECS`；格式为 `topic:partitions:replicas`，多个 Topic 以英文逗号分隔。
 
+## 默认 Doris 库表
+
+- 数据库：`pulsix_olap`
+- 默认初始化表：
+  - `dwd_decision_result`
+  - `dwd_decision_log`
+  - `dwd_rule_hit_log`
+  - `dwd_ingest_error_log`
+  - `dwd_engine_error_log`
+
+如需调整 Doris 初始化重试参数，可修改 `.env` 中的 `DORIS_INIT_MAX_ATTEMPTS`、`DORIS_INIT_RETRY_INTERVAL_SECONDS`；如需调整库名，可修改 `DORIS_DATABASE`。
+
 ## 连接信息
 
 - MySQL
@@ -138,6 +153,7 @@ docker compose up -d
 docker compose ps
 docker compose logs -f
 docker compose logs -f kafka-init
+docker compose logs -f doris-init
 docker compose logs -f doris-fe
 docker compose logs -f doris-be
 docker compose down
