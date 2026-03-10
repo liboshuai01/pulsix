@@ -13,8 +13,8 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class DecisionEngineJob {
@@ -46,15 +46,55 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
-        List<RiskEvent> events = new ArrayList<>(DemoFixtures.demoEvents());
-        return env.fromCollection(events)
+        return env.addSource(new DemoRiskEventSource())
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        List<SceneSnapshotEnvelope> snapshots = new ArrayList<>();
-        snapshots.add(DemoFixtures.demoEnvelope());
-        return env.fromCollection(snapshots);
+        return env.addSource(new DemoSnapshotSource());
+    }
+
+    private static class DemoRiskEventSource implements SourceFunction<RiskEvent> {
+
+        private volatile boolean running = true;
+
+        @Override
+        public void run(SourceContext<RiskEvent> context) {
+            List<RiskEvent> events = DemoFixtures.demoEvents();
+            for (RiskEvent event : events) {
+                if (!running) {
+                    return;
+                }
+                synchronized (context.getCheckpointLock()) {
+                    context.collect(event);
+                }
+            }
+        }
+
+        @Override
+        public void cancel() {
+            this.running = false;
+        }
+    }
+
+    private static class DemoSnapshotSource implements SourceFunction<SceneSnapshotEnvelope> {
+
+        private volatile boolean running = true;
+
+        @Override
+        public void run(SourceContext<SceneSnapshotEnvelope> context) {
+            if (!running) {
+                return;
+            }
+            synchronized (context.getCheckpointLock()) {
+                context.collect(DemoFixtures.demoEnvelope());
+            }
+        }
+
+        @Override
+        public void cancel() {
+            this.running = false;
+        }
     }
 
 }
