@@ -4,16 +4,12 @@ import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.model.PublishType;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import cn.liboshuai.pulsix.engine.json.EngineJson;
 
 import java.time.Instant;
 import java.util.List;
 
 public final class DemoFixtures {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private DemoFixtures() {
     }
@@ -36,24 +32,15 @@ public final class DemoFixtures {
     }
 
     public static String demoEnvelopeJson() {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(demoEnvelope());
-        } catch (Exception exception) {
-            throw new IllegalStateException("write demo envelope failed", exception);
-        }
+        return EngineJson.write(demoEnvelope());
     }
 
     public static String toJson(Object value) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(value);
-        } catch (Exception exception) {
-            throw new IllegalStateException("write demo json failed", exception);
-        }
+        return EngineJson.write(value);
     }
 
     public static List<RiskEvent> demoEvents() {
-        return readValue(demoEventsJson(), new TypeReference<List<RiskEvent>>() {
-        });
+        return EngineJson.readList(demoEventsJson(), RiskEvent.class);
     }
 
     public static RiskEvent blacklistedEvent() {
@@ -365,19 +352,7 @@ public final class DemoFixtures {
     }
 
     private static <T> T readValue(String text, Class<T> clazz) {
-        try {
-            return OBJECT_MAPPER.readValue(text, clazz);
-        } catch (Exception exception) {
-            throw new IllegalStateException("read demo fixture failed", exception);
-        }
-    }
-
-    private static <T> T readValue(String text, TypeReference<T> typeReference) {
-        try {
-            return OBJECT_MAPPER.readValue(text, typeReference);
-        } catch (Exception exception) {
-            throw new IllegalStateException("read demo fixture failed", exception);
-        }
+        return EngineJson.read(text, clazz);
     }
 
 }

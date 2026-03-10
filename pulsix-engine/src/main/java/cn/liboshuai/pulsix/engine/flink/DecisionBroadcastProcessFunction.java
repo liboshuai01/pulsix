@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.InMemoryStreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
@@ -14,8 +15,6 @@ import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -44,8 +43,6 @@ public class DecisionBroadcastProcessFunction
 
     private transient DecisionExecutor decisionExecutor;
 
-    private transient ObjectMapper objectMapper;
-
     private transient Map<String, List<RiskEvent>> pendingEvents;
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, String> snapshotStateDescriptor) {
@@ -64,7 +61,6 @@ public class DecisionBroadcastProcessFunction
         this.stateStore = new InMemoryStreamFeatureStateStore();
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         this.pendingEvents = new LinkedHashMap<>();
     }
 
@@ -162,19 +158,11 @@ public class DecisionBroadcastProcessFunction
     }
 
     private RiskEvent parseRiskEvent(String eventJson) {
-        try {
-            return objectMapper.readValue(eventJson, RiskEvent.class);
-        } catch (Exception exception) {
-            throw new IllegalStateException("parse risk event failed", exception);
-        }
+        return EngineJson.read(eventJson, RiskEvent.class);
     }
 
     private SceneSnapshotEnvelope parseEnvelope(String envelopeJson) {
-        try {
-            return objectMapper.readValue(envelopeJson, SceneSnapshotEnvelope.class);
-        } catch (Exception exception) {
-            throw new IllegalStateException("parse scene snapshot envelope failed", exception);
-        }
+        return EngineJson.read(envelopeJson, SceneSnapshotEnvelope.class);
     }
 
     @FunctionalInterface
