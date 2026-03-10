@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
+import cn.liboshuai.pulsix.engine.support.CollectionCopier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.flink.api.common.typeinfo.TypeInfo;
@@ -32,5 +33,9 @@ public class RuleSpec implements Serializable {
     private String hitReasonTemplate;
 
     private Boolean enabled;
+
+    public void setDependsOn(List<String> dependsOn) {
+        this.dependsOn = CollectionCopier.copyList(dependsOn);
+    }
 
 }

@@ -9,7 +9,6 @@ import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.util.KeyedBroadcastOperatorTestHarness;
 import org.apache.flink.streaming.util.ProcessFunctionTestHarnesses;
@@ -28,8 +27,7 @@ class DecisionBroadcastProcessFunctionTest {
     private static final MapStateDescriptor<String, SceneSnapshotEnvelope> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "scene-snapshot-broadcast-state",
             TypeInformation.of(String.class),
-            TypeInformation.of(new TypeHint<SceneSnapshotEnvelope>() {
-            })
+            TypeInformation.of(SceneSnapshotEnvelope.class)
     );
 
     @Test

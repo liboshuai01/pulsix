@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
+import cn.liboshuai.pulsix.engine.support.CollectionCopier;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -19,5 +20,9 @@ public class DerivedFeatureSpec extends FeatureSpec {
     private String expr;
 
     private List<String> dependsOn;
+
+    public void setDependsOn(List<String> dependsOn) {
+        this.dependsOn = CollectionCopier.copyList(dependsOn);
+    }
 
 }

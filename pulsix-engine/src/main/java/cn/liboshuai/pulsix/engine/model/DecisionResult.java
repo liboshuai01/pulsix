@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
+import cn.liboshuai.pulsix.engine.support.CollectionCopier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.flink.api.common.typeinfo.TypeInfo;
@@ -46,6 +47,14 @@ public class DecisionResult implements Serializable {
             return;
         }
         featureSnapshot.forEach((key, value) -> this.featureSnapshot.put(key, value == null ? null : String.valueOf(value)));
+    }
+
+    public void setRuleHits(List<RuleHit> ruleHits) {
+        this.ruleHits = CollectionCopier.copyList(ruleHits);
+    }
+
+    public void setTraceLogs(List<String> traceLogs) {
+        this.traceLogs = CollectionCopier.copyList(traceLogs);
     }
 
 }

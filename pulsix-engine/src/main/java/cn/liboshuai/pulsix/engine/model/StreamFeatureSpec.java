@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
+import cn.liboshuai.pulsix.engine.support.CollectionCopier;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -35,5 +36,9 @@ public class StreamFeatureSpec extends FeatureSpec {
     private Boolean includeCurrentEvent;
 
     private String ttl;
+
+    public void setSourceEventTypes(List<String> sourceEventTypes) {
+        this.sourceEventTypes = CollectionCopier.copyList(sourceEventTypes);
+    }
 
 }
