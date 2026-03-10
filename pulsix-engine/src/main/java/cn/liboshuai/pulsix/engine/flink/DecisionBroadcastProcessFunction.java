@@ -23,6 +23,10 @@ import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
@@ -42,6 +46,8 @@ public class DecisionBroadcastProcessFunction
 
     private transient ObjectMapper objectMapper;
 
+    private transient Map<String, List<RiskEvent>> pendingEvents;
+
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, String> snapshotStateDescriptor) {
         this(snapshotStateDescriptor, InMemoryLookupService::demo);
     }
@@ -59,6 +65,7 @@ public class DecisionBroadcastProcessFunction
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        this.pendingEvents = new LinkedHashMap<>();
     }
 
     @Override
@@ -67,7 +74,21 @@ public class DecisionBroadcastProcessFunction
                                         Collector<DecisionResult> collector) throws Exception {
         SceneSnapshotEnvelope envelope = parseEnvelope(envelopeJson);
         context.getBroadcastState(snapshotStateDescriptor).put(envelope.getSceneCode(), envelopeJson);
-        runtimeManager.apply(envelope);
+        if (envelope.getSnapshot() == null) {
+            return;
+        }
+        CompiledSceneRuntime runtime = runtimeManager.activate(envelope.getSnapshot());
+        flushPendingEvents(envelope.getSceneCode(), runtime, collector, new OutputContext() {
+            @Override
+            public void emitDecisionLog(DecisionLogRecord record) {
+                context.output(EngineOutputTags.DECISION_LOG, record);
+            }
+
+            @Override
+            public void emitEngineError(EngineErrorRecord record) {
+                context.output(EngineOutputTags.ENGINE_ERROR, record);
+            }
+        });
     }
 
     @Override
@@ -77,18 +98,20 @@ public class DecisionBroadcastProcessFunction
         RiskEvent event = parseRiskEvent(eventRecord.f1);
         CompiledSceneRuntime runtime = resolveRuntime(event, context).orElse(null);
         if (runtime == null) {
-            context.output(EngineOutputTags.ENGINE_ERROR, EngineErrorRecord.of("runtime-missing", event, null,
-                    new IllegalStateException("runtime not found")));
+            bufferPendingEvent(event);
             return;
         }
-        try {
-            DecisionResult result = decisionExecutor.execute(runtime, event, stateStore, lookupService);
-            collector.collect(result);
-            context.output(EngineOutputTags.DECISION_LOG, DecisionLogRecord.from(result));
-        } catch (Exception exception) {
-            context.output(EngineOutputTags.ENGINE_ERROR,
-                    EngineErrorRecord.of("decision-execute", event, runtime.version(), exception));
-        }
+        emitDecision(event, runtime, collector, new OutputContext() {
+            @Override
+            public void emitDecisionLog(DecisionLogRecord record) {
+                context.output(EngineOutputTags.DECISION_LOG, record);
+            }
+
+            @Override
+            public void emitEngineError(EngineErrorRecord record) {
+                context.output(EngineOutputTags.ENGINE_ERROR, record);
+            }
+        });
     }
 
     private Optional<CompiledSceneRuntime> resolveRuntime(RiskEvent event,
@@ -106,6 +129,36 @@ public class DecisionBroadcastProcessFunction
             return Optional.empty();
         }
         return Optional.of(runtimeManager.activate(envelope.getSnapshot()));
+    }
+
+    private void bufferPendingEvent(RiskEvent event) {
+        pendingEvents.computeIfAbsent(event.getSceneCode(), ignored -> new ArrayList<>()).add(event);
+    }
+
+    private void flushPendingEvents(String sceneCode,
+                                    CompiledSceneRuntime runtime,
+                                    Collector<DecisionResult> collector,
+                                    OutputContext outputContext) {
+        List<RiskEvent> events = pendingEvents.remove(sceneCode);
+        if (events == null || events.isEmpty()) {
+            return;
+        }
+        for (RiskEvent event : events) {
+            emitDecision(event, runtime, collector, outputContext);
+        }
+    }
+
+    private void emitDecision(RiskEvent event,
+                              CompiledSceneRuntime runtime,
+                              Collector<DecisionResult> collector,
+                              OutputContext outputContext) {
+        try {
+            DecisionResult result = decisionExecutor.execute(runtime, event, stateStore, lookupService);
+            collector.collect(result);
+            outputContext.emitDecisionLog(DecisionLogRecord.from(result));
+        } catch (Exception exception) {
+            outputContext.emitEngineError(EngineErrorRecord.of("decision-execute", event, runtime.version(), exception));
+        }
     }
 
     private RiskEvent parseRiskEvent(String eventJson) {
@@ -128,6 +181,14 @@ public class DecisionBroadcastProcessFunction
     public interface LookupServiceFactory extends Serializable {
 
         LookupService create();
+
+    }
+
+    private interface OutputContext {
+
+        void emitDecisionLog(DecisionLogRecord record);
+
+        void emitEngineError(EngineErrorRecord record);
 
     }
 
