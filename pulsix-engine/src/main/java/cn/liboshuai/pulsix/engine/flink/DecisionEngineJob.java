@@ -14,6 +14,7 @@ import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DecisionEngineJob {
@@ -45,13 +46,15 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
-        List<RiskEvent> events = DemoFixtures.demoEvents();
+        List<RiskEvent> events = new ArrayList<>(DemoFixtures.demoEvents());
         return env.fromCollection(events)
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.fromElements(DemoFixtures.demoEnvelope());
+        List<SceneSnapshotEnvelope> snapshots = new ArrayList<>();
+        snapshots.add(DemoFixtures.demoEnvelope());
+        return env.fromCollection(snapshots);
     }
 
 }
