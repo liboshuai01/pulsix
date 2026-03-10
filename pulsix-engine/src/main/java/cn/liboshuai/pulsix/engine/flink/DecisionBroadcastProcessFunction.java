@@ -20,6 +20,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
@@ -27,7 +28,9 @@ public class DecisionBroadcastProcessFunction
 
     private final MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor;
 
-    private final LookupService lookupService;
+    private final LookupServiceFactory lookupServiceFactory;
+
+    private transient LookupService lookupService;
 
     private transient SceneRuntimeManager runtimeManager;
 
@@ -36,13 +39,13 @@ public class DecisionBroadcastProcessFunction
     private transient DecisionExecutor decisionExecutor;
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor) {
-        this(snapshotStateDescriptor, InMemoryLookupService.demo());
+        this(snapshotStateDescriptor, InMemoryLookupService::demo);
     }
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor,
-                                            LookupService lookupService) {
+                                            LookupServiceFactory lookupServiceFactory) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
-        this.lookupService = lookupService;
+        this.lookupServiceFactory = lookupServiceFactory;
     }
 
     @Override
@@ -50,6 +53,7 @@ public class DecisionBroadcastProcessFunction
         this.runtimeManager = new SceneRuntimeManager(new RuntimeCompiler(new DefaultScriptCompiler()));
         this.stateStore = new InMemoryStreamFeatureStateStore();
         this.decisionExecutor = new DecisionExecutor();
+        this.lookupService = lookupServiceFactory.create();
     }
 
     @Override
@@ -91,6 +95,13 @@ public class DecisionBroadcastProcessFunction
             return Optional.empty();
         }
         return Optional.of(runtimeManager.activate(snapshot));
+    }
+
+    @FunctionalInterface
+    public interface LookupServiceFactory extends Serializable {
+
+        LookupService create();
+
     }
 
 }
