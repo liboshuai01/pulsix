@@ -7,6 +7,7 @@
 - `docker-compose.yml`：单机版基础设施编排
 - `.env.template`：常用配置模板，可复制为 `.env` 后按需修改
 - `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时导入 `docs/sql/pulsix-system-infra.sql`
+- `redis/init/01-init-redis.sh`：Redis 启动后幂等装载开发联调所需的名单、画像、特征副本、缓存和字典数据
 - `kafka/init/01-create-topics.sh`：Kafka 启动后幂等创建默认 Topic
 - `doris/init/01-init-doris.sh`：Doris 启动后幂等执行建库建表 SQL
 - `doris/sql/01-pulsix-olap.sql`：按落地清单初始化 Doris 查询表
@@ -78,11 +79,13 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
 - 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql`
+- `Redis` 通过 `redis-init` 初始化服务在 `docker compose up -d` 后检查并装载默认开发数据；它会写入 marker key，后续重复执行不会覆盖已经初始化过的数据
 - `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
 - `Doris` 通过 `doris-init` 初始化服务在 `docker compose up -d` 后检查并创建默认库表
-- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Kafka Topic 和 Doris 库表都会进行幂等检查，不会覆盖已存在对象
+- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Redis、Kafka、Doris 的初始化服务都会做幂等检查，不会覆盖已存在对象
 - 由于 Doris 使用固定容器 IP，若你修改了 `PULSIX_SUBNET` 或 Doris IP 配置，需要先执行一次 `docker compose down` 以重建网络
 - `Doris` 使用独立 Docker Volume 持久化 FE 元数据和 BE 存储，重复执行 `docker compose up -d` 不会丢数据
+- 如需强制重装 Redis 种子数据，可在 `.env` 里临时把 `REDIS_INIT_FORCE=true`，然后执行 `docker compose up -d redis-init`；完成后建议改回 `false`
 - 如果你已经初始化过一次，又想重新执行初始化，需要显式删除数据卷后重建：
 
 ```bash
@@ -111,6 +114,15 @@ docker compose up -d
 - `pulsix.ingest.error`：`1` 分区，`1` 副本
 
 如需调整，可修改 `.env` 中的 `KAFKA_INIT_TOPIC_SPECS`；格式为 `topic:partitions:replicas`，多个 Topic 以英文逗号分隔。
+
+## 默认 Redis 种子数据
+
+- 名单：`LOGIN_DEVICE_BLACKLIST`、`LOGIN_USER_WHITE_LIST`，以及 `pulsix:list:black:*` / `pulsix:list:white:*` 单值 key
+- 画像：`USER_RISK_PROFILE`、`IP_RISK_PROFILE`、`pulsix:profile:user:risk:*`、`pulsix:profile:ip:risk:*`、`pulsix:profile:user:*`、`pulsix:profile:device:*`
+- 特征副本：登录链路 `user_login_fail_cnt_10m` / `ip_login_fail_cnt_10m` / `device_login_user_cnt_1h`，交易链路 `user_trade_cnt_5m` / `user_trade_amt_sum_30m` / `device_bind_user_cnt_1h`
+- 缓存：`pulsix:cache:scene:active_version:*`、`pulsix:cache:simulation:*`、`pulsix:cache:warmup:*`
+- 字典：`pulsix:dict:geo:ip:*`、`pulsix:dict:merchant:risk:*`
+- 数据口径主要对齐 `docs/wiki/pulsix-engine-kernel-一期开发指南.md`、`docs/wiki/kafka-redis-doris-落地清单.md`、`docs/sql/pulsix-risk.sql` 与 `pulsix-engine` 的 demo fixture / lookup 约定
 
 ## 默认 Doris 库表
 
@@ -152,6 +164,7 @@ docker compose up -d
 ```bash
 docker compose ps
 docker compose logs -f
+docker compose logs -f redis-init
 docker compose logs -f kafka-init
 docker compose logs -f doris-init
 docker compose logs -f doris-fe
