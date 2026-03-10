@@ -79,7 +79,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_NUM_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-1}
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
     ports:
@@ -108,16 +108,14 @@ services:
     environment:
       TZ: ${TZ:-Asia/Shanghai}
       KAFKA_BOOTSTRAP_SERVER: kafka:9092
-      KAFKA_INIT_MARKER_FILE: /var/lib/pulsix-kafka-init/.topics-initialized
-      KAFKA_INIT_TOPICS: ${KAFKA_INIT_TOPICS:-pulsix.event.raw,pulsix.decision.result,pulsix.decision.log,pulsix.event.dlq}
-      KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
+      KAFKA_INIT_TOPIC_SPECS: "${KAFKA_INIT_TOPIC_SPECS:-pulsix.event.standard:6:1,pulsix.decision.result:3:1,pulsix.decision.log:3:1,pulsix.engine.error:1:1,pulsix.event.dlq:1:1,pulsix.ingest.error:1:1}"
+      KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-1}
       KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}
     entrypoint:
       - /bin/bash
       - /opt/pulsix/init/01-create-topics.sh
     volumes:
       - ./kafka/init:/opt/pulsix/init:ro
-      - kafka-init-state:/var/lib/pulsix-kafka-init
     networks:
       - pulsix
 
@@ -191,7 +189,6 @@ volumes:
   mysql-data:
   redis-data:
   kafka-data:
-  kafka-init-state:
   doris-fe-meta:
   doris-fe-log:
   doris-be-storage:

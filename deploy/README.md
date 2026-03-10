@@ -7,7 +7,7 @@
 - `docker-compose.yml`：单机版基础设施编排
 - `.env.template`：常用配置模板，可复制为 `.env` 后按需修改
 - `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时导入 `docs/sql/pulsix-system-infra.sql`
-- `kafka/init/01-create-topics.sh`：Kafka 首次初始化时创建默认 Topic
+- `kafka/init/01-create-topics.sh`：Kafka 启动后幂等创建默认 Topic
 
 ## 快速启动
 
@@ -76,8 +76,8 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
 - 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql`
-- `Kafka` 通过 `kafka-init` 初始化服务在首次建卷后创建默认 Topic，并写入持久化标记文件
-- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL 或重复创建 Kafka Topic
+- `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
+- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Kafka Topic 会进行幂等检查，不会覆盖已存在 Topic
 - 由于 Doris 使用固定容器 IP，若你修改了 `PULSIX_SUBNET` 或 Doris IP 配置，需要先执行一次 `docker compose down` 以重建网络
 - `Doris` 使用独立 Docker Volume 持久化 FE 元数据和 BE 存储，重复执行 `docker compose up -d` 不会丢数据
 - 如果你已经初始化过一次，又想重新执行初始化，需要显式删除数据卷后重建：
@@ -89,14 +89,25 @@ docker compose up -d
 
 ## 默认 Kafka Topics
 
-- `pulsix.event.raw`
+- `pulsix.event.standard`
 - `pulsix.decision.result`
 - `pulsix.decision.log`
+- `pulsix.engine.error`
 - `pulsix.event.dlq`
+- `pulsix.ingest.error`
 
 当前系统不创建配置类 Kafka Topic；MySQL 配置快照通过 `scene_release -> MySQL CDC -> Flink` 直接同步。
 
-如需调整，可修改 `.env` 中的 `KAFKA_INIT_TOPICS`、`KAFKA_DEFAULT_PARTITIONS`、`KAFKA_DEFAULT_REPLICATION_FACTOR`。
+当前 `deploy` 默认按 `docs/wiki/kafka-redis-doris-落地清单.md` 中的表格创建 Topic：
+
+- `pulsix.event.standard`：`6` 分区，`1` 副本
+- `pulsix.decision.result`：`3` 分区，`1` 副本
+- `pulsix.decision.log`：`3` 分区，`1` 副本
+- `pulsix.engine.error`：`1` 分区，`1` 副本
+- `pulsix.event.dlq`：`1` 分区，`1` 副本
+- `pulsix.ingest.error`：`1` 分区，`1` 副本
+
+如需调整，可修改 `.env` 中的 `KAFKA_INIT_TOPIC_SPECS`；格式为 `topic:partitions:replicas`，多个 Topic 以英文逗号分隔。
 
 ## 连接信息
 
