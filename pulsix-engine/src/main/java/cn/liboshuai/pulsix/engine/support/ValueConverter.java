@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.support;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 public final class ValueConverter {
 
@@ -55,6 +56,23 @@ public final class ValueConverter {
 
     public static String asString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    public static Object coerce(String rawValue, String valueType) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (valueType == null || valueType.isBlank()) {
+            return rawValue;
+        }
+        return switch (valueType.trim().toUpperCase(Locale.ROOT)) {
+            case "BOOLEAN", "BOOL" -> asBoolean(rawValue);
+            case "INT", "INTEGER" -> asInt(rawValue);
+            case "LONG" -> asLong(rawValue);
+            case "DECIMAL", "NUMBER", "DOUBLE" -> asDecimal(rawValue);
+            case "STRING" -> rawValue;
+            default -> rawValue;
+        };
     }
 
 }

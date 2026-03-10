@@ -22,6 +22,7 @@ public class DecisionEngineJob {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
+        env.getConfig().enableObjectReuse();
 
         DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
         DataStream<SceneSnapshotEnvelope> configStream = buildDemoConfigStream(env);

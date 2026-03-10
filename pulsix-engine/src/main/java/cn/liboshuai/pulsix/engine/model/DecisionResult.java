@@ -31,10 +31,18 @@ public class DecisionResult implements Serializable {
 
     private List<RuleHit> ruleHits = new ArrayList<>();
 
-    private Map<String, Object> featureSnapshot = new LinkedHashMap<>();
+    private Map<String, String> featureSnapshot = new LinkedHashMap<>();
 
     private List<String> traceLogs = new ArrayList<>();
 
     private String errorMessage;
+
+    public void setFeatureSnapshot(Map<String, ?> featureSnapshot) {
+        this.featureSnapshot = new LinkedHashMap<>();
+        if (featureSnapshot == null) {
+            return;
+        }
+        featureSnapshot.forEach((key, value) -> this.featureSnapshot.put(key, value == null ? null : String.valueOf(value)));
+    }
 
 }

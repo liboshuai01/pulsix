@@ -138,7 +138,7 @@ public class DecisionExecutor {
                                         LookupService lookupService) {
         String key = ValueConverter.asString(feature.getKeyScript().execute(context));
         Object value = lookupService.lookup(feature.getSpec().getLookupType(), feature.getSpec().getSourceRef(), key);
-        return value != null ? value : feature.getSpec().getDefaultValue();
+        return value != null ? value : ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType());
     }
 
     private RuleHit executeRule(CompiledSceneRuntime.CompiledRule rule, EvalContext context) {
@@ -156,7 +156,7 @@ public class DecisionExecutor {
         hit.setHit(matched);
         if (matched) {
             hit.setReason(TemplateRenderer.render(rule.getSpec().getHitReasonTemplate(), context.getValues()));
-            hit.getDetail().put("engineType", rule.getSpec().getEngineType());
+            hit.getDetail().put("engineType", String.valueOf(rule.getSpec().getEngineType()));
             hit.getDetail().put("expr", rule.getCondition().rawExpression());
         }
         context.trace("rule:" + rule.getSpec().getCode() + '=' + matched);

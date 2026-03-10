@@ -31,8 +31,8 @@ class LocalDecisionEngineTest {
 
         assertEquals(ActionType.REJECT, result.getFinalAction());
         assertEquals(80, result.getFinalScore());
-        assertEquals(3L, result.getFeatureSnapshot().get("user_trade_cnt_5m"));
-        assertEquals(4L, result.getFeatureSnapshot().get("device_bind_user_cnt_1h"));
+        assertEquals("3", result.getFeatureSnapshot().get("user_trade_cnt_5m"));
+        assertEquals("4", result.getFeatureSnapshot().get("device_bind_user_cnt_1h"));
         assertTrue(result.getRuleHits().stream().anyMatch(hit -> "R002".equals(hit.getRuleCode()) && Boolean.TRUE.equals(hit.getHit())));
         assertTrue(result.getRuleHits().stream().anyMatch(hit -> "R003".equals(hit.getRuleCode()) && Boolean.TRUE.equals(hit.getHit())));
     }
@@ -46,7 +46,7 @@ class LocalDecisionEngineTest {
 
         assertEquals(ActionType.REJECT, result.getFinalAction());
         assertEquals(100, result.getFinalScore());
-        assertEquals(Boolean.TRUE, result.getFeatureSnapshot().get("device_in_blacklist"));
+        assertEquals("true", result.getFeatureSnapshot().get("device_in_blacklist"));
     }
 
     private LocalDecisionEngine newEngine() {

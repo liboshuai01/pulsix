@@ -43,7 +43,15 @@ public class RiskEvent implements Serializable {
 
     private String currency;
 
-    private Map<String, Object> ext = new LinkedHashMap<>();
+    private Map<String, String> ext = new LinkedHashMap<>();
+
+    public void setExt(Map<String, ?> ext) {
+        this.ext = new LinkedHashMap<>();
+        if (ext == null) {
+            return;
+        }
+        ext.forEach((key, value) -> this.ext.put(key, value == null ? null : String.valueOf(value)));
+    }
 
     public String routeKey() {
         return sceneCode;

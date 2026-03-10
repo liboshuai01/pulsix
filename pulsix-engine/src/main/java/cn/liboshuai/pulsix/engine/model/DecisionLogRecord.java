@@ -27,7 +27,7 @@ public class DecisionLogRecord implements Serializable {
 
     private List<RuleHit> ruleHits;
 
-    private Map<String, Object> featureSnapshot;
+    private Map<String, String> featureSnapshot;
 
     private List<String> traceLogs;
 

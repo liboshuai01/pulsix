@@ -25,6 +25,14 @@ public class RuleHit implements Serializable {
 
     private String reason;
 
-    private Map<String, Object> detail = new LinkedHashMap<>();
+    private Map<String, String> detail = new LinkedHashMap<>();
+
+    public void setDetail(Map<String, ?> detail) {
+        this.detail = new LinkedHashMap<>();
+        if (detail == null) {
+            return;
+        }
+        detail.forEach((key, value) -> this.detail.put(key, value == null ? null : String.valueOf(value)));
+    }
 
 }
