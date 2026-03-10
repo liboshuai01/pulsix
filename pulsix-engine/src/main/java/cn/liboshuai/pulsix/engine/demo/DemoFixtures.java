@@ -35,6 +35,14 @@ public final class DemoFixtures {
         return demoEnvelope().getSnapshot();
     }
 
+    public static String demoEnvelopeJson() {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(demoEnvelope());
+        } catch (Exception exception) {
+            throw new IllegalStateException("write demo envelope failed", exception);
+        }
+    }
+
     public static List<RiskEvent> demoEvents() {
         return readValue(demoEventsJson(), new TypeReference<List<RiskEvent>>() {
         });

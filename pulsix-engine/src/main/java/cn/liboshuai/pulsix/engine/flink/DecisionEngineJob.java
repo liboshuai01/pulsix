@@ -3,8 +3,6 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
-import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
-import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -25,16 +23,16 @@ public class DecisionEngineJob {
         env.getConfig().enableObjectReuse();
 
         DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
-        DataStream<SceneSnapshotEnvelope> configStream = buildDemoConfigStream(env);
+        DataStream<String> configStream = buildDemoConfigStream(env);
 
-        MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor = new MapStateDescriptor<>(
+        MapStateDescriptor<String, String> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 TypeInformation.of(String.class),
-                TypeInformation.of(SceneSnapshot.class)
+                TypeInformation.of(String.class)
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
-        BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
+        BroadcastStream<String> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
                 .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor));
@@ -51,7 +49,7 @@ public class DecisionEngineJob {
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
-    private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
+    private static DataStream<String> buildDemoConfigStream(StreamExecutionEnvironment env) {
         return env.addSource(new DemoSnapshotSource());
     }
 
@@ -78,17 +76,17 @@ public class DecisionEngineJob {
         }
     }
 
-    private static class DemoSnapshotSource implements SourceFunction<SceneSnapshotEnvelope> {
+    private static class DemoSnapshotSource implements SourceFunction<String> {
 
         private volatile boolean running = true;
 
         @Override
-        public void run(SourceContext<SceneSnapshotEnvelope> context) {
+        public void run(SourceContext<String> context) {
             if (!running) {
                 return;
             }
             synchronized (context.getCheckpointLock()) {
-                context.collect(DemoFixtures.demoEnvelope());
+                context.collect(DemoFixtures.demoEnvelopeJson());
             }
         }
 

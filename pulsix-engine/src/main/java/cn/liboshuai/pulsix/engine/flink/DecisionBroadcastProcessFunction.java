@@ -9,12 +9,13 @@ import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
-import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
@@ -24,9 +25,9 @@ import java.io.Serializable;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
-        extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> {
+        extends KeyedBroadcastProcessFunction<String, RiskEvent, String, DecisionResult> {
 
-    private final MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor;
+    private final MapStateDescriptor<String, String> snapshotStateDescriptor;
 
     private final LookupServiceFactory lookupServiceFactory;
 
@@ -38,11 +39,13 @@ public class DecisionBroadcastProcessFunction
 
     private transient DecisionExecutor decisionExecutor;
 
-    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor) {
+    private transient ObjectMapper objectMapper;
+
+    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, String> snapshotStateDescriptor) {
         this(snapshotStateDescriptor, InMemoryLookupService::demo);
     }
 
-    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshot> snapshotStateDescriptor,
+    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, String> snapshotStateDescriptor,
                                             LookupServiceFactory lookupServiceFactory) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
         this.lookupServiceFactory = lookupServiceFactory;
@@ -54,13 +57,15 @@ public class DecisionBroadcastProcessFunction
         this.stateStore = new InMemoryStreamFeatureStateStore();
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
+        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     }
 
     @Override
-    public void processBroadcastElement(SceneSnapshotEnvelope envelope,
+    public void processBroadcastElement(String envelopeJson,
                                         Context context,
                                         Collector<DecisionResult> collector) throws Exception {
-        context.getBroadcastState(snapshotStateDescriptor).put(envelope.getSceneCode(), envelope.getSnapshot());
+        SceneSnapshotEnvelope envelope = parseEnvelope(envelopeJson);
+        context.getBroadcastState(snapshotStateDescriptor).put(envelope.getSceneCode(), envelopeJson);
         runtimeManager.apply(envelope);
     }
 
@@ -90,11 +95,23 @@ public class DecisionBroadcastProcessFunction
         if (runtime.isPresent()) {
             return runtime;
         }
-        SceneSnapshot snapshot = context.getBroadcastState(snapshotStateDescriptor).get(event.getSceneCode());
-        if (snapshot == null) {
+        String envelopeJson = context.getBroadcastState(snapshotStateDescriptor).get(event.getSceneCode());
+        if (envelopeJson == null) {
             return Optional.empty();
         }
-        return Optional.of(runtimeManager.activate(snapshot));
+        SceneSnapshotEnvelope envelope = parseEnvelope(envelopeJson);
+        if (envelope.getSnapshot() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(runtimeManager.activate(envelope.getSnapshot()));
+    }
+
+    private SceneSnapshotEnvelope parseEnvelope(String envelopeJson) {
+        try {
+            return objectMapper.readValue(envelopeJson, SceneSnapshotEnvelope.class);
+        } catch (Exception exception) {
+            throw new IllegalStateException("parse scene snapshot envelope failed", exception);
+        }
     }
 
     @FunctionalInterface
