@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration status="ERROR">
+    <Properties>
+        <Property name="PULSIX_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %logger{36} - %msg%n</Property>
+        <Property name="PULSIX_LOG_FILE">${sys:log.file:-${sys:java.io.tmpdir}/pulsix-engine-demo.log}</Property>
+    </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %logger{36} - %msg%n"/>
+            <PatternLayout pattern="${PULSIX_LOG_PATTERN}"/>
         </Console>
+        <File name="File" fileName="${PULSIX_LOG_FILE}" append="false" createOnDemand="true">
+            <PatternLayout pattern="${PULSIX_LOG_PATTERN}"/>
+        </File>
     </Appenders>
     <Loggers>
         <Logger name="cn.liboshuai.pulsix" level="DEBUG" additivity="false">
             <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
         </Logger>
         <Root level="INFO">
             <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
         </Root>
     </Loggers>
 </Configuration>

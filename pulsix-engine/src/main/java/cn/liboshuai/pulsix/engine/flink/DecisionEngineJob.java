@@ -10,7 +10,9 @@ import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
@@ -20,6 +22,10 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -27,8 +33,9 @@ import java.util.List;
 public class DecisionEngineJob {
 
     public static void main(String[] args) throws Exception {
+        Path localLogFile = prepareLocalLogFile();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        configureRuntime(env);
+        configureRuntime(env, localLogFile);
 
         DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
         DataStream<SceneSnapshotEnvelope> configStream = buildDemoConfigStream(env);
@@ -52,10 +59,10 @@ public class DecisionEngineJob {
         env.execute("pulsix-engine-demo-job");
     }
 
-    private static void configureRuntime(StreamExecutionEnvironment env) {
+    private static void configureRuntime(StreamExecutionEnvironment env, Path localLogFile) {
         env.setParallelism(1);
         env.getConfig().enableObjectReuse();
-        env.configure(localExecutionConfiguration());
+        env.configure(localExecutionConfiguration(localLogFile));
         env.enableCheckpointing(30_000L, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5_000L);
         env.getCheckpointConfig().setCheckpointTimeout(60_000L);
@@ -83,7 +90,7 @@ public class DecisionEngineJob {
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
-    private static Configuration localExecutionConfiguration() {
+    private static Configuration localExecutionConfiguration(Path localLogFile) {
         Configuration configuration = new Configuration();
         configuration.set(TaskManagerOptions.CPU_CORES, 1.0);
         configuration.set(TaskManagerOptions.NUM_TASK_SLOTS, 1);
@@ -92,7 +99,29 @@ public class DecisionEngineJob {
         configuration.set(TaskManagerOptions.NETWORK_MEMORY_MIN, MemorySize.ofMebiBytes(64));
         configuration.set(TaskManagerOptions.NETWORK_MEMORY_MAX, MemorySize.ofMebiBytes(64));
         configuration.set(TaskManagerOptions.MANAGED_MEMORY_SIZE, MemorySize.ofMebiBytes(128));
+        configuration.set(SecurityOptions.DELEGATION_TOKENS_ENABLED, false);
+        SecurityOptions.forProvider(configuration, "hadoopfs")
+                .set(SecurityOptions.DELEGATION_TOKEN_PROVIDER_ENABLED, false);
+        SecurityOptions.forProvider(configuration, "hbase")
+                .set(SecurityOptions.DELEGATION_TOKEN_PROVIDER_ENABLED, false);
+        String localLogPath = localLogFile.toAbsolutePath().toString();
+        configuration.set(WebOptions.LOG_PATH, localLogPath);
+        configuration.set(TaskManagerOptions.TASK_MANAGER_LOG_PATH, localLogPath);
         return configuration;
+    }
+
+    private static Path prepareLocalLogFile() throws IOException {
+        Path logFile = Paths.get(System.getProperty("java.io.tmpdir"), "pulsix-engine-demo.log")
+                .toAbsolutePath();
+        Path parent = logFile.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        if (Files.notExists(logFile)) {
+            Files.createFile(logFile);
+        }
+        System.setProperty("log.file", logFile.toString());
+        return logFile;
     }
 
     private static class DemoRiskEventSource implements SourceFunction<RiskEvent> {
