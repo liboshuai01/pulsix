@@ -2,7 +2,7 @@
 
 > 基于 `2026-03-12` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
 >
-> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test` 已通过；本地 `deploy` 的 `Redis + Kafka` 已完成真实 lookup / 默认值降级 / 端到端 smoke，IDEA 直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob` 的序列化问题也已修复。
+> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test` 已通过；本轮补齐了 `routeKey` 分桶、完整时间线版本治理与 Redis `connectTimeoutMs` 生效，IDEA 仍可直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob`。
 
 ---
 
@@ -10,9 +10,9 @@
 
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
 - 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
-- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具、`scene_release` 的 `demo/file/jdbc/cdc` 快照接入、Kafka 主链路稳定输出，以及真实 Redis Lookup 与降级能力。
-- 当前还缺：版本治理、运行时约束进一步落地，以及 Groovy 安全 / 错误分级 / 指标 / 恢复验证等生产化能力。
-- 一期后续最合理的顺序应是：**版本治理 -> 生产化收口**。
+- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具、`scene_release` 的 `demo/file/jdbc/cdc` 快照接入、Kafka 主链路稳定输出，以及真实 Redis Lookup / 降级 / 版本治理能力。
+- 当前还缺：阶段 8 的生产化收口，重点是 Groovy 安全、错误分级、指标、恢复验证。
+- 一期后续最合理的顺序应是：**生产化收口**。
 
 ---
 
@@ -96,8 +96,8 @@ standard RiskEvent
 | 轻量回放 | 已完成 | 已有 `LocalReplayRunner` 提供文件级 replay / diff / golden case 工具 |
 | 真实 Kafka Source / Sink | 已完成 | 已支持 `pulsix.event.standard -> DecisionResult/DecisionLogRecord/EngineErrorRecord` 的 Kafka 主链路 |
 | 真实 `scene_release` Source / CDC | 已完成 | 已支持 `demo/file/jdbc/cdc` 四种快照来源，并复用统一 `scene_release -> SceneSnapshotEnvelope` 归一化入口 |
-| 真实 Redis Lookup | 已完成 | `RedisLookupService`、`timeoutMs`、`cacheTtlSeconds`、`defaultValue` 与 lookup 降级错误流已落地，并已在本地 `Redis + Kafka` 联调验证 |
-| 版本治理 | 已完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本、运行时约束已真正参与治理 |
+| 真实 Redis Lookup | 已完成 | `RedisLookupService` 与 lookup 降级错误流已落地，feature 超时与 Redis `connectTimeoutMs` 已分别生效 |
+| 版本治理 | 已完成 | 已按 scene 维护完整 release timeline，支持 future 版本、回滚、编译失败保留旧版本与运行时约束 |
 | 生产化安全 | 未完成 | Groovy 沙箱、错误分级、指标、恢复验证仍缺 |
 | 测试基线 | 已完成 | 当前已有 kernel 侧共享回归与 engine 侧 Flink harness 回归，且 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 均通过 |
 
@@ -118,15 +118,15 @@ standard RiskEvent
 
 ### 4.3 当前必须正视的缺口
 
-- `DecisionEngineJob` 已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源；当前真正缺的已从“正式接入”切换为“版本治理与运行时约束收口”。
-- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`defaultValue` 已经真正驱动 Redis lookup 与降级；当前仍主要停留在契约层的重点转为 `RuntimeHints.*`、`SceneSpec.allowedEventTypes`、`SceneSnapshot.effectiveFrom`、`SceneSnapshotEnvelope.publishType`。
-- `GroovyCompiledScript` 直接使用 `GroovyClassLoader` 编译执行，当前没有沙箱、隔离、禁用反射、资源限制。
+- 当前剩余缺口已主要收敛为阶段 8：Groovy 沙箱、错误分级、指标、恢复 / 状态清理验证。
+- `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源，并按 `RiskEvent.routeKey()` 做实体优先分桶。
+- Redis lookup 的 feature 超时、连接超时、默认值与缓存降级都已收口；当前更需要补的是生产化治理，而不是再回到基础接入。
 
 ---
 
 ## 5. 一期后续开发阶段
 
-下面的阶段切分保留了阶段 1 ~ 3 的已完成记录，并继续列出当前尚未完成的内容；每一阶段都要求：
+下面的阶段切分保留已完成记录；截至 `2026-03-12`，阶段 1 ~ 7 已完成，当前剩余阶段 8。每一阶段都要求：
 
 - AI 完成后可以单独提交、单独回归。
 - 你可以用少量人工步骤验证是否满足要求。
@@ -242,9 +242,9 @@ standard RiskEvent
 - `SceneSnapshotSourceType` 与 `SceneSnapshotSourceFactory` 已统一支持 `demo/file/jdbc/cdc` 四种快照来源。
 - `SceneReleaseJdbcSnapshotLoader`、`JdbcPollingSceneSnapshotSource`、`JdbcBootstrapSceneSnapshotSource` 已支持从 `scene_release` 读取快照，并统一还原为 `SceneSnapshotEnvelope`。
 - `SceneReleaseCdcPayloadParser` 与 `MySqlCdcSceneSnapshotSourceFactory` 已支持 MySQL CDC 增量接入，并复用 JDBC bootstrap 做当前快照预热；CDC 首发已收口为“JDBC bootstrap + CDC latest 增量”。
-- `SceneReleaseSnapshotSelector` 已统一 bootstrap 选择逻辑：默认选择每个 scene 当前生效的最新版本，也支持 `snapshotSceneCode / snapshotVersion / jdbcQuery` 精确筛选。
+- `SceneReleaseSnapshotSelector` 与 JDBC polling marker 已统一收口：bootstrap 默认保留每个 scene 的“当前 latest effective + 所有 future 版本”，并按 `sceneCode + version` 跟踪 release identity，避免多 future 版本或同版本 `effectiveFrom / publishType` 变化被遗漏。
 - `DecisionEngineJob` 已补齐 `--snapshot-source demo|file|jdbc|cdc` 及 JDBC/CDC 相关 CLI 参数，文件或数据库样例都可直接喂给引擎。
-- 新增 `SceneReleaseSnapshotSelectorTest` 与 `SceneReleaseCdcPayloadParserTest`，覆盖版本筛选、future `effectiveFrom`、CDC payload 解析与发布状态过滤等关键回归。
+- 新增 `SceneReleaseSnapshotSelectorTest` 与 `SceneReleaseCdcPayloadParserTest`，覆盖 future `effectiveFrom`、版本筛选、CDC payload 解析与发布状态过滤等关键回归。
 
 ### 阶段 5：Kafka 主链路接入（已完成，`2026-03-11`）
 
@@ -267,6 +267,7 @@ standard RiskEvent
 **本次落地结果**
 
 - `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
+- Flink 主链路 `keyBy` 已从 `sceneCode` 收口为 `RiskEvent.routeKey()`；当前按 `scene + device/user/ip/merchant/event/trace` 做实体优先分桶，避免同一 scene 单 key 堆积，并与 entity 级流式状态更一致。
 - 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`，Kafka 输出默认按 `traceId` 写 key，缺失时回退到 `eventId`。
 - Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
 - 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。
@@ -294,7 +295,7 @@ standard RiskEvent
 **本次落地结果**
 
 - `pulsix-kernel` 新增 `RedisLookupConfig`、`RedisLookupService`、`LookupResult`，已支持 `REDIS_SET / REDIS_HASH / REDIS_STRING / DICT` 在线查询。
-- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`defaultValue` 已真实生效：Redis 访问超时走 feature 级超时，成功值按 `cacheTtlSeconds` 做进程内短缓存，lookup key 为空 / Redis 值缺失 / 连接失败 / 其他运行时异常时按 `defaultValue` 或缓存值降级。
+- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`defaultValue` 已真实生效：Redis 访问超时走 feature 级超时，Redis `connectTimeoutMs` 单独驱动建连超时，成功值按 `cacheTtlSeconds` 做进程内短缓存，lookup key 为空 / Redis 值缺失 / 连接失败 / 其他运行时异常时按 `defaultValue` 或缓存值降级。
 - `DecisionExecutor`、`EngineErrorRecord`、`DecisionBroadcastProcessFunction` 已打通 lookup 错误流，错误码可区分 `LOOKUP_TIMEOUT`、`LOOKUP_CONNECTION_FAILED`、`LOOKUP_VALUE_MISSING`、`LOOKUP_KEY_MISSING`，并携带 `featureCode`、`sourceRef`、`lookupKey`、`fallbackMode`。
 - `DecisionEngineJob` 已支持 `--lookup-source redis` 及 Redis 连接参数；默认配置仍保留 `demo` lookup 作为最小样例基线，需要联调时再切到本地 `deploy` 启动的 Redis；`DecisionEngineJobOptions.LookupOptions` 也已补齐 `Serializable`，IDEA 本地启动不再因 Flink closure clean 失败。
 - 新增 / 更新 `RedisLookupServiceTest`、`DecisionBroadcastProcessFunctionTest`、`DecisionEngineJobOptionsTest`，覆盖 Redis lookup、timeout/default fallback、错误流与参数解析回归。
@@ -321,10 +322,10 @@ standard RiskEvent
 
 **本次落地结果**
 
-- `DecisionBroadcastProcessFunction` 已让 `publishType` 真正参与版本治理：普通 `PUBLISH` 仍按版本单调前进，而显式 `ROLLBACK` 已允许切回旧版本；已补齐“先升级到 v13，再显式回滚到 v12”的 Flink harness 回归。
-- `effectiveFrom` 不再只是建模字段：future 快照继续以 pending 方式等待生效；一旦到达生效时点，版本解析会按 `effectiveFrom + publishType` 共同决定 active runtime；延迟生效回归继续保留。
-- 快照编译仍保持 `compile-before-activate`，且已补齐失败路径回归：当新快照因 `runtimeHints.allowGroovy=false` 与 Groovy 规则冲突而编译失败时，旧 active runtime 会被完整保留，并通过 `ENGINE_ERROR` 输出失败原因。
-- `SceneRuntimeCache` 默认缓存窗口已从“最近两个版本”扩到“每个场景最近 8 个编译版本”，并新增自定义窗口裁剪测试，避免历史版本切换能力继续停留在最简缓存。
+- `DecisionBroadcastProcessFunction` 已从“active + 单 pending”收口为按 scene 维护 `SceneReleaseTimeline`；运行时按 `effectiveFrom / publishedAt / publishType / version` 解析当前有效版本，支持多 future 版本、乱序到达与显式回滚。
+- 快照编译仍保持 `compile-before-activate`：同版本不同 `checksum` 会被识别为冲突并拒绝激活；编译失败继续保留旧 runtime，并通过 `ENGINE_ERROR` 输出失败原因。
+- timeline 已与 JDBC bootstrap / polling 选择逻辑对齐；不再只保留一个 pending 版本，也不再默认裁剪时间线，避免大量 future 版本场景下丢版本。
+- `SceneRuntimeCache` 默认缓存窗口已从“最近两个版本”扩到“每个场景最近 8 个编译版本”，用于承接回滚与历史版本切换。
 - `RuntimeHints.maxRuleExecutionCount` 已在 `DecisionExecutor` 中生效：超过上限后会停止继续执行后续规则；`LocalDecisionEngineTest` 已覆盖“只允许执行首条规则时最终回落为 PASS”的场景。
 - `RuntimeHints.allowGroovy` 已在 `RuntimeCompiler` 中生效：当 hint 显式关闭时，任何 Groovy 派生特征 / 规则都会在编译期失败，而不是带着风险进入运行态。
 - `RuntimeHints.needFullDecisionLog` 已在 Flink 日志 side output 中生效：关闭后仍保留最终动作与命中规则，但不再下沉 `featureSnapshot / traceLogs` 全量细节；已补齐 `DecisionLogRecord` 精简输出回归。
@@ -403,20 +404,20 @@ standard RiskEvent
 
 如果没有新的明确指令，默认遵循以下规则：
 
-1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 ~ 6 的基础能力已经完成。
+1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 ~ 7 已完成。
 2. `scene_release.snapshot_json` 是唯一运行态配置来源。
 3. 仿真、回放、Flink 执行必须复用同一套 kernel 语义。
 4. 一期主策略优先级是 `FIRST_HIT > SCORE_CARD`。
 5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
 6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
 7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
-8. 如果没有额外说明，默认下一步从 **阶段 7：版本治理与运行时约束落地** 开始，不再重复做阶段 1 ~ 6 的基础工具化。
+8. 如果没有额外说明，默认下一步从 **阶段 8：生产化收口** 开始，不再重复做阶段 1 ~ 7 的基础工具化。
 
 ---
 
 ## 9. 快速记忆版
 
-- `kernel` 语义已经有了，而且 **模块归位 + 本地仿真 + 轻量回放 + Redis/Kafka 正式链路** 都已经完成；当前真正缺的是 **版本治理 + 生产化**。
+- `kernel` 语义已经有了，而且 **模块归位 + 本地仿真 + 轻量回放 + Redis/Kafka 正式链路 + 版本治理** 都已经完成；当前真正缺的是 **生产化收口**。
 - 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
-- 下一阶段默认从 **阶段 7：版本治理与运行时约束落地** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
+- 下一阶段默认从 **阶段 8：生产化收口** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
