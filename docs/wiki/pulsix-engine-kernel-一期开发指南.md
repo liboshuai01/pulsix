@@ -1,713 +1,355 @@
-## 1. 文档用途
+# `pulsix-engine / pulsix-kernel` 一期开发指南
 
-这份文档现在作为 `pulsix-engine / pulsix-kernel` 第一期开发的统一主文档。
-
-用途只有三个：
-
-- 帮你快速确认当前阶段到底做什么、不做什么。
-- 帮后续 AI 助手仅凭这一份文档理解第一期开发边界。
-- 作为 `kernel + engine` 一期开发的默认设计依据。
-
-如果只读一份文档，优先读这份。
+> 基于 `2026-03-11` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
+>
+> 当前仓库验证结果：`mvn -q -pl pulsix-engine test` 已通过。
 
 ---
 
-## 2. 一期结论
+## 1. 一页结论
 
-当前阶段只做两条主线：
-
-- `pulsix-kernel`
-- `pulsix-engine`
-
-当前不作为开发重点：
-
-- `pulsix-module-risk`
-- `pulsix-access`
-
-当前替代方案：
-
-- 发布快照：直接用 SQL 写 `scene_release`
-- mock 事件：直接用 Kafka 工具、IDEA Kafka 插件或本地 producer 发送
-
-一期目标不是先把平台做完整，而是先验证：
-
-- `kernel` 的执行语义能否稳定落地
-- `engine` 的 Flink 主链路能否跑通
-- 本地执行、仿真、Flink 执行能否尽量一致
-
-一期明确不优先做：
-
-- 页面、CRUD、控制台包装
-- 正式发布后台
-- 正式接入层
-- 多租户、灰度发布、多环境推广
-- 复杂策略编排
-- 重型 `Groovy` 能力
-- 完整 Dashboard / 分析面
-
-一句话：
-
-> 先把执行内核打透，再补控制面和接入面。
+- 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
+- 当前最真实的 repo 状态不是“`kernel` 还没开始”，而是：**`kernel` 语义已经大部分写出来了，但代码仍主要放在 `pulsix-engine` 中；`pulsix-framework/pulsix-kernel` 还是空壳模块。**
+- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归。
+- 当前还缺：`kernel` 模块归位、仿真/轻量回放工具、真实 `scene_release` 接入、真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
+- 一期后续最合理的顺序应是：**内核归位 -> 本地仿真 -> 轻量回放 -> 快照接入 -> Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
 
 ---
 
-## 3. 一期最小系统边界
+## 2. 一期边界
 
-当前最小系统只需要下面这些东西：
+### 2.1 只做什么
+
+- `pulsix-kernel`：统一执行语义、本地仿真、轻量回放、回归能力。
+- `pulsix-engine`：Flink 运行适配、快照热切换、状态适配、结果/日志/错误输出。
+- `scene_release.snapshot_json`：唯一运行态配置输入。
+- `RiskEvent`：唯一标准事件输入。
+- 固定样例数据：一组可重复回归的 `snapshot + events + SQL`。
+
+### 2.2 当前不做什么
+
+- `pulsix-module-risk` 的页面、CRUD、完整发布后台。
+- `pulsix-access` 的正式 HTTP / SDK / Beacon 接入。
+- 多租户、灰度发布、多环境推广、多活部署。
+- CEP、复杂序列规则、拖拽式策略编排、同步在线决策 API。
+- 把 `Groovy` 做成主能力。
+- 完整 Dashboard / 分析面。
+
+### 2.3 一期最小闭环
 
 ```text
-1. 稳定的 SceneSnapshot 结构
-2. 一张 scene_release 表
-3. 稳定的 RiskEvent 结构
-4. 一个 Kafka 标准事件 topic
-5. pulsix-kernel 本地执行 / 仿真 / 轻量回放能力
-6. pulsix-engine Flink 执行能力
-7. 一组固定样例数据与回归用例
+scene_release.snapshot_json
+    -> SceneSnapshot / SceneSnapshotEnvelope
+    -> RuntimeCompiler / CompiledSceneRuntime
+
+standard RiskEvent
+    -> EvalContext
+    -> Stream Feature
+    -> Lookup Feature
+    -> Derived Feature
+    -> Rule
+    -> Policy
+    -> DecisionResult / DecisionLogRecord / EngineErrorRecord
+
+本地执行 / 仿真 / 轻量回放 / Flink 执行
+    -> 复用同一套 kernel 语义
 ```
 
-只要满足以下四点，就足够支撑一期：
+---
 
-- 能构造并存储快照
-- 能输入标准事件
-- 能稳定执行并输出结果
-- 能重复验证和回归验证
+## 3. 当前代码地图
+
+### 3.1 当前模块真实分布
+
+- `pulsix-framework/pulsix-kernel`：模块已创建，但当前只有 `pom.xml`，`src/main/java` 为空。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/model`：当前实际运行时契约层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/context`：当前上下文层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/script`：当前表达式 / 脚本编译执行层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/runtime`：当前快照编译与运行时缓存层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/core`：当前决策执行主链路。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/feature`：当前流式特征状态与 lookup 抽象。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink`：Flink 适配层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/demo`：样例快照与样例事件。
+- `pulsix-engine/src/test/java/...`：本地执行、运行时缓存、Flink 广播切换、TypeInfo、JSON、日志绑定回归测试。
+
+### 3.2 这意味着什么
+
+- 当前 **逻辑上的 `kernel` 已经存在**。
+- 当前 **物理上的 `kernel` 还没有归位**。
+- 所以后续开发的第一优先级不是“从 0 写 kernel”，而是“把已实现的 kernel 从 `pulsix-engine` 中收口到 `pulsix-framework/pulsix-kernel`”。
 
 ---
 
-## 4. 引擎主链路
+## 4. 当前完成度盘点
 
-```text
-Kafka 标准事件流
-    -> 读取 RiskEvent
-    -> keyBy(sceneCode)
-    -> connect(快照广播流)
-    -> 找到当前 CompiledSceneRuntime
-    -> 构建 EvalContext
-    -> 计算 Stream Feature
-    -> 计算 Lookup Feature
-    -> 计算 Derived Feature
-    -> 执行 Rule
-    -> 执行 Policy
-    -> 输出 DecisionResult
-    -> Side Output: DecisionLogRecord / EngineErrorRecord
+| 领域 | 当前状态 | 结论 |
+| --- | --- | --- |
+| `pulsix-kernel` 模块 | 未完成 | 模块已建壳，但尚未承载实现代码 |
+| 运行时契约 | 已完成 | `SceneSnapshot`、`SceneSnapshotEnvelope`、`RiskEvent`、`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 已定义 |
+| 快照编译 | 已完成 | `RuntimeCompiler` 已支持 stream / lookup / derived / rule 编译、依赖排序、规则排序 |
+| 本地执行 | 已完成 | `DecisionExecutor` + `LocalDecisionEngine` 已可跑通样例闭环 |
+| Stream Feature 基础能力 | 已完成 | `COUNT`、`SUM`、`MAX`、`LATEST`、`DISTINCT_COUNT` 已实现 |
+| Flink Keyed State 基础适配 | 已完成 | 已有 `FlinkKeyedStateStreamFeatureStateStore` 与事件时间定时清理 |
+| Lookup 抽象 | 部分完成 | 接口已定义，当前只有 `InMemoryLookupService` |
+| Derived Feature | 已完成 | Aviator / Groovy 两条分支均可编译执行 |
+| Rule / Policy 执行 | 已完成 | `FIRST_HIT` 主链路已稳定；`SCORE_CARD` 代码已实现 |
+| Flink 快照热切换 | 已完成 | `DecisionBroadcastProcessFunction` 已支持广播快照、版本切换、side output |
+| Flink Job | 部分完成 | `DecisionEngineJob` 仍是 Demo Job，输入输出依赖 `DemoFixtures` 与 `print` |
+| `scene_release` 运行时样例 | 已完成 | `docs/sql/pulsix-risk.sql` 已提供与 `DemoFixtures` 对齐的样例快照 |
+| 仿真 Runner | 未完成 | 还没有独立的本地仿真入口或 CLI |
+| 轻量回放 | 未完成 | 还没有文件级 replay / diff / golden case 工具 |
+| 真实 Kafka Source / Sink | 未完成 | 当前没有正式事件 topic 接入和结果 topic 输出 |
+| 真实 `scene_release` Source / CDC | 未完成 | 当前没有正式读取 MySQL / CDC / JDBC 的快照源 |
+| 真实 Redis Lookup | 未完成 | `timeoutMs`、`cacheTtlSeconds` 等字段还未生效 |
+| 版本治理 | 未完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本尚未真正落地 |
+| 生产化安全 | 未完成 | Groovy 沙箱、错误分级、指标、恢复验证仍缺 |
+| 测试基线 | 已完成 | 当前已有本地执行与 Flink harness 回归，且 `mvn -q -pl pulsix-engine test` 通过 |
 
-scene_release 快照流
-    -> 读取 SceneSnapshotEnvelope
-    -> Broadcast State
-    -> RuntimeCompiler 编译并激活本地运行时缓存
-```
+### 4.1 已完成的关键内容
 
-理解方式：
+- **快照契约已经稳定**：`SceneSnapshot`、`SceneSnapshotEnvelope`、`RuleSpec`、`PolicySpec`、`RuntimeHints` 等结构已经落地。
+- **执行主链路已经存在**：事件校验、上下文构建、特征计算、规则执行、策略收敛、结果组装都已可运行。
+- **Flink 适配骨架不是空的**：广播快照、Keyed State、事件时间 timer、side output、版本切换都已经有代码和测试。
+- **样例闭环已经存在**：`DemoFixtures` + `docs/sql/pulsix-risk.sql` 已对齐，适合做后续回归基座。
 
-- 事件流提供待决策数据
-- 快照流提供当前执行逻辑
-- `engine` 负责在 Flink 中把两者组合起来
+### 4.2 已有但还没收口的内容
 
----
+- `SCORE_CARD` 已在 `DecisionExecutor` 中实现，但当前样例、回归、一期主链路仍以 `FIRST_HIT` 为主。
+- `Groovy` 已可执行，但当前只是“可运行”，还不是“可生产”。
+- `FlinkKeyedStateStreamFeatureStateStore` 已经存在，所以“Flink Keyed State 基础版”不能再算未开始；真正未完成的是**生产级状态治理**。
+- `SceneRuntimeManager` 已支持按版本缓存，但当前缓存策略非常轻，只保留最近两个版本。
 
-## 5. 最重要的工程原则
+### 4.3 当前必须正视的缺口
 
-### 5.1 Flink 只认运行时快照
-
-- `pulsix-engine` 消费的是 `SceneSnapshot` / `SceneSnapshotEnvelope`
-- 不是设计态几十张表
-- `scene_release.snapshot_json` 才是引擎真正消费的配置对象
-
-### 5.2 编译和执行必须分开
-
-- 快照变更时编译
-- 事件到来时只执行
-- 不在每条事件里临时编译表达式或脚本
-
-也就是：`compile once, execute many`
-
-### 5.3 发布态和运行态必须分开
-
-- 发布态：`SceneSnapshot`
-- 运行态：`CompiledSceneRuntime`
-
-运行态对象包含：
-
-- 已编译表达式
-- 已编译脚本
-- 派生特征执行顺序
-- 规则执行顺序
-
-### 5.4 上下文准备和规则执行必须分开
-
-正确顺序固定为：
-
-1. 事件进入
-2. 找到当前快照
-3. 构建上下文
-4. 计算 stream feature
-5. 计算 lookup feature
-6. 计算 derived feature
-7. 执行 rule
-8. 执行 policy
-9. 输出 result / log / error
-
-### 5.5 只有一套执行语义
-
-后续无论是：
-
-- 本地仿真
-- 轻量回放
-- Flink 实时执行
-- 控制面接口包装
-
-都必须复用同一套 `kernel` 执行语义。
+- `pulsix-framework/pulsix-kernel` 还是空模块，导致“仿真和线上共用一套 kernel”这件事在物理结构上还没完成。
+- `DecisionEngineJob` 仍然依赖 `DemoRiskEventSource` 与 `DemoSnapshotSource`，说明正式输入输出链路还没有接上。
+- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`RuntimeHints.*`、`SceneSpec.allowedEventTypes`、`SceneSnapshot.effectiveFrom`、`SceneSnapshotEnvelope.publishType` 等字段当前大多只是契约字段，还没有真正驱动执行语义。
+- `GroovyCompiledScript` 直接使用 `GroovyClassLoader` 编译执行，当前没有沙箱、隔离、禁用反射、资源限制。
 
 ---
 
-## 6. 模块边界
+## 5. 一期后续开发阶段
 
-### 6.1 `pulsix-kernel`
+下面的阶段切分只覆盖 **当前还没完成** 的内容，且每一阶段都要求：
 
-负责纯执行语义，建议放：
+- AI 完成后可以单独提交、单独回归。
+- 你可以用少量人工步骤验证是否满足要求。
+- 不依赖先把 `pulsix-module-risk` 和 `pulsix-access` 一起做完。
 
-- `RiskEvent`
-- `SceneSnapshot`
-- `EvalContext`
-- `DecisionResult`
-- `DecisionLogRecord`
-- `EngineErrorRecord`
-- `RuntimeCompiler`
-- `SceneRuntimeManager`
-- `DecisionExecutor`
-- 规则/策略执行逻辑
-- 表达式编译抽象
-- 本地 runner / 仿真 / 轻量回放 / 测试支撑能力
+### 阶段 1：`kernel` 代码归位
 
-要求：
+**目标**
 
-- 不依赖 Spring MVC
-- 不依赖 MyBatis
-- 不依赖 Flink API
-- 不依赖控制台页面
+- 把当前已经落在 `pulsix-engine` 中的共享执行语义，迁移到 `pulsix-framework/pulsix-kernel`。
+- 让 `pulsix-engine` 只保留 Flink 适配层和演示 / 测试入口。
 
-### 6.2 `pulsix-engine`
+**AI 交付内容**
 
-负责 Flink 运行适配，建议放：
+- 迁移 `model / context / script / runtime / core / feature / support / json` 等共享代码。
+- 调整 `pulsix-engine` 的依赖与 import，使其改为依赖 `pulsix-kernel`。
+- 把本地执行类与对应测试同步迁移或复用。
 
-- Flink Job
-- 事件流消费
-- 快照广播流消费
-- Broadcast State 适配
-- Keyed State 适配
-- lookup 适配
-- side output 输出
-- Kafka Source / Sink
+**人工验证**
 
-要求：
+- `pulsix-framework/pulsix-kernel/src/main/java` 下出现核心执行代码。
+- `pulsix-engine/src/main/java` 下主要只剩 `flink`、少量 `demo` 和适配代码。
+- 执行 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 可以通过。
 
-- 只做运行时适配
-- 只认 `SceneSnapshot` / runtime
-- 不直接读取设计态表拼执行语义
-- 不承载控制面逻辑
+### 阶段 2：本地仿真 Runner
 
-### 6.3 `pulsix-module-risk`
+**目标**
 
-当前阶段：
+- 在 `pulsix-kernel` 内提供一个明确的“给定快照 + 给定事件 -> 输出结果”的本地仿真入口。
 
-- 先不开发
-- 先不做页面、接口、CRUD
-- 只保留 `scene_release` 这类最小发布结果
+**AI 交付内容**
 
-后续阶段：
+- 支持读取 `SceneSnapshot` JSON / `SceneSnapshotEnvelope` JSON。
+- 支持读取单条事件 JSON 或事件数组 JSON。
+- 输出 `finalAction`、`finalScore`、命中规则、命中原因、特征快照、trace。
 
-- 作为控制面接口层
-- 依赖 `pulsix-kernel`
-- 提供发布、仿真、回放、查询能力
+**人工验证**
 
-### 6.4 `pulsix-access`
+- 用 `docs/sql/pulsix-risk.sql` 中 `scene_release.snapshot_json` 或 `DemoFixtures` 样例快照运行一遍。
+- 用黑名单事件验证结果应为 `REJECT`。
+- 同样输入连续运行两次，结果完全一致。
 
-当前阶段：
+### 阶段 3：轻量回放与 golden case 回归
 
-- 先不开发
-- 直接用 Kafka 工具 / mock producer 替代
+**目标**
 
-后续阶段：
+- 在 `pulsix-kernel` 内提供文件级 replay 和版本对比能力。
 
-- 恢复为正式接入层
-- 承载标准化、鉴权、补齐、错误分流能力
+**AI 交付内容**
 
----
+- 支持事件序列回放。
+- 支持同一事件集在两个快照版本上的结果 diff。
+- 支持固定 golden case，结果漂移时直接失败。
 
-## 7. 一期必须先稳定的核心契约
+**人工验证**
 
-### 7.1 `RiskEvent`
+- 用当前 `TRADE_RISK v12` 样例事件集回放，结果应与现有单测一致。
+- 构造一个“关闭黑名单规则”的新快照，回放 diff 能看到 `REJECT -> PASS` 或命中链路变化。
+- 人工改坏一条 golden case 后，回归应显式报错。
 
-至少固定：
+### 阶段 4：`scene_release` 快照接入收口
 
-- `eventId`
-- `sceneCode`
-- `eventType`
-- `eventTime`
-- `traceId`
-- `entity fields`
-- `ext`
+**目标**
 
-### 7.2 `SceneSnapshot`
+- 让引擎不再只依赖 `DemoFixtures`，而是具备正式快照输入抽象。
 
-至少固定：
+**AI 交付内容**
 
-- `scene`
-- `features`
-- `rules`
-- `policy`
-- `runtimeHints`
-- `version`
-- `checksum`
+- 抽象快照 Source：至少支持 `demo/file` 两种；再向 `JDBC / CDC` 兼容。
+- 支持从 `scene_release.snapshot_json` 还原 `SceneSnapshotEnvelope`。
+- 统一 `version / checksum / publishType / effectiveFrom` 的接收与校验入口。
 
-### 7.3 `EvalContext`
+**人工验证**
 
-至少固定：
+- 不改代码也能通过文件或数据库样例把快照喂给引擎。
+- 同版本不同 `checksum` 的快照会被识别为冲突。
+- 新版本快照进入后，无需重启即可替换当前运行时。
 
-- `base fields`
-- `feature values`
-- `lookup values`
-- `derived values`
-- `metadata`
+### 阶段 5：Kafka 主链路接入
 
-### 7.4 `DecisionResult`
+**目标**
 
-至少固定：
+- 把 Demo Job 升级为可接标准 topic 的最小正式链路。
 
-- `sceneCode`
-- `version`
-- `finalAction`
-- `score`
-- `hitRules`
-- `hitReasons`
-- `latencyMs`
-- `traceId`
+**AI 交付内容**
 
-### 7.5 `DecisionLogRecord`
+- 事件输入改为 Kafka Source。
+- 结果、日志、错误分别输出到正式 Sink 或可配置 Sink。
+- 保留 Demo 模式，避免回归测试失去最小样例。
 
-至少要支持：
+**人工验证**
 
-- 结果追溯
-- 命中链路展示
-- 仿真对比
-- 版本号、traceId、耗时等基础信息查看
+- 向输入 topic 写入一条标准事件，可以在结果 topic 收到 `DecisionResult`。
+- side output 能分别看到 `DecisionLogRecord` 和 `EngineErrorRecord`。
+- `DecisionEngineJob` 不再硬编码依赖 `DemoRiskEventSource` / `DemoSnapshotSource` 才能工作。
 
-### 7.6 `EngineErrorRecord`
+### 阶段 6：真实 Redis Lookup 与降级
 
-至少要区分：
+**目标**
 
-- 未找到快照
-- 表达式执行失败
-- 脚本执行失败
-- lookup 失败
-- 状态处理失败
+- 把 lookup 从内存版推进到真实在线查询版，同时保留默认值与降级兜底。
 
-### 7.7 固定样例
+**AI 交付内容**
 
-一期必须补齐：
+- 实现 Redis lookup provider。
+- 让 `timeoutMs`、`cacheTtlSeconds`、`defaultValue` 真正生效。
+- 失败时输出明确错误记录，但不把整个引擎拖死。
 
-- 样例快照 JSON
-- 样例事件 JSON
-- 样例 SQL
-- 样例 Kafka 消息
+**人工验证**
 
----
+- Redis 中写入黑名单设备、用户画像后，规则命中结果与预期一致。
+- 人为制造 Redis 超时或不可用时，引擎仍可继续运行，结果按默认值 / 降级策略返回。
+- 错误流能区分 lookup 超时、lookup 连接失败、lookup 返回空值。
 
-## 8. 当前代码结构怎么理解
+### 阶段 7：版本治理与运行时约束落地
 
-当前代码可以按 6 层理解：
+**目标**
 
-### 8.1 模型层
-- `SceneSnapshot`
-- `RiskEvent`
-- `RuleSpec` / `PolicySpec` / `FeatureSpec`
-- `DecisionResult` / `DecisionLogRecord` / `EngineErrorRecord`
+- 让现有快照字段从“只建模”升级为“真正参与运行时治理”。
 
-### 8.2 上下文层
-- `EvalContext`
+**AI 交付内容**
 
-### 8.3 脚本执行层
-- `CompiledScript`
-- `DefaultScriptCompiler`
-- `AviatorCompiledScript`
-- `GroovyCompiledScript`
+- 让 `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本真正生效。
+- 扩展 `SceneRuntimeManager`，不要只保留最近两个版本的最简缓存。
+- 让 `RuntimeHints.maxRuleExecutionCount`、`allowGroovy`、`needFullDecisionLog` 具备基本约束作用。
 
-### 8.4 运行时编译层
-- `RuntimeCompiler`
-- `CompiledSceneRuntime`
-- `SceneRuntimeManager`
+**人工验证**
 
-### 8.5 决策执行层
-- `DecisionExecutor`
-- `LocalDecisionEngine`
-- `InMemoryStreamFeatureStateStore`
-- `InMemoryLookupService`
+- 发送一个编译失败的新快照，当前运行版本不被破坏。
+- 发送一个延迟生效的快照，在生效时间前后结果表现不同且可解释。
+- 显式发送回滚版本后，当前 active runtime 能切回旧版本。
 
-### 8.6 Flink 适配层
-- `DecisionBroadcastProcessFunction`
-- `DecisionEngineJob`
-- `EngineOutputTags`
+### 阶段 8：生产化收口
+
+**目标**
+
+- 把“能跑”升级为“能解释、能观测、能回归”。
+
+**AI 交付内容**
+
+- 完善错误分类、关键指标、日志字段。
+- 补充恢复 / checkpoint / 状态清理相关测试或验证脚本。
+- 固化回归入口，让本地仿真、轻量回放、Flink 测试三者共享同一套样例基线。
+
+**人工验证**
+
+- 能区分编译错误、执行错误、lookup 错误、状态错误、快照冲突错误。
+- 关键链路有固定回归命令，跑完能看到通过 / 失败结果。
+- 新增一条规则后，至少可以通过仿真、回放、Flink harness 三类验证手段验证结果一致。
 
 ---
 
-## 9. 最关键的几个类
+## 6. 每阶段都必须满足的验证基线
 
-### 9.1 `RuntimeCompiler`
+### 6.1 代码基线
 
-负责把快照编译成运行态对象，重点包括：
+- 不允许再把执行语义扩散到第二套实现。
+- 新能力优先加到 `pulsix-kernel`，`pulsix-engine` 只做适配。
+- Demo 样例能力不能删除，只能下沉为回归基线。
 
-- 编译 stream feature 相关表达式
-- 编译 lookup feature 相关表达式
-- 编译 derived feature 表达式
-- 编译 rule 表达式
-- 派生特征依赖排序
-- 规则执行顺序排序
+### 6.2 测试基线
 
-输出产物：`CompiledSceneRuntime`
+- 每阶段结束时，至少保留一条**成功路径**回归。
+- 每阶段结束时，至少新增一条**失败路径**回归。
+- 每阶段结束时，`mvn -q -pl pulsix-engine test` 必须继续可通过。
 
-### 9.2 `SceneRuntimeManager`
+### 6.3 人工验收基线
 
-负责维护当前生效的本地运行时缓存：
-
-- 收到快照后编译并激活
-- 按 `sceneCode` 查询当前 active runtime
-
-后续要增强：
-
-- 多版本并存
-- 延迟生效
-- 回滚
-- 编译失败保留旧版本
-
-### 9.3 `DecisionExecutor`
-
-当前执行主入口，负责：
-
-- 校验事件
-- 构建上下文
-- 计算 stream / lookup / derived features
-- 执行规则
-- 执行策略
-- 组装结果
-
-### 9.4 `LookupService`
-
-lookup 能力抽象。当前可先用内存实现，后续再替换为 Redis。
-
-真实版重点：
-
-- timeout
-- 本地短 TTL cache
-- 默认值兜底
-- 降级策略
-- 指标统计
-
-### 9.5 `StreamFeatureStateStore`
-
-流式特征状态抽象。当前可先用内存实现，后续再替换为 Flink Keyed State。
-
-真实版重点：
-
-- bucket 结构
-- TTL
-- timer 清理
-- state schema 迁移
-
-### 9.6 `DecisionBroadcastProcessFunction`
-
-Flink 侧核心适配器，负责：
-
-- 接快照广播流
-- 接标准事件流
-- 根据当前快照执行决策
-- 将结果、日志、错误分流输出
+- 能说明本阶段新增了什么，不新增什么。
+- 能提供固定输入样例。
+- 能提供固定输出预期。
+- 能说明失败时会看到什么错误表现。
 
 ---
 
-## 10. 一期能力边界
+## 7. 一期测试优先级
 
-### 10.1 特征能力
+### 第一优先级
 
-一期建议至少支持：
+- `RuntimeCompiler` 编译结果与依赖顺序测试。
+- `DecisionExecutor` 的规则 / 策略执行测试。
+- Stream Feature 五种基础聚合测试。
+- `SceneRuntimeManager` 的版本切换测试。
+- 本地仿真 / 回放 golden case 测试。
 
-- `Stream Feature`：`COUNT`、`SUM`、`MAX`、`LATEST`、`DISTINCT_COUNT`（基础版）
-- `Lookup Feature`：先支持最小 lookup 抽象
-- `Derived Feature`：先支持表达式型派生
+### 第二优先级
 
-### 10.2 规则能力
+- Flink `Broadcast State` 与 `Keyed State` 协同测试。
+- lookup 超时 / 默认值 / 降级测试。
+- 命中原因模板渲染测试。
+- `SCORE_CARD` 独立回归测试。
 
-规则最小职责：
+### 第三优先级
 
-- 读取上下文
-- 判断是否命中
-- 生成命中原因
-- 记录建议动作与分数
-
-建议用 `RuleHit` 这类中间结果解耦规则与策略。
-
-### 10.3 策略能力
-
-当前代码已留出：
-
-- `FIRST_HIT`
-- `SCORE_CARD`
-
-但一期主链路只重点做：
-
-- `FIRST_HIT`
-
-原因：
-
-- 最常见
-- 最稳定
-- 上线路径最短
-
-### 10.4 表达式与脚本能力
-
-一期建议：
-
-- 表达式主力用 Aviator/DSL
-- `Groovy` 先保留抽象，不做重投入
-
-`Groovy` 后续再补：
-
-- 沙箱
-- 类加载隔离
-- import 限制
-- 反射禁用
-- 资源访问禁用
+- Kafka 端到端链路测试。
+- 恢复 / checkpoint / 长稳测试。
+- 回滚和延迟生效测试。
+- Groovy 安全边界测试。
 
 ---
 
-## 11. 仿真、轻量回放、重型流式回放的边界
+## 8. 给后续 AI 助手的默认工作假设
 
-### 11.1 仿真
+如果没有新的明确指令，默认遵循以下规则：
 
-当前优先放在 `pulsix-kernel` 内部，形式可以是：
-
-- 单元测试
-- 集成测试
-- 本地 runner
-- 命令行工具
-
-本质是在验证“给定快照 + 给定事件 -> 最终结果”的执行语义。
-
-### 11.2 轻量回放
-
-当前也优先放在 `pulsix-kernel` 内部。
-
-典型输入：
-
-- 固定事件样例
-- JSON 文件
-- 数据库导出的样例数据
-
-主要用途：
-
-- 版本回归
-- 结果比对
-- 问题复现
-
-### 11.3 重型流式回放
-
-后续可以放在 `pulsix-engine` 或专门的 replay runner 中，更适合验证：
-
-- 历史 Kafka 数据回放
-- Flink State 语义
-- 版本切换过程
-- Timer / TTL / 状态清理
-
-但必须坚持：重型回放的核心执行语义仍然复用 `pulsix-kernel`。
-
-### 11.4 后续接口化
-
-后续如果要做正式页面或接口：
-
-- 由 `pulsix-module-risk` 依赖 `pulsix-kernel`
-- 提供 `/simulation/*`、`/replay/*`、`/release/*`
-
-原则：`module-risk` 只能做接口包装，不能实现第二套执行逻辑。
+1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`。
+2. `scene_release.snapshot_json` 是唯一运行态配置来源。
+3. 仿真、回放、Flink 执行必须复用同一套 kernel 语义。
+4. 一期主策略优先级是 `FIRST_HIT > SCORE_CARD`。
+5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
+6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
+7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
 
 ---
 
-## 12. 输入、输出与外部依赖
+## 9. 快速记忆版
 
-### 12.1 输入
+- `kernel` 语义已经有了，真正缺的是 **模块归位 + 工具化 + 正式接入 + 生产化**。
+- 当前 `pulsix-engine` 里已经同时放了“实际 kernel”与“Flink 适配层”。
+- 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
+- 后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
 
-至少有 4 类：
-
-- `RiskEvent`：标准事件主输入
-- `SceneSnapshotEnvelope`：快照广播输入
-- Lookup 数据：通常来自 Redis
-- 流式状态：通常来自 Flink State
-
-### 12.2 输出
-
-至少有 3 类：
-
-- `DecisionResult`：主结果流
-- `DecisionLogRecord`：决策追溯流
-- `EngineErrorRecord`：引擎错误流
-
-### 12.3 推荐 topic
-
-- 输入：`pulsix.event.standard`
-- 输入：`scene_release` 的 CDC 广播流
-- 输出：`pulsix.decision.result`
-- 输出：`pulsix.decision.log`
-- 输出：`pulsix.engine.error`
-
-### 12.4 外部存储分工
-
-- MySQL：设计态、发布态、仿真、审计
-- Redis：名单、画像、在线 lookup
-- Doris：明细查询、Dashboard、错误追踪
-- Flink State：流式特征、广播快照、短时运行态
-
----
-
-## 13. 当前代码做到什么程度
-
-### 13.1 已经做到的
-
-- 有稳定的运行时模型
-- 有 Demo 快照和 Demo 事件
-- 有本地可执行主链路
-- 有 Flink `Broadcast + Event` 骨架
-- 有基础单测验证结果
-- 已支持 `FIRST_HIT` 主链路
-- 已留出 `SCORE_CARD` 入口
-- 已有决策结果 / 日志 / 错误流模型
-
-### 13.2 还没完全生产化的部分
-
-- Kafka Source / Sink 真实接入
-- Redis Lookup 真实实现
-- Flink Keyed State 真实实现
-- Checkpoint / Recovery / Exactly-Once
-- 指标体系
-- 版本回滚 / 延迟生效
-- Groovy 沙箱
-- 仿真与线上统一进一步收口到 `pulsix-kernel`
-
-当前代码是开工版骨架，不是最终生产版引擎。
-
----
-
-## 14. 一期推荐开发顺序
-
-### 第 1 步：先打稳 `pulsix-kernel`
-
-重点：
-
-- 冻结 `RiskEvent`、`SceneSnapshot`、`EvalContext`、`DecisionResult`
-- 打磨 `RuntimeCompiler`
-- 打磨 `DecisionExecutor`
-- 固化最小样例与 golden case
-- 先用内存状态与内存 lookup 跑稳最小场景
-
-### 第 2 步：补齐 `kernel` 内的仿真 / 轻量回放能力
-
-重点：
-
-- 本地 runner 或命令行工具
-- 支持读取快照 JSON 与事件 JSON
-- 输出命中规则、原因、特征快照、最终动作
-- 增加固定回归样例集
-
-### 第 3 步：打通 `pulsix-engine` 最小主链路
-
-重点：
-
-- 打磨 `DecisionEngineJob`
-- 接入最小快照流
-- 接入标准事件流
-- 跑通一个 `FIRST_HIT` 场景
-- 输出 `DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord`
-
-### 第 4 步：增强状态、版本切换与误差收敛
-
-重点：
-
-- 向 Flink Keyed State 过渡
-- 增加状态清理、TTL、版本切换校验
-- 增强错误分类
-- 固化结果一致性检查
-- 补充关键集成测试
-
-### 第 5 步：再补真实 Redis、CDC、输出链路
-
-重点：
-
-- 用真实快照流替换 DemoFixtures
-- 用 Redis 替换 in-memory lookup
-- 接真实 Kafka 输出 / Doris / MySQL 落地
-
-### 第 6 步：最后再补监控、重型回放、回滚
-
-这一步才是平台化收口。
-
----
-
-## 15. 一期最值钱的测试
-
-第一优先级：
-
-- 表达式执行器测试
-- 规则执行器测试
-- 策略执行器测试
-- Snapshot 编译器测试
-- 本地 runner / 仿真样例测试
-- 一条 Kafka -> Flink -> 输出 的主链路测试
-
-第二优先级：
-
-- Flink 状态逻辑测试
-- Broadcast State 切换测试
-- lookup 组件测试
-- 命中原因渲染测试
-
-第三优先级：
-
-- 回放测试
-- 压测脚本
-- 恢复测试
-- 长稳测试
-
-测试目标不是接口覆盖率，而是：
-
-- `kernel` 执行正确
-- `engine` 运行一致
-- 版本切换可解释
-
----
-
-## 16. 供后续 AI 助手使用的默认假设
-
-如果后续 AI 助手没有收到新的明确指令，默认应遵循：
-
-1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`
-2. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`
-3. 快照优先通过样例 JSON 或 SQL 注入 `scene_release`
-4. 事件优先通过 Kafka 工具或本地样例输入
-5. 仿真和轻量回放优先实现于 `pulsix-kernel`
-6. 任何执行语义都不要分叉到第二套实现
-7. 一期策略优先做 `FIRST_HIT`
-8. 一期表达式优先做 Aviator/DSL，不重投入 `Groovy`
-9. Flink 只认快照，不反查设计态表拼执行逻辑
-10. 优先交付可验证、可回归、可解释的小步增量
-
----
-
-## 17. 快速记忆版
-
-如果只记住 8 句话，就记这些：
-
-- `engine` 消费的是快照，不是设计态表。
-- 引擎核心不是规则本身，而是“上下文构建 + 规则执行 + 策略收敛”。
-- Broadcast State 放快照，Task 本地缓存放编译结果。
-- `kernel` 负责“怎么算”，`engine` 负责“怎么在 Flink 里跑”。
-- 仿真和轻量回放当前放在 `kernel` 内部。
-- 重型流式回放后续可放在 `engine`，但核心逻辑仍复用 `kernel`。
-- 一期先把本地执行内核打稳，再替换成真实 Flink State / Kafka / Redis。
-- 当前不是先做完整平台，而是先做出可编译、可执行、可验证、可回归的决策内核。
