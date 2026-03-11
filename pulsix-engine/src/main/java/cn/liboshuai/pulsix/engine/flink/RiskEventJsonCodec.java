@@ -1,7 +1,9 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.json.EngineJson;
+import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 
 import java.time.Instant;
@@ -29,13 +31,21 @@ final class RiskEventJsonCodec {
     static EngineErrorRecord deserializeError(String text, Throwable throwable) {
         EngineErrorRecord record = new EngineErrorRecord();
         record.setStage("event-deserialize");
+        record.setErrorType(EngineErrorTypes.INPUT);
+        record.setErrorCode(EngineErrorCodes.EVENT_DESERIALIZE_FAILED);
         record.setErrorMessage(buildErrorMessage(text, throwable));
+        record.setExceptionClass(throwable == null ? null : throwable.getClass().getName());
         record.setOccurredAt(Instant.now());
         return record;
     }
 
     static EngineErrorRecord validationError(RiskEvent event, Throwable throwable) {
-        return EngineErrorRecord.of("event-validate", event, null, throwable);
+        return EngineErrorRecord.of("event-validate",
+                EngineErrorTypes.INPUT,
+                EngineErrorCodes.EVENT_VALIDATION_FAILED,
+                event,
+                null,
+                throwable);
     }
 
     private static String buildErrorMessage(String text, Throwable throwable) {

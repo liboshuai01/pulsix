@@ -2,7 +2,7 @@
 
 > 基于 `2026-03-12` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
 >
-> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test` 已通过；本轮补齐了 `routeKey` 分桶、完整时间线版本治理与 Redis `connectTimeoutMs` 生效，IDEA 仍可直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob`。
+> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 与 `bash scripts/decision-engine-job-demo-smoke.sh` 已通过；本轮补齐了 `routeKey` 分桶、完整时间线版本治理与 Redis `connectTimeoutMs` 生效，IDEA 仍可直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob`。
 
 ---
 
@@ -11,8 +11,8 @@
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
 - 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
 - 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具、`scene_release` 的 `demo/file/jdbc/cdc` 快照接入、Kafka 主链路稳定输出，以及真实 Redis Lookup / 降级 / 版本治理能力。
-- 当前还缺：阶段 8 的生产化收口，重点是 Groovy 安全、错误分级、指标、恢复验证。
-- 一期后续最合理的顺序应是：**生产化收口**。
+- 当前已补齐：阶段 8 的生产化收口，重点完成了 Groovy 安全边界、错误分级、关键指标与恢复 / 状态清理验证。
+- 一期后续最合理的顺序应是：在当前基线之上继续补控制面与正式接入，而不是回头重做执行内核。
 
 ---
 
@@ -98,7 +98,7 @@ standard RiskEvent
 | 真实 `scene_release` Source / CDC | 已完成 | 已支持 `demo/file/jdbc/cdc` 四种快照来源，并复用统一 `scene_release -> SceneSnapshotEnvelope` 归一化入口 |
 | 真实 Redis Lookup | 已完成 | `RedisLookupService` 与 lookup 降级错误流已落地，feature 超时与 Redis `connectTimeoutMs` 已分别生效 |
 | 版本治理 | 已完成 | 已按 scene 维护完整 release timeline，支持 future 版本、回滚、编译失败保留旧版本与运行时约束 |
-| 生产化安全 | 未完成 | Groovy 沙箱、错误分级、指标、恢复验证仍缺 |
+| 生产化安全 | 已完成 | Groovy 沙箱、结构化错误分级、Flink 指标、恢复 / 状态清理回归已补齐 |
 | 测试基线 | 已完成 | 当前已有 kernel 侧共享回归与 engine 侧 Flink harness 回归，且 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 均通过 |
 
 ### 4.1 已完成的关键内容
@@ -112,13 +112,13 @@ standard RiskEvent
 ### 4.2 已有但还没收口的内容
 
 - `SCORE_CARD` 已在 `DecisionExecutor` 中实现，但当前样例、回归、一期主链路仍以 `FIRST_HIT` 为主。
-- `Groovy` 已可执行，但当前只是“可运行”，还不是“可生产”。
-- `FlinkKeyedStateStreamFeatureStateStore` 已经存在，所以“Flink Keyed State 基础版”不能再算未开始；真正未完成的是**生产级状态治理**。
+- `Groovy` 已补上基础沙箱边界，可拦截 `classLoader / constructor / import / metaClass` 等危险能力；一期继续保持“少量补位，不做主路径扩张”。
+- `FlinkKeyedStateStreamFeatureStateStore` 已经存在；当前这一块已完成一期收口，后续只做增量优化。
 - `pulsix-engine` 侧已补上 `SceneRuntimeCache` 做按版本缓存，当前默认保留每个 scene 最近 `8` 个编译版本，已能支撑延迟生效与显式回滚场景。
 
 ### 4.3 当前必须正视的缺口
 
-- 当前剩余缺口已主要收敛为阶段 8：Groovy 沙箱、错误分级、指标、恢复 / 状态清理验证。
+- 当前一期主线已闭环；后续重点转向控制面、正式接入和增量优化。
 - `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源，并按 `RiskEvent.routeKey()` 做实体优先分桶。
 - Redis lookup 的 feature 超时、连接超时、默认值与缓存降级都已收口；当前更需要补的是生产化治理，而不是再回到基础接入。
 
@@ -126,7 +126,7 @@ standard RiskEvent
 
 ## 5. 一期后续开发阶段
 
-下面的阶段切分保留已完成记录；截至 `2026-03-12`，阶段 1 ~ 7 已完成，当前剩余阶段 8。每一阶段都要求：
+下面的阶段切分保留已完成记录；截至 `2026-03-12`，阶段 1 ~ 8 已完成。每一阶段都要求：
 
 - AI 完成后可以单独提交、单独回归。
 - 你可以用少量人工步骤验证是否满足要求。
@@ -331,7 +331,7 @@ standard RiskEvent
 - `RuntimeHints.needFullDecisionLog` 已在 Flink 日志 side output 中生效：关闭后仍保留最终动作与命中规则，但不再下沉 `featureSnapshot / traceLogs` 全量细节；已补齐 `DecisionLogRecord` 精简输出回归。
 - 顺手让 `SceneSpec.allowedEventTypes` 也真正参与运行时校验：事件类型不在场景白名单时，内核会直接拒绝执行，避免 scene 层约束继续只停留在快照契约上。
 
-### 阶段 8：生产化收口
+### 阶段 8：生产化收口（已完成，`2026-03-12`）
 
 **目标**
 
@@ -347,7 +347,15 @@ standard RiskEvent
 
 - 能区分编译错误、执行错误、lookup 错误、状态错误、快照冲突错误。
 - 关键链路有固定回归命令，跑完能看到通过 / 失败结果。
+- `DecisionEngineJob` 本地 smoke 已固化为 `bash scripts/decision-engine-job-demo-smoke.sh`，默认复现 demo snapshot + demo event + print sink 最小链路。
 - 新增一条规则后，至少可以通过仿真、回放、Flink harness 三类验证手段验证结果一致。
+
+**本次落地结果**
+
+- 已补齐 Groovy 沙箱，禁止危险能力进入运行态。
+- 已补齐结构化错误分级与日志字段，可区分编译 / 执行 / lookup / 状态 / 快照冲突错误。
+- 已补齐 Flink 关键指标与 `DecisionEngineJob` 本地 smoke 入口。
+- 已补齐 checkpoint 恢复、状态清理与仿真 / 回放 / Flink 一致性回归。
 
 ---
 
@@ -404,20 +412,20 @@ standard RiskEvent
 
 如果没有新的明确指令，默认遵循以下规则：
 
-1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 ~ 7 已完成。
+1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 ~ 8 已完成。
 2. `scene_release.snapshot_json` 是唯一运行态配置来源。
 3. 仿真、回放、Flink 执行必须复用同一套 kernel 语义。
 4. 一期主策略优先级是 `FIRST_HIT > SCORE_CARD`。
 5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
 6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
 7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
-8. 如果没有额外说明，默认下一步从 **阶段 8：生产化收口** 开始，不再重复做阶段 1 ~ 7 的基础工具化。
+8. 如果没有额外说明，默认在当前基线上做增量优化，不再回头重做阶段 1 ~ 8。
 
 ---
 
 ## 9. 快速记忆版
 
-- `kernel` 语义已经有了，而且 **模块归位 + 本地仿真 + 轻量回放 + Redis/Kafka 正式链路 + 版本治理** 都已经完成；当前真正缺的是 **生产化收口**。
+- `kernel` 语义、Flink 主链路、仿真 / 回放 / 版本治理与生产化收口都已经完成。
 - 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
-- 下一阶段默认从 **阶段 8：生产化收口** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
+- 后续工作默认在当前稳定基线上做增量推进，且每一步都必须可人工验证。

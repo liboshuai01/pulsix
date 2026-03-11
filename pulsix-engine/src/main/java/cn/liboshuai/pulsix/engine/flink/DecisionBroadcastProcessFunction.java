@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.core.DecisionExecutor;
+import cn.liboshuai.pulsix.engine.core.DecisionExecutionException;
 import cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
@@ -10,14 +11,18 @@ import cn.liboshuai.pulsix.engine.flink.runtime.SceneRuntimeCache;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
+import cn.liboshuai.pulsix.engine.runtime.RuntimeCompileException;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -47,6 +52,8 @@ public class DecisionBroadcastProcessFunction
 
     private final LookupServiceFactory lookupServiceFactory;
 
+    private final StreamFeatureStateStoreFactory stateStoreFactory;
+
     private transient LookupService lookupService;
 
     private transient SceneRuntimeManager runtimeManager;
@@ -61,25 +68,35 @@ public class DecisionBroadcastProcessFunction
 
     private transient Map<String, Long> pendingRetryTimers;
 
+    private transient FlinkDecisionMetrics metrics;
+
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor) {
         this(snapshotStateDescriptor, InMemoryLookupService::demo);
     }
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
                                             LookupServiceFactory lookupServiceFactory) {
+        this(snapshotStateDescriptor, lookupServiceFactory, FlinkKeyedStateStreamFeatureStateStore::new);
+    }
+
+    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
+                                            LookupServiceFactory lookupServiceFactory,
+                                            StreamFeatureStateStoreFactory stateStoreFactory) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
         this.lookupServiceFactory = lookupServiceFactory;
+        this.stateStoreFactory = stateStoreFactory;
     }
 
     @Override
     public void open(Configuration parameters) {
         this.runtimeManager = new SceneRuntimeManager(new RuntimeCompiler(new DefaultScriptCompiler()));
         this.runtimeCache = new SceneRuntimeCache();
-        this.stateStore = new FlinkKeyedStateStreamFeatureStateStore(getRuntimeContext());
+        this.stateStore = stateStoreFactory.create(getRuntimeContext());
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
         this.pendingEvents = new LinkedHashMap<>();
         this.pendingRetryTimers = new LinkedHashMap<>();
+        this.metrics = FlinkDecisionMetrics.create(getRuntimeContext().getMetricGroup());
     }
 
     @Override
@@ -92,21 +109,26 @@ public class DecisionBroadcastProcessFunction
                     context.getBroadcastState(snapshotStateDescriptor);
             SceneReleaseTimeline timeline = timelineOf(broadcastState, normalizedEnvelope.getSceneCode());
             if (timeline.hasVersionConflict(normalizedEnvelope)) {
-                context.output(EngineOutputTags.ENGINE_ERROR,
-                        snapshotError("snapshot-version-conflict", normalizedEnvelope,
-                                new IllegalStateException("same version but different checksum")));
+                emitEngineError(context, snapshotError("snapshot-version-conflict",
+                        EngineErrorCodes.SNAPSHOT_VERSION_CONFLICT,
+                        normalizedEnvelope,
+                        new IllegalStateException("same version but different checksum")));
                 return;
             }
-            CompiledSceneRuntime runtime = runtimeManager.compile(normalizedEnvelope.getSnapshot());
-            runtimeCache.put(runtime);
             if (!timeline.contains(normalizedEnvelope)) {
+                CompiledSceneRuntime runtime = runtimeManager.compile(normalizedEnvelope.getSnapshot());
+                runtimeCache.put(runtime);
                 timeline.add(normalizedEnvelope);
                 broadcastState.put(normalizedEnvelope.getSceneCode(), timeline);
+                metrics.onSnapshotCompiled();
             }
             activateEffectiveRuntime(normalizedEnvelope.getSceneCode(), timeline,
                     Instant.ofEpochMilli(context.currentProcessingTime()));
         } catch (Exception exception) {
-            context.output(EngineOutputTags.ENGINE_ERROR, snapshotError("snapshot-activate", envelope, exception));
+            emitEngineError(context, snapshotError("snapshot-activate",
+                    EngineErrorCodes.SNAPSHOT_ACTIVATE_FAILED,
+                    envelope,
+                    exception));
         }
     }
 
@@ -114,12 +136,15 @@ public class DecisionBroadcastProcessFunction
     public void processElement(RiskEvent event,
                                ReadOnlyContext context,
                                Collector<DecisionResult> collector) throws Exception {
+        metrics.onInputEvent();
         String routeKey = event.routeKey();
         CompiledSceneRuntime runtime = resolveRuntime(event.getSceneCode(),
                 Instant.ofEpochMilli(context.timerService().currentProcessingTime()),
                 context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
         if (runtime == null) {
             bufferPendingEvent(routeKey, event);
+            metrics.onPendingBuffered();
+            metrics.onNoSnapshot();
             schedulePendingRetry(routeKey, context.timerService());
             return;
         }
@@ -128,11 +153,13 @@ public class DecisionBroadcastProcessFunction
             @Override
             public void emitDecisionLog(DecisionLogRecord record) {
                 context.output(EngineOutputTags.DECISION_LOG, record);
+                metrics.onDecisionLogEmitted();
             }
 
             @Override
             public void emitEngineError(EngineErrorRecord record) {
                 context.output(EngineOutputTags.ENGINE_ERROR, record);
+                metrics.onEngineError(record);
             }
         };
         stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
@@ -165,11 +192,13 @@ public class DecisionBroadcastProcessFunction
                 @Override
                 public void emitDecisionLog(DecisionLogRecord record) {
                     context.output(EngineOutputTags.DECISION_LOG, record);
+                    metrics.onDecisionLogEmitted();
                 }
 
                 @Override
                 public void emitEngineError(EngineErrorRecord record) {
                     context.output(EngineOutputTags.ENGINE_ERROR, record);
+                    metrics.onEngineError(record);
                 }
             };
             stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
@@ -183,7 +212,12 @@ public class DecisionBroadcastProcessFunction
         try {
             stateStore.onTimer(timestamp);
         } catch (Exception exception) {
-            context.output(EngineOutputTags.ENGINE_ERROR, snapshotError("stream-feature-timer", null, exception));
+            emitEngineError(context, EngineErrorRecord.of("stream-feature-timer",
+                    EngineErrorTypes.STATE,
+                    EngineErrorCodes.STATE_TIMER_CLEANUP_FAILED,
+                    null,
+                    null,
+                    exception));
         }
     }
 
@@ -261,6 +295,7 @@ public class DecisionBroadcastProcessFunction
         if (events == null || events.isEmpty()) {
             return;
         }
+        metrics.onPendingFlushed(events.size());
         for (RiskEvent event : events) {
             emitDecision(event, runtime, collector, outputContext);
         }
@@ -278,17 +313,26 @@ public class DecisionBroadcastProcessFunction
                     outputContext::emitEngineError);
             try {
                 collector.collect(result);
+                metrics.onDecisionResult(result);
             } catch (Exception exception) {
-                outputContext.emitEngineError(EngineErrorRecord.of("decision-collect", event, runtime.version(), exception));
+                outputContext.emitEngineError(outputError("decision-collect",
+                        EngineErrorCodes.DECISION_RESULT_EMIT_FAILED,
+                        event,
+                        runtime,
+                        exception));
                 return;
             }
             try {
                 outputContext.emitDecisionLog(DecisionLogRecord.from(result, runtime.needFullDecisionLog()));
             } catch (Exception exception) {
-                outputContext.emitEngineError(EngineErrorRecord.of("decision-log", event, runtime.version(), exception));
+                outputContext.emitEngineError(outputError("decision-log",
+                        EngineErrorCodes.DECISION_LOG_EMIT_FAILED,
+                        event,
+                        runtime,
+                        exception));
             }
         } catch (Exception exception) {
-            outputContext.emitEngineError(EngineErrorRecord.of("decision-execute", event, runtime.version(), exception));
+            outputContext.emitEngineError(decisionError(event, runtime, exception));
         }
     }
 
@@ -335,21 +379,103 @@ public class DecisionBroadcastProcessFunction
     }
 
     private EngineErrorRecord snapshotError(String stage,
+                                            String defaultErrorCode,
                                             SceneSnapshotEnvelope envelope,
                                             Throwable throwable) {
-        EngineErrorRecord record = new EngineErrorRecord();
-        record.setStage(stage);
+        String resolvedErrorCode = throwable instanceof RuntimeCompileException compileException
+                ? compileException.getErrorCode()
+                : defaultErrorCode;
+        EngineErrorRecord record = EngineErrorRecord.of(stage,
+                EngineErrorTypes.SNAPSHOT,
+                resolvedErrorCode,
+                null,
+                envelope != null ? envelope.getVersion() : null,
+                throwable);
         record.setSceneCode(envelope != null ? envelope.getSceneCode() : null);
-        record.setVersion(envelope != null ? envelope.getVersion() : null);
-        record.setErrorMessage(throwable != null ? throwable.getMessage() : null);
-        record.setOccurredAt(Instant.now());
+        if (envelope != null && envelope.getSnapshot() != null) {
+            record.setSnapshotId(envelope.getSnapshot().getSnapshotId());
+            record.setSnapshotChecksum(envelope.getSnapshot().getChecksum());
+        } else if (envelope != null) {
+            record.setSnapshotChecksum(envelope.getChecksum());
+        }
+        if (throwable instanceof RuntimeCompileException compileException) {
+            record.setFeatureCode(compileException.getFeatureCode());
+            record.setRuleCode(compileException.getRuleCode());
+            record.setEngineType(compileException.getEngineType() == null ? null : compileException.getEngineType().name());
+        }
         return record;
+    }
+
+    private EngineErrorRecord decisionError(RiskEvent event,
+                                            CompiledSceneRuntime runtime,
+                                            Throwable throwable) {
+        if (throwable instanceof DecisionExecutionException executionException) {
+            EngineErrorRecord record = EngineErrorRecord.of(executionException.getStage(),
+                    executionException.getErrorType(),
+                    executionException.getErrorCode(),
+                    event,
+                    runtime == null ? null : runtime.version(),
+                    throwable);
+            populateRuntimeDetails(record, runtime);
+            record.setFeatureCode(executionException.getFeatureCode());
+            record.setRuleCode(executionException.getRuleCode());
+            record.setEngineType(executionException.getEngineType() == null ? null : executionException.getEngineType().name());
+            return record;
+        }
+        EngineErrorRecord record = EngineErrorRecord.of("decision-execute",
+                EngineErrorTypes.EXECUTION,
+                EngineErrorCodes.DECISION_EXECUTION_FAILED,
+                event,
+                runtime == null ? null : runtime.version(),
+                throwable);
+        populateRuntimeDetails(record, runtime);
+        return record;
+    }
+
+    private EngineErrorRecord outputError(String stage,
+                                          String errorCode,
+                                          RiskEvent event,
+                                          CompiledSceneRuntime runtime,
+                                          Throwable throwable) {
+        EngineErrorRecord record = EngineErrorRecord.of(stage,
+                EngineErrorTypes.OUTPUT,
+                errorCode,
+                event,
+                runtime == null ? null : runtime.version(),
+                throwable);
+        populateRuntimeDetails(record, runtime);
+        return record;
+    }
+
+    private void populateRuntimeDetails(EngineErrorRecord record, CompiledSceneRuntime runtime) {
+        if (record == null || runtime == null || runtime.getSnapshot() == null) {
+            return;
+        }
+        record.setSnapshotId(runtime.getSnapshot().getSnapshotId());
+        record.setSnapshotChecksum(runtime.getSnapshot().getChecksum());
+    }
+
+    private void emitEngineError(Context context, EngineErrorRecord record) {
+        context.output(EngineOutputTags.ENGINE_ERROR, record);
+        metrics.onEngineError(record);
+    }
+
+    private void emitEngineError(OnTimerContext context, EngineErrorRecord record) {
+        context.output(EngineOutputTags.ENGINE_ERROR, record);
+        metrics.onEngineError(record);
     }
 
     @FunctionalInterface
     public interface LookupServiceFactory extends Serializable {
 
         LookupService create();
+
+    }
+
+    @FunctionalInterface
+    public interface StreamFeatureStateStoreFactory extends Serializable {
+
+        StreamFeatureStateStore create(RuntimeContext runtimeContext);
 
     }
 

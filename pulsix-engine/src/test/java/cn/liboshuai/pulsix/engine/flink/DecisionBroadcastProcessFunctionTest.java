@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.feature.LookupResult;
 import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
@@ -8,15 +9,20 @@ import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
+import cn.liboshuai.pulsix.engine.simulation.LocalReplayRunner;
+import cn.liboshuai.pulsix.engine.simulation.LocalSimulationRunner;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.serialization.SerializerConfigImpl;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.streaming.api.operators.co.CoBroadcastWithKeyedOperator;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedBroadcastOperatorTestHarness;
@@ -109,6 +115,155 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     @Test
+    void shouldRestoreRuntimeAndKeyedStateAfterCheckpoint() throws Exception {
+        SceneSnapshotEnvelope envelope = DemoFixtures.demoEnvelope();
+        List<RiskEvent> events = DemoFixtures.demoEvents();
+        OperatorSubtaskState snapshot;
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            for (int index = 0; index < events.size() - 1; index++) {
+                RiskEvent event = copy(events.get(index), RiskEvent.class);
+                harness.processElement(event, epochMillis(event.getEventTime()));
+            }
+            snapshot = harness.snapshot(100L, epochMillis(envelope.getPublishedAt()) + 1_000L);
+        }
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = restoredHarness(snapshot)) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 2L);
+            RiskEvent finalEvent = copy(events.get(events.size() - 1), RiskEvent.class);
+            harness.processElement(finalEvent, epochMillis(finalEvent.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals("TRADE_RISK_v12", results.get(0).getSnapshotId());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(80, results.get(0).getFinalScore());
+            assertEquals("3", results.get(0).getFeatureSnapshot().get("user_trade_cnt_5m"));
+            assertEquals("4", results.get(0).getFeatureSnapshot().get("device_bind_user_cnt_1h"));
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldRestoreCleanupTimerAfterCheckpoint() throws Exception {
+        SceneSnapshotEnvelope envelope = timerOnlyEnvelope();
+        RiskEvent firstEvent = timerEvent("E202603071011", "T202603071011", Instant.parse("2026-03-07T10:00:00Z"));
+        RiskEvent secondEvent = timerEvent("E202603071012", "T202603071012", Instant.parse("2026-03-07T10:12:00Z"));
+        OperatorSubtaskState snapshot;
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+            assertEquals(1, harness.numEventTimeTimers());
+            snapshot = harness.snapshot(200L, epochMillis(envelope.getPublishedAt()) + 1_000L);
+        }
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = restoredHarness(snapshot)) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 2L);
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size());
+            assertEquals("1", results.get(0).getFeatureSnapshot().get("user_trade_cnt_5m"));
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldKeepDemoBaselineConsistentAcrossSimulationReplayAndFlink() throws Exception {
+        LocalSimulationRunner simulationRunner = new LocalSimulationRunner();
+        LocalSimulationRunner.SimulationReport simulationReport = simulationRunner.simulate(
+                DemoFixtures.demoEnvelopeJson(),
+                DemoFixtures.toJson(DemoFixtures.demoEvents()));
+
+        LocalReplayRunner replayRunner = new LocalReplayRunner();
+        LocalReplayRunner.ReplayReport replayReport = replayRunner.replay(
+                DemoFixtures.demoEnvelopeJson(),
+                DemoFixtures.toJson(DemoFixtures.demoEvents()));
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope envelope = DemoFixtures.demoEnvelope();
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            for (RiskEvent event : DemoFixtures.demoEvents()) {
+                harness.processElement(copy(event, RiskEvent.class), epochMillis(event.getEventTime()));
+            }
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            DecisionResult flinkFinalResult = results.get(results.size() - 1);
+            assertEquals(simulationReport.getFinalResult().getFinalAction(), replayReport.getFinalResult().getFinalAction());
+            assertEquals(simulationReport.getFinalResult().getFinalAction(), flinkFinalResult.getFinalAction());
+            assertEquals(simulationReport.getFinalResult().getFinalScore(), replayReport.getFinalResult().getFinalScore());
+            assertEquals(simulationReport.getFinalResult().getFinalScore(), flinkFinalResult.getFinalScore());
+            assertEquals(
+                    simulationReport.getFinalResult().getHitRules().stream().map(LocalSimulationRunner.MatchedRule::getRuleCode).toList(),
+                    replayReport.getFinalResult().getHitRules().stream().map(LocalSimulationRunner.MatchedRule::getRuleCode).toList()
+            );
+            assertEquals(
+                    simulationReport.getFinalResult().getHitRules().stream().map(LocalSimulationRunner.MatchedRule::getRuleCode).toList(),
+                    flinkFinalResult.getRuleHits().stream().filter(hit -> Boolean.TRUE.equals(hit.getHit())).map(cn.liboshuai.pulsix.engine.model.RuleHit::getRuleCode).toList()
+            );
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldClassifyStateErrorWhenStreamFeatureStateStoreFails() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness(
+                null,
+                runtimeContext -> new StreamFeatureStateStore() {
+                    @Override
+                    public Object evaluate(cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime.CompiledStreamFeature feature,
+                                           cn.liboshuai.pulsix.engine.context.EvalContext context) {
+                        throw new IllegalStateException("numeric keyed state failed");
+                    }
+                })) {
+            SceneSnapshotEnvelope envelope = timerOnlyEnvelope();
+            RiskEvent event = timerEvent("E202603071021", "T202603071021", Instant.parse("2026-03-07T10:00:00Z"));
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            assertTrue(harness.extractOutputValues().isEmpty());
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("decision-stream-feature", record.getStage());
+            assertEquals(EngineErrorTypes.STATE, record.getErrorType());
+            assertEquals(EngineErrorCodes.STATE_ACCESS_FAILED, record.getErrorCode());
+            assertEquals("user_trade_cnt_5m", record.getFeatureCode());
+        }
+    }
+
+    @Test
+    void shouldClassifyExecutionErrorWhenRuleEvaluationThrows() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope envelope = brokenRuleExecutionEnvelope();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            assertTrue(harness.extractOutputValues().isEmpty());
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("decision-rule", record.getStage());
+            assertEquals(EngineErrorTypes.EXECUTION, record.getErrorType());
+            assertEquals(EngineErrorCodes.RULE_EXECUTION_FAILED, record.getErrorCode());
+            assertEquals("R-BROKEN", record.getRuleCode());
+            assertEquals("GROOVY", record.getEngineType());
+        }
+    }
+
+    @Test
     void shouldOutputConflictErrorWhenSameVersionHasDifferentChecksum() throws Exception {
         try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
             SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
@@ -128,8 +283,13 @@ class DecisionBroadcastProcessFunctionTest {
             assertEquals(1, results.size());
             assertEquals(12, results.get(0).getVersion());
             assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
-            assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
-            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("same version but different checksum"));
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals(EngineErrorTypes.SNAPSHOT, record.getErrorType());
+            assertEquals(EngineErrorCodes.SNAPSHOT_VERSION_CONFLICT, record.getErrorCode());
+            assertTrue(record.getErrorMessage().contains("same version but different checksum"));
         }
     }
 
@@ -220,6 +380,7 @@ class DecisionBroadcastProcessFunctionTest {
             @SuppressWarnings("unchecked")
             EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
             assertEquals("decision-lookup", record.getStage());
+            assertEquals(EngineErrorTypes.LOOKUP, record.getErrorType());
             assertEquals(LookupResult.ERROR_TIMEOUT, record.getErrorCode());
             assertEquals("device_in_blacklist", record.getFeatureCode());
             assertEquals(LookupResult.FALLBACK_DEFAULT_VALUE, record.getFallbackMode());
@@ -252,6 +413,7 @@ class DecisionBroadcastProcessFunctionTest {
             @SuppressWarnings("unchecked")
             EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
             assertEquals("decision-lookup", record.getStage());
+            assertEquals(EngineErrorTypes.LOOKUP, record.getErrorType());
             assertEquals(LookupResult.ERROR_EXECUTION_FAILED, record.getErrorCode());
             assertEquals("device_in_blacklist", record.getFeatureCode());
             assertEquals(LookupResult.FALLBACK_DEFAULT_VALUE, record.getFallbackMode());
@@ -423,8 +585,15 @@ class DecisionBroadcastProcessFunctionTest {
             assertEquals(1, results.size());
             assertEquals(12, results.get(0).getVersion());
             assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
-            assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
-            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("allowGroovy"));
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals(EngineErrorTypes.SNAPSHOT, record.getErrorType());
+            assertEquals(EngineErrorCodes.GROOVY_DISABLED, record.getErrorCode());
+            assertEquals("R003", record.getRuleCode());
+            assertEquals("GROOVY", record.getEngineType());
+            assertTrue(record.getErrorMessage().contains("allowGroovy"));
         }
     }
 
@@ -456,12 +625,34 @@ class DecisionBroadcastProcessFunctionTest {
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
             DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory) throws Exception {
+        return newHarness(lookupServiceFactory, null);
+    }
+
+    private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
+            DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory,
+            DecisionBroadcastProcessFunction.StreamFeatureStateStoreFactory stateStoreFactory) throws Exception {
+        KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
+                createHarness(lookupServiceFactory, stateStoreFactory);
+        harness.open();
+        return harness;
+    }
+
+    private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> restoredHarness(
+            OperatorSubtaskState snapshot) throws Exception {
+        KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
+                createHarness(null, null);
+        harness.initializeState(snapshot);
+        harness.open();
+        return harness;
+    }
+
+    private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> createHarness(
+            DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory,
+            DecisionBroadcastProcessFunction.StreamFeatureStateStoreFactory stateStoreFactory) throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
                 new KeyedBroadcastOperatorTestHarness<>(
                         new CoBroadcastWithKeyedOperator<>(
-                                lookupServiceFactory == null
-                                        ? new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR)
-                                        : new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR, lookupServiceFactory),
+                                buildProcessFunction(lookupServiceFactory, stateStoreFactory),
                                 List.of(SNAPSHOT_STATE_DESCRIPTOR)
                         ),
                         RiskEvent::routeKey,
@@ -471,8 +662,24 @@ class DecisionBroadcastProcessFunctionTest {
                         0
                 );
         harness.setup(EngineTypeInfos.decisionResult().createSerializer(new SerializerConfigImpl()));
-        harness.open();
         return harness;
+    }
+
+    private DecisionBroadcastProcessFunction buildProcessFunction(
+            DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory,
+            DecisionBroadcastProcessFunction.StreamFeatureStateStoreFactory stateStoreFactory) {
+        if (lookupServiceFactory == null && stateStoreFactory == null) {
+            return new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR);
+        }
+        if (lookupServiceFactory == null) {
+            return new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR,
+                    cn.liboshuai.pulsix.engine.feature.InMemoryLookupService::demo,
+                    stateStoreFactory);
+        }
+        if (stateStoreFactory == null) {
+            return new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR, lookupServiceFactory);
+        }
+        return new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR, lookupServiceFactory, stateStoreFactory);
     }
 
     private SceneSnapshotEnvelope baselineEnvelopeForBroadcastSwitch() {
@@ -533,6 +740,30 @@ class DecisionBroadcastProcessFunctionTest {
         snapshot.setPublishedAt(Instant.parse("2026-03-07T20:12:00Z"));
         snapshot.setEffectiveFrom(snapshot.getPublishedAt());
         snapshot.getRuntimeHints().setNeedFullDecisionLog(false);
+        return envelopeOf(snapshot);
+    }
+
+    private SceneSnapshotEnvelope brokenRuleExecutionEnvelope() {
+        SceneSnapshot snapshot = DemoFixtures.demoSnapshot();
+        snapshot.setSnapshotId("TRADE_RISK_BROKEN_RULE_v17");
+        snapshot.setVersion(17);
+        snapshot.setChecksum("switch-checksum-v17-broken-rule");
+        snapshot.setPublishedAt(Instant.parse("2026-03-07T20:15:00Z"));
+        snapshot.setEffectiveFrom(snapshot.getPublishedAt());
+        snapshot.setStreamFeatures(List.of());
+        snapshot.setLookupFeatures(List.of());
+        snapshot.setDerivedFeatures(List.of());
+        RuleSpec brokenRule = new RuleSpec();
+        brokenRule.setCode("R-BROKEN");
+        brokenRule.setName("broken rule");
+        brokenRule.setEngineType(cn.liboshuai.pulsix.engine.model.EngineType.GROOVY);
+        brokenRule.setPriority(100);
+        brokenRule.setWhenExpr("return missing_context.toString() == 'x'");
+        brokenRule.setHitAction(ActionType.REJECT);
+        brokenRule.setRiskScore(99);
+        brokenRule.setEnabled(true);
+        snapshot.setRules(List.of(brokenRule));
+        snapshot.getPolicy().setRuleOrder(List.of("R-BROKEN"));
         return envelopeOf(snapshot);
     }
 

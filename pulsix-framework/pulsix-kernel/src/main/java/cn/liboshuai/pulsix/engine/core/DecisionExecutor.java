@@ -8,6 +8,7 @@ import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionMode;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
@@ -45,7 +46,11 @@ public class DecisionExecutor {
                                   LookupService lookupService,
                                   Consumer<EngineErrorRecord> errorCollector) {
         long startedAt = System.nanoTime();
-        validateEvent(runtime.getSnapshot(), event);
+        try {
+            validateEvent(runtime.getSnapshot(), event);
+        } catch (RuntimeException exception) {
+            throw DecisionExecutionException.eventValidation(exception);
+        }
         Consumer<EngineErrorRecord> safeErrorCollector = errorCollector == null ? record -> {
         } : errorCollector;
 
@@ -57,7 +62,14 @@ public class DecisionExecutor {
         context.trace("load-event");
 
         for (CompiledSceneRuntime.CompiledStreamFeature feature : runtime.getStreamFeatures()) {
-            Object value = executeStreamFeature(feature, context, stateStore);
+            Object value;
+            try {
+                value = executeStreamFeature(feature, context, stateStore);
+            } catch (RuntimeException exception) {
+                throw DecisionExecutionException.stateAccess(feature == null || feature.getSpec() == null
+                        ? null
+                        : feature.getSpec().getCode(), exception);
+            }
             context.put(feature.getSpec().getCode(), value);
             context.trace("stream:" + feature.getSpec().getCode() + '=' + value);
         }
@@ -67,7 +79,16 @@ public class DecisionExecutor {
             context.trace("lookup:" + feature.getSpec().getCode() + '=' + value);
         }
         for (CompiledSceneRuntime.CompiledDerivedFeature feature : runtime.getOrderedDerivedFeatures()) {
-            Object value = feature.getExpression().execute(context);
+            Object value;
+            try {
+                value = feature.getExpression().execute(context);
+            } catch (RuntimeException exception) {
+                throw DecisionExecutionException.derivedFeature(feature == null || feature.getSpec() == null
+                                ? null
+                                : feature.getSpec().getCode(),
+                        feature == null || feature.getSpec() == null ? null : feature.getSpec().getEngineType(),
+                        exception);
+            }
             context.put(feature.getSpec().getCode(), value);
             context.trace("derived:" + feature.getSpec().getCode() + '=' + value);
         }
@@ -78,7 +99,15 @@ public class DecisionExecutor {
                 context.trace("rule-limit:" + maxRuleExecutionCount);
                 break;
             }
-            context.getRuleHits().add(executeRule(rule, context));
+            try {
+                context.getRuleHits().add(executeRule(rule, context));
+            } catch (RuntimeException exception) {
+                throw DecisionExecutionException.ruleEvaluation(rule == null || rule.getSpec() == null
+                                ? null
+                                : rule.getSpec().getCode(),
+                        rule == null || rule.getSpec() == null ? null : rule.getSpec().getEngineType(),
+                        exception);
+            }
             executedRuleCount++;
         }
 
@@ -88,6 +117,8 @@ public class DecisionExecutor {
         result.setTraceId(event.getTraceId());
         result.setSceneCode(event.getSceneCode());
         result.setVersion(runtime.version());
+        result.setSnapshotId(runtime.getSnapshot() == null ? null : runtime.getSnapshot().getSnapshotId());
+        result.setSnapshotChecksum(runtime.getSnapshot() == null ? null : runtime.getSnapshot().getChecksum());
         result.setDecisionMode(runtime.getPolicy() != null ? runtime.getPolicy().getDecisionMode() : DecisionMode.FIRST_HIT);
         result.setFinalAction(outcome.action());
         result.setFinalScore(outcome.score());
@@ -194,12 +225,16 @@ public class DecisionExecutor {
                                           LookupResult lookupResult) {
         EngineErrorRecord record = new EngineErrorRecord();
         record.setStage("decision-lookup");
+        record.setErrorType(EngineErrorTypes.LOOKUP);
         record.setSceneCode(event != null ? event.getSceneCode() : runtime.sceneCode());
         record.setVersion(runtime.version());
+        record.setSnapshotId(runtime.getSnapshot() == null ? null : runtime.getSnapshot().getSnapshotId());
+        record.setSnapshotChecksum(runtime.getSnapshot() == null ? null : runtime.getSnapshot().getChecksum());
         record.setEventId(event != null ? event.getEventId() : null);
         record.setTraceId(event != null ? event.getTraceId() : null);
         record.setErrorCode(lookupResult.getErrorCode());
         record.setErrorMessage(lookupResult.getErrorMessage());
+        record.setExceptionClass(null);
         record.setFeatureCode(feature != null && feature.getSpec() != null ? feature.getSpec().getCode() : null);
         record.setLookupType(feature != null && feature.getSpec() != null && feature.getSpec().getLookupType() != null
                 ? feature.getSpec().getLookupType().name()

@@ -78,7 +78,7 @@ class LocalDecisionEngineTest {
         RiskEvent event = DemoFixtures.blacklistedEvent();
         event.setEventType("login");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        DecisionExecutionException exception = assertThrows(DecisionExecutionException.class,
                 () -> engine.evaluate(event));
 
         assertEquals("eventType not allowed by scene", exception.getMessage());

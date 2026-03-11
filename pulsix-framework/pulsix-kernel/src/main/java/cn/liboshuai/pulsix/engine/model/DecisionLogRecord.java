@@ -21,6 +21,10 @@ public class DecisionLogRecord implements Serializable {
 
     private Integer version;
 
+    private String snapshotId;
+
+    private String snapshotChecksum;
+
     private ActionType finalAction;
 
     private Integer finalScore;
@@ -55,6 +59,8 @@ public class DecisionLogRecord implements Serializable {
         record.setTraceId(result.getTraceId());
         record.setSceneCode(result.getSceneCode());
         record.setVersion(result.getVersion());
+        record.setSnapshotId(result.getSnapshotId());
+        record.setSnapshotChecksum(result.getSnapshotChecksum());
         record.setFinalAction(result.getFinalAction());
         record.setFinalScore(result.getFinalScore());
         record.setLatencyMs(result.getLatencyMs());

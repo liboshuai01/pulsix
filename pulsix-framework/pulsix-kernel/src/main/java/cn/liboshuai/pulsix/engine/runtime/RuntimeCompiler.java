@@ -1,7 +1,9 @@
 package cn.liboshuai.pulsix.engine.runtime;
 
 import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
+import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineType;
+import cn.liboshuai.pulsix.engine.model.LookupFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.RuntimeHints;
@@ -42,33 +44,57 @@ public class RuntimeCompiler {
 
         List<StreamFeatureSpec> streamFeatures = defaultList(snapshot.getStreamFeatures());
         for (StreamFeatureSpec spec : streamFeatures) {
-            CompiledSceneRuntime.CompiledStreamFeature compiledFeature = new CompiledSceneRuntime.CompiledStreamFeature();
-            compiledFeature.setSpec(spec);
-            compiledFeature.setEntityKeyScript(compileAviator(spec.getEntityKeyExpr()));
-            compiledFeature.setValueScript(compileAviator(defaultIfBlank(spec.getValueExpr(), "1")));
-            compiledFeature.setFilterScript(compileAviator(defaultIfBlank(spec.getFilterExpr(), "true")));
-            compiledFeature.setWindowSizeMs(resolveWindowSizeMs(spec));
-            compiledFeature.setWindowSlideMs(resolveWindowSlideMs(spec));
-            compiledFeature.setTtlMs(DurationParser.parse(spec.getTtl()).toMillis());
-            compiledFeature.setRetentionMs(resolveRetentionMs(compiledFeature));
-            runtime.getStreamFeatures().add(compiledFeature);
+            try {
+                CompiledSceneRuntime.CompiledStreamFeature compiledFeature = new CompiledSceneRuntime.CompiledStreamFeature();
+                compiledFeature.setSpec(spec);
+                compiledFeature.setEntityKeyScript(compileAviator(spec.getEntityKeyExpr()));
+                compiledFeature.setValueScript(compileAviator(defaultIfBlank(spec.getValueExpr(), "1")));
+                compiledFeature.setFilterScript(compileAviator(defaultIfBlank(spec.getFilterExpr(), "true")));
+                compiledFeature.setWindowSizeMs(resolveWindowSizeMs(spec));
+                compiledFeature.setWindowSlideMs(resolveWindowSlideMs(spec));
+                compiledFeature.setTtlMs(DurationParser.parse(spec.getTtl()).toMillis());
+                compiledFeature.setRetentionMs(resolveRetentionMs(compiledFeature));
+                runtime.getStreamFeatures().add(compiledFeature);
+            } catch (RuntimeException exception) {
+                throw RuntimeCompileException.streamFeature(spec == null ? null : spec.getCode(),
+                        EngineType.AVIATOR,
+                        resolveCompileErrorCode(exception),
+                        exception);
+            }
         }
 
-        snapshot.getLookupFeatures().stream().filter(Objects::nonNull).forEach(spec -> {
-            CompiledSceneRuntime.CompiledLookupFeature compiledFeature = new CompiledSceneRuntime.CompiledLookupFeature();
-            compiledFeature.setSpec(spec);
-            compiledFeature.setKeyScript(compileAviator(spec.getKeyExpr()));
-            runtime.getLookupFeatures().add(compiledFeature);
-        });
+        for (LookupFeatureSpec spec : defaultList(snapshot.getLookupFeatures())) {
+            if (spec == null) {
+                continue;
+            }
+            try {
+                CompiledSceneRuntime.CompiledLookupFeature compiledFeature = new CompiledSceneRuntime.CompiledLookupFeature();
+                compiledFeature.setSpec(spec);
+                compiledFeature.setKeyScript(compileAviator(spec.getKeyExpr()));
+                runtime.getLookupFeatures().add(compiledFeature);
+            } catch (RuntimeException exception) {
+                throw RuntimeCompileException.lookupFeature(spec.getCode(),
+                        EngineType.AVIATOR,
+                        resolveCompileErrorCode(exception),
+                        exception);
+            }
+        }
 
         Map<String, DerivedFeatureSpec> derivedByCode = defaultList(snapshot.getDerivedFeatures()).stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(DerivedFeatureSpec::getCode, item -> item, (left, right) -> left, LinkedHashMap::new));
         for (DerivedFeatureSpec spec : orderDerived(defaultList(snapshot.getDerivedFeatures()))) {
-            CompiledSceneRuntime.CompiledDerivedFeature compiledFeature = new CompiledSceneRuntime.CompiledDerivedFeature();
-            compiledFeature.setSpec(spec);
-            compiledFeature.setExpression(compileScript(snapshot, spec.getEngineType(), spec.getExpr()));
-            runtime.getOrderedDerivedFeatures().add(compiledFeature);
+            try {
+                CompiledSceneRuntime.CompiledDerivedFeature compiledFeature = new CompiledSceneRuntime.CompiledDerivedFeature();
+                compiledFeature.setSpec(spec);
+                compiledFeature.setExpression(compileScript(snapshot, spec.getEngineType(), spec.getExpr()));
+                runtime.getOrderedDerivedFeatures().add(compiledFeature);
+            } catch (RuntimeException exception) {
+                throw RuntimeCompileException.derivedFeature(spec == null ? null : spec.getCode(),
+                        defaultEngine(spec == null ? null : spec.getEngineType()),
+                        resolveCompileErrorCode(exception),
+                        exception);
+            }
         }
 
         Map<String, CompiledSceneRuntime.CompiledRule> ruleByCode = new LinkedHashMap<>();
@@ -76,10 +102,17 @@ public class RuntimeCompiler {
             if (spec == null) {
                 continue;
             }
-            CompiledSceneRuntime.CompiledRule compiledRule = new CompiledSceneRuntime.CompiledRule();
-            compiledRule.setSpec(spec);
-            compiledRule.setCondition(compileScript(snapshot, spec.getEngineType(), spec.getWhenExpr()));
-            ruleByCode.put(spec.getCode(), compiledRule);
+            try {
+                CompiledSceneRuntime.CompiledRule compiledRule = new CompiledSceneRuntime.CompiledRule();
+                compiledRule.setSpec(spec);
+                compiledRule.setCondition(compileScript(snapshot, spec.getEngineType(), spec.getWhenExpr()));
+                ruleByCode.put(spec.getCode(), compiledRule);
+            } catch (RuntimeException exception) {
+                throw RuntimeCompileException.rule(spec.getCode(),
+                        defaultEngine(spec.getEngineType()),
+                        resolveCompileErrorCode(exception),
+                        exception);
+            }
         }
         runtime.setOrderedRules(orderRules(ruleByCode.values(), snapshot.getPolicy()));
         validateDependencies(derivedByCode.keySet(), defaultList(snapshot.getRules()));
@@ -103,6 +136,17 @@ public class RuntimeCompiler {
     private boolean allowGroovy(SceneSnapshot snapshot) {
         RuntimeHints hints = snapshot == null ? null : snapshot.getRuntimeHints();
         return hints == null || !Boolean.FALSE.equals(hints.getAllowGroovy());
+    }
+
+    private String resolveCompileErrorCode(Throwable exception) {
+        String message = exception == null || exception.getMessage() == null ? "" : exception.getMessage();
+        if (message.contains("runtimeHints.allowGroovy")) {
+            return EngineErrorCodes.GROOVY_DISABLED;
+        }
+        if (message.contains("sandbox")) {
+            return EngineErrorCodes.GROOVY_SANDBOX_REJECTED;
+        }
+        return EngineErrorCodes.SNAPSHOT_COMPILE_FAILED;
     }
 
     private EngineType defaultEngine(EngineType engineType) {

@@ -4,7 +4,9 @@ import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +49,8 @@ class RiskEventJsonCodecTest {
                 new IllegalStateException("read json failed"));
 
         assertEquals("event-deserialize", record.getStage());
+        assertEquals(EngineErrorTypes.INPUT, record.getErrorType());
+        assertEquals(EngineErrorCodes.EVENT_DESERIALIZE_FAILED, record.getErrorCode());
         assertTrue(record.getErrorMessage().contains("read json failed"));
         assertTrue(record.getErrorMessage().contains("payload={bad-json}"));
         assertNotNull(record.getOccurredAt());
@@ -82,6 +86,8 @@ class RiskEventJsonCodecTest {
         record.setOccurredAt(Instant.now());
 
         assertEquals("event-validate", record.getStage());
+        assertEquals(EngineErrorTypes.INPUT, record.getErrorType());
+        assertEquals(EngineErrorCodes.EVENT_VALIDATION_FAILED, record.getErrorCode());
         assertEquals(event.getEventId(), record.getEventId());
         assertEquals(event.getTraceId(), record.getTraceId());
     }

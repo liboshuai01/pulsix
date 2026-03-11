@@ -278,6 +278,8 @@ public final class EngineTypeInfoFactories {
             fields.put("traceId", Types.STRING);
             fields.put("sceneCode", Types.STRING);
             fields.put("version", Types.INT);
+            fields.put("snapshotId", Types.STRING);
+            fields.put("snapshotChecksum", Types.STRING);
             fields.put("decisionMode", Types.ENUM(DecisionMode.class));
             fields.put("finalAction", Types.ENUM(ActionType.class));
             fields.put("finalScore", Types.INT);
@@ -300,6 +302,8 @@ public final class EngineTypeInfoFactories {
             fields.put("traceId", Types.STRING);
             fields.put("sceneCode", Types.STRING);
             fields.put("version", Types.INT);
+            fields.put("snapshotId", Types.STRING);
+            fields.put("snapshotChecksum", Types.STRING);
             fields.put("finalAction", Types.ENUM(ActionType.class));
             fields.put("finalScore", Types.INT);
             fields.put("latencyMs", Types.LONG);

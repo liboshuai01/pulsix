@@ -22,6 +22,10 @@ public class DecisionResult implements Serializable {
 
     private Integer version;
 
+    private String snapshotId;
+
+    private String snapshotChecksum;
+
     private DecisionMode decisionMode;
 
     private ActionType finalAction;
