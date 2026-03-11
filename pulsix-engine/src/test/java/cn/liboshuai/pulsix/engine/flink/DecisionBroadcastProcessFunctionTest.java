@@ -87,6 +87,30 @@ class DecisionBroadcastProcessFunctionTest {
         }
     }
 
+    @Test
+    void shouldOutputConflictErrorWhenSameVersionHasDifferentChecksum() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
+            SceneSnapshotEnvelope conflict = baselineEnvelopeForBroadcastSwitch();
+            conflict.setChecksum("switch-checksum-conflict");
+            conflict.getSnapshot().setChecksum("switch-checksum-conflict");
+            conflict.setPublishedAt(Instant.parse("2026-03-07T20:01:00Z"));
+            conflict.getSnapshot().setPublishedAt(conflict.getPublishedAt());
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.processBroadcastElement(baseline, epochMillis(baseline.getPublishedAt()));
+            harness.processBroadcastElement(conflict, epochMillis(conflict.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size());
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("same version but different checksum"));
+        }
+    }
+
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness() throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
                 new KeyedBroadcastOperatorTestHarness<>(

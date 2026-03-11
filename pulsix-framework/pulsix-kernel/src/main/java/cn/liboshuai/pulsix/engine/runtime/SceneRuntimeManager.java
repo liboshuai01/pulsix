@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.engine.runtime;
 
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
+import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class SceneRuntimeManager {
         if (envelope == null || envelope.getSnapshot() == null) {
             return;
         }
-        activate(envelope.getSnapshot());
+        activate(SceneSnapshotEnvelopes.fromEnvelope(envelope).getSnapshot());
     }
 
     public CompiledSceneRuntime compile(SceneSnapshot snapshot) {

@@ -1,6 +1,9 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceFactory;
+import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
+import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceType;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
@@ -34,12 +37,13 @@ import java.util.List;
 public class DecisionEngineJob {
 
     public static void main(String[] args) throws Exception {
+        JobOptions options = JobOptions.parse(args);
         Path localLogFile = prepareLocalLogFile();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         configureRuntime(env, localLogFile);
 
         DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
-        DataStream<SceneSnapshotEnvelope> configStream = buildDemoConfigStream(env);
+        DataStream<SceneSnapshotEnvelope> configStream = buildConfigStream(env, options.snapshotSourceOptions());
 
         MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
@@ -87,8 +91,9 @@ public class DecisionEngineJob {
                         }));
     }
 
-    private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoSnapshotSource(), EngineTypeInfos.sceneSnapshotEnvelope())
+    private static DataStream<SceneSnapshotEnvelope> buildConfigStream(StreamExecutionEnvironment env,
+                                                                       SceneSnapshotSourceOptions options) {
+        return SceneSnapshotSourceFactory.build(env, options)
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
@@ -150,23 +155,83 @@ public class DecisionEngineJob {
         }
     }
 
-    private static class DemoSnapshotSource implements SourceFunction<SceneSnapshotEnvelope> {
+    private record JobOptions(SceneSnapshotSourceOptions snapshotSourceOptions) {
 
-        private volatile boolean running = true;
+        private static JobOptions parse(String[] args) {
+            String snapshotSource = property("pulsix.engine.snapshot-source", "demo");
+            Path snapshotFile = pathProperty("pulsix.engine.snapshot-file");
+            long snapshotPollMs = longProperty("pulsix.engine.snapshot-poll-ms", 1_000L);
+            String jdbcUrl = property("pulsix.engine.snapshot-jdbc-url", null);
+            String jdbcUser = property("pulsix.engine.snapshot-jdbc-user", null);
+            String jdbcPassword = property("pulsix.engine.snapshot-jdbc-password", null);
+            String jdbcSceneCode = property("pulsix.engine.snapshot-scene-code", null);
+            Integer jdbcVersion = integerProperty("pulsix.engine.snapshot-version");
+            String jdbcQuery = property("pulsix.engine.snapshot-jdbc-query", null);
 
-        @Override
-        public void run(SourceContext<SceneSnapshotEnvelope> context) {
-            if (!running) {
-                return;
+            if (args != null) {
+                for (int index = 0; index < args.length; index++) {
+                    String arg = args[index];
+                    switch (arg) {
+                        case "--snapshot-source" -> snapshotSource = requireValue(args, ++index, arg);
+                        case "--snapshot-file" -> snapshotFile = Path.of(requireValue(args, ++index, arg));
+                        case "--snapshot-poll-ms" -> snapshotPollMs = Long.parseLong(requireValue(args, ++index, arg));
+                        case "--snapshot-jdbc-url" -> jdbcUrl = requireValue(args, ++index, arg);
+                        case "--snapshot-jdbc-user" -> jdbcUser = requireValue(args, ++index, arg);
+                        case "--snapshot-jdbc-password" -> jdbcPassword = requireValue(args, ++index, arg);
+                        case "--snapshot-scene-code" -> jdbcSceneCode = requireValue(args, ++index, arg);
+                        case "--snapshot-version" -> jdbcVersion = Integer.parseInt(requireValue(args, ++index, arg));
+                        case "--snapshot-jdbc-query" -> jdbcQuery = requireValue(args, ++index, arg);
+                        case "--help", "-h" -> throw new IllegalArgumentException(usage());
+                        default -> throw new IllegalArgumentException("unknown argument: " + arg + System.lineSeparator() + usage());
+                    }
+                }
             }
-            synchronized (context.getCheckpointLock()) {
-                context.collect(DemoFixtures.demoEnvelope());
-            }
+
+            SceneSnapshotSourceType sourceType = SceneSnapshotSourceType.valueOf(snapshotSource.trim().toUpperCase());
+            SceneSnapshotSourceOptions options = new SceneSnapshotSourceOptions(sourceType,
+                    snapshotFile,
+                    snapshotPollMs,
+                    jdbcUrl,
+                    jdbcUser,
+                    jdbcPassword,
+                    jdbcSceneCode,
+                    jdbcVersion,
+                    jdbcQuery);
+            return new JobOptions(options);
         }
 
-        @Override
-        public void cancel() {
-            this.running = false;
+        private static String property(String key, String defaultValue) {
+            String value = System.getProperty(key);
+            return value == null || value.isBlank() ? defaultValue : value.trim();
+        }
+
+        private static Path pathProperty(String key) {
+            String value = property(key, null);
+            return value == null ? null : Path.of(value);
+        }
+
+        private static long longProperty(String key, long defaultValue) {
+            String value = property(key, null);
+            return value == null ? defaultValue : Long.parseLong(value);
+        }
+
+        private static Integer integerProperty(String key) {
+            String value = property(key, null);
+            return value == null ? null : Integer.parseInt(value);
+        }
+
+        private static String requireValue(String[] args, int index, String optionName) {
+            if (index >= args.length) {
+                throw new IllegalArgumentException("missing value for " + optionName + System.lineSeparator() + usage());
+            }
+            return args[index];
+        }
+
+        private static String usage() {
+            return "Usage: DecisionEngineJob [--snapshot-source demo|file|jdbc] "
+                    + "[--snapshot-file <path>] [--snapshot-poll-ms <ms>] "
+                    + "[--snapshot-jdbc-url <url> --snapshot-jdbc-user <user> --snapshot-jdbc-password <password>] "
+                    + "[--snapshot-scene-code <sceneCode>] [--snapshot-version <version>] [--snapshot-jdbc-query <sql>]";
         }
     }
 

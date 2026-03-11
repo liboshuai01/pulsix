@@ -10,7 +10,6 @@ import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
-import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleHit;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
@@ -18,6 +17,7 @@ import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
+import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -29,7 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public class LocalSimulationRunner {
@@ -76,11 +75,11 @@ public class LocalSimulationRunner {
     }
 
     public SimulationReport simulate(SceneSnapshot snapshot, List<RiskEvent> events) {
-        return simulate(toEnvelope(snapshot), events);
+        return simulate(SceneSnapshotEnvelopes.fromSnapshot(snapshot), events);
     }
 
     public SimulationReport simulate(SceneSnapshotEnvelope envelope, List<RiskEvent> events) {
-        SceneSnapshotEnvelope normalizedEnvelope = normalizeEnvelope(envelope);
+        SceneSnapshotEnvelope normalizedEnvelope = SceneSnapshotEnvelopes.fromEnvelope(envelope);
         List<RiskEvent> normalizedEvents = normalizeEvents(events);
 
         LocalDecisionEngine engine = newEngine();
@@ -106,17 +105,7 @@ public class LocalSimulationRunner {
     }
 
     public SceneSnapshotEnvelope readSnapshotEnvelope(String snapshotJson) {
-        String payload = requireText(snapshotJson, "snapshotJson");
-        try {
-            SceneSnapshotEnvelope envelope = EngineJson.read(payload, SceneSnapshotEnvelope.class);
-            if (envelope.getSnapshot() == null) {
-                throw new IllegalArgumentException("snapshot envelope must contain snapshot");
-            }
-            return normalizeEnvelope(envelope);
-        } catch (IllegalStateException | IllegalArgumentException exception) {
-            SceneSnapshot snapshot = EngineJson.read(payload, SceneSnapshot.class);
-            return toEnvelope(snapshot);
-        }
+        return SceneSnapshotEnvelopes.parse(requireText(snapshotJson, "snapshotJson"));
     }
 
     public List<RiskEvent> readEvents(String eventsJson) {
@@ -147,37 +136,6 @@ public class LocalSimulationRunner {
                 stateStoreSupplier.get(),
                 lookupServiceSupplier.get(),
                 decisionExecutor);
-    }
-
-    private SceneSnapshotEnvelope normalizeEnvelope(SceneSnapshotEnvelope envelope) {
-        if (envelope == null || envelope.getSnapshot() == null) {
-            throw new IllegalArgumentException("snapshot envelope must not be null");
-        }
-        SceneSnapshot snapshot = Objects.requireNonNull(envelope.getSnapshot(), "snapshot");
-        SceneSnapshotEnvelope normalized = new SceneSnapshotEnvelope();
-        normalized.setSceneCode(firstNonBlank(envelope.getSceneCode(), snapshot.getSceneCode()));
-        normalized.setVersion(envelope.getVersion() != null ? envelope.getVersion() : snapshot.getVersion());
-        normalized.setChecksum(firstNonBlank(envelope.getChecksum(), snapshot.getChecksum()));
-        normalized.setPublishType(envelope.getPublishType() == null ? PublishType.PUBLISH : envelope.getPublishType());
-        normalized.setPublishedAt(envelope.getPublishedAt() != null ? envelope.getPublishedAt() : snapshot.getPublishedAt());
-        normalized.setEffectiveFrom(envelope.getEffectiveFrom() != null ? envelope.getEffectiveFrom() : snapshot.getEffectiveFrom());
-        normalized.setSnapshot(snapshot);
-        return normalized;
-    }
-
-    private SceneSnapshotEnvelope toEnvelope(SceneSnapshot snapshot) {
-        if (snapshot == null) {
-            throw new IllegalArgumentException("snapshot must not be null");
-        }
-        SceneSnapshotEnvelope envelope = new SceneSnapshotEnvelope();
-        envelope.setSceneCode(snapshot.getSceneCode());
-        envelope.setVersion(snapshot.getVersion());
-        envelope.setChecksum(snapshot.getChecksum());
-        envelope.setPublishType(PublishType.PUBLISH);
-        envelope.setPublishedAt(snapshot.getPublishedAt());
-        envelope.setEffectiveFrom(snapshot.getEffectiveFrom());
-        envelope.setSnapshot(snapshot);
-        return normalizeEnvelope(envelope);
     }
 
     private List<RiskEvent> normalizeEvents(List<RiskEvent> events) {
@@ -255,13 +213,6 @@ public class LocalSimulationRunner {
             throw new IllegalArgumentException(fieldName + " must not be blank");
         }
         return text.trim();
-    }
-
-    private String firstNonBlank(String preferred, String fallback) {
-        if (preferred != null && !preferred.isBlank()) {
-            return preferred;
-        }
-        return fallback;
     }
 
     @Data

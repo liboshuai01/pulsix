@@ -16,6 +16,7 @@ import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
+import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -78,13 +79,13 @@ public class DecisionBroadcastProcessFunction
                                         Context context,
                                         Collector<DecisionResult> collector) throws Exception {
         try {
-            validateEnvelope(envelope);
-            SceneSnapshotEnvelope currentEnvelope = context.getBroadcastState(snapshotStateDescriptor).get(envelope.getSceneCode());
-            if (shouldIgnoreEnvelope(currentEnvelope, envelope, context)) {
+            SceneSnapshotEnvelope normalizedEnvelope = SceneSnapshotEnvelopes.fromEnvelope(envelope);
+            SceneSnapshotEnvelope currentEnvelope = context.getBroadcastState(snapshotStateDescriptor).get(normalizedEnvelope.getSceneCode());
+            if (shouldIgnoreEnvelope(currentEnvelope, normalizedEnvelope, context)) {
                 return;
             }
-            CompiledSceneRuntime runtime = runtimeManager.compile(envelope.getSnapshot());
-            context.getBroadcastState(snapshotStateDescriptor).put(envelope.getSceneCode(), envelope);
+            CompiledSceneRuntime runtime = runtimeManager.compile(normalizedEnvelope.getSnapshot());
+            context.getBroadcastState(snapshotStateDescriptor).put(normalizedEnvelope.getSceneCode(), normalizedEnvelope);
             runtimeCache.put(runtime);
             runtimeManager.activate(runtime);
         } catch (Exception exception) {
@@ -194,24 +195,6 @@ public class DecisionBroadcastProcessFunction
             }
         } catch (Exception exception) {
             outputContext.emitEngineError(EngineErrorRecord.of("decision-execute", event, runtime.version(), exception));
-        }
-    }
-
-    private void validateEnvelope(SceneSnapshotEnvelope envelope) {
-        if (envelope == null) {
-            throw new IllegalArgumentException("snapshot envelope must not be null");
-        }
-        if (envelope.getSceneCode() == null || envelope.getSceneCode().isBlank()) {
-            throw new IllegalArgumentException("snapshot sceneCode must not be blank");
-        }
-        if (envelope.getVersion() == null || envelope.getVersion() <= 0) {
-            throw new IllegalArgumentException("snapshot version must be positive");
-        }
-        if (envelope.getChecksum() == null || envelope.getChecksum().isBlank()) {
-            throw new IllegalArgumentException("snapshot checksum must not be blank");
-        }
-        if (envelope.getSnapshot() == null) {
-            throw new IllegalArgumentException("snapshot payload must not be null");
         }
     }
 

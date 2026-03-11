@@ -3,8 +3,8 @@ package cn.liboshuai.pulsix.engine.demo;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
-import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
+import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,15 +16,7 @@ public final class DemoFixtures {
 
     public static SceneSnapshotEnvelope demoEnvelope() {
         SceneSnapshot snapshot = readValue(demoSnapshotJson(), SceneSnapshot.class);
-        SceneSnapshotEnvelope envelope = new SceneSnapshotEnvelope();
-        envelope.setSceneCode(snapshot.getSceneCode());
-        envelope.setVersion(snapshot.getVersion());
-        envelope.setChecksum(snapshot.getChecksum());
-        envelope.setPublishType(PublishType.PUBLISH);
-        envelope.setPublishedAt(snapshot.getPublishedAt());
-        envelope.setEffectiveFrom(snapshot.getEffectiveFrom());
-        envelope.setSnapshot(snapshot);
-        return envelope;
+        return SceneSnapshotEnvelopes.fromSnapshot(snapshot);
     }
 
     public static SceneSnapshot demoSnapshot() {
