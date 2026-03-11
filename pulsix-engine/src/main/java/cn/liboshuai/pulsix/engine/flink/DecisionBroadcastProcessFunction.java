@@ -252,7 +252,11 @@ public class DecisionBroadcastProcessFunction
                               Collector<DecisionResult> collector,
                               OutputContext outputContext) {
         try {
-            DecisionResult result = decisionExecutor.execute(runtime, event, stateStore, lookupService);
+            DecisionResult result = decisionExecutor.execute(runtime,
+                    event,
+                    stateStore,
+                    lookupService,
+                    outputContext::emitEngineError);
             try {
                 collector.collect(result);
             } catch (Exception exception) {

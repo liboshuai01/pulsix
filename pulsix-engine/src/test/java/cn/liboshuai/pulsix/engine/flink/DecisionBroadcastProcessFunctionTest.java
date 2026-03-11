@@ -1,10 +1,12 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.feature.LookupResult;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
@@ -13,6 +15,7 @@ import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.serialization.SerializerConfigImpl;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.streaming.api.operators.co.CoBroadcastWithKeyedOperator;
+import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedBroadcastOperatorTestHarness;
 import org.junit.jupiter.api.Test;
 
@@ -116,6 +119,43 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     @Test
+    void shouldEmitLookupErrorAndContinueWithFallbackValue() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness(
+                () -> new cn.liboshuai.pulsix.engine.feature.LookupService() {
+                    @Override
+                    public LookupResult lookup(cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime.CompiledLookupFeature feature,
+                                               cn.liboshuai.pulsix.engine.context.EvalContext context) {
+                        String lookupKey = feature.getKeyScript() == null ? null : String.valueOf(feature.getKeyScript().execute(context));
+                        return LookupResult.fallback(Boolean.FALSE,
+                                lookupKey,
+                                LookupResult.ERROR_TIMEOUT,
+                                "redis lookup timed out",
+                                LookupResult.FALLBACK_DEFAULT_VALUE);
+                    }
+                })) {
+            SceneSnapshotEnvelope envelope = baselineEnvelopeForBroadcastSwitch();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size());
+            assertEquals(ActionType.PASS, results.get(0).getFinalAction());
+
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("decision-lookup", record.getStage());
+            assertEquals(LookupResult.ERROR_TIMEOUT, record.getErrorCode());
+            assertEquals("device_in_blacklist", record.getFeatureCode());
+            assertEquals(LookupResult.FALLBACK_DEFAULT_VALUE, record.getFallbackMode());
+        }
+    }
+
+    @Test
     void shouldFlushBufferedEventsAfterSnapshotArrivesWithoutNeedingNextEvent() throws Exception {
         try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
             SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
@@ -169,10 +209,17 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness() throws Exception {
+        return newHarness(null);
+    }
+
+    private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
+            DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory) throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
                 new KeyedBroadcastOperatorTestHarness<>(
                         new CoBroadcastWithKeyedOperator<>(
-                                new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR),
+                                lookupServiceFactory == null
+                                        ? new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR)
+                                        : new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR, lookupServiceFactory),
                                 List.of(SNAPSHOT_STATE_DESCRIPTOR)
                         ),
                         RiskEvent::routeKey,

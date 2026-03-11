@@ -20,7 +20,19 @@ public class EngineErrorRecord implements Serializable {
 
     private String traceId;
 
+    private String errorCode;
+
     private String errorMessage;
+
+    private String featureCode;
+
+    private String lookupType;
+
+    private String sourceRef;
+
+    private String lookupKey;
+
+    private String fallbackMode;
 
     private Instant occurredAt;
 

@@ -55,6 +55,15 @@ class DecisionEngineJobOptionsTest {
             "pulsix.engine.event-kafka-topic",
             "pulsix.engine.event-kafka-group-id",
             "pulsix.engine.event-kafka-starting-offsets",
+            "pulsix.engine.lookup-source",
+            "pulsix.engine.lookup-redis-host",
+            "pulsix.engine.lookup-redis-port",
+            "pulsix.engine.lookup-redis-database",
+            "pulsix.engine.lookup-redis-user",
+            "pulsix.engine.lookup-redis-password",
+            "pulsix.engine.lookup-redis-ssl",
+            "pulsix.engine.lookup-redis-connect-timeout-ms",
+            "pulsix.engine.lookup-redis-default-timeout-ms",
             "pulsix.engine.output-sink",
             "pulsix.engine.result-sink",
             "pulsix.engine.log-sink",
@@ -79,6 +88,9 @@ class DecisionEngineJobOptionsTest {
         assertEquals("pulsix.event.standard", options.eventSourceOptions().kafkaTopic());
         assertEquals(DecisionEngineJobOptions.KafkaStartingOffsets.LATEST,
                 options.eventSourceOptions().kafkaStartingOffsets());
+        assertEquals(DecisionEngineJobOptions.LookupSourceType.REDIS, options.lookupOptions().sourceType());
+        assertEquals("127.0.0.1", options.lookupOptions().redisConfig().host());
+        assertEquals("pulsix_redis_123", options.lookupOptions().redisConfig().password());
         assertEquals(DecisionEngineJobOptions.StreamSinkType.PRINT,
                 options.outputOptions().decisionResultSinkOptions().sinkType());
         assertEquals(DecisionEngineJobOptions.StreamSinkType.PRINT,
@@ -161,6 +173,31 @@ class DecisionEngineJobOptionsTest {
                 options.outputOptions().decisionLogSinkOptions().sinkType());
         assertEquals(DecisionEngineJobOptions.StreamSinkType.KAFKA,
                 options.outputOptions().engineErrorSinkOptions().sinkType());
+    }
+
+    @Test
+    void shouldParseRedisLookupOptionsFromCli() {
+        DecisionEngineJobOptions options = DecisionEngineJobOptions.parse(new String[]{
+                "--lookup-source", "redis",
+                "--lookup-redis-host", "redis-host",
+                "--lookup-redis-port", "6380",
+                "--lookup-redis-database", "2",
+                "--lookup-redis-user", "lookup-user",
+                "--lookup-redis-password", "lookup-password",
+                "--lookup-redis-ssl", "true",
+                "--lookup-redis-connect-timeout-ms", "80",
+                "--lookup-redis-default-timeout-ms", "35"
+        });
+
+        assertEquals(DecisionEngineJobOptions.LookupSourceType.REDIS, options.lookupOptions().sourceType());
+        assertEquals("redis-host", options.lookupOptions().redisConfig().host());
+        assertEquals(6380, options.lookupOptions().redisConfig().port());
+        assertEquals(2, options.lookupOptions().redisConfig().database());
+        assertEquals("lookup-user", options.lookupOptions().redisConfig().user());
+        assertEquals("lookup-password", options.lookupOptions().redisConfig().password());
+        assertTrue(options.lookupOptions().redisConfig().ssl());
+        assertEquals(80, options.lookupOptions().redisConfig().connectTimeoutMs());
+        assertEquals(35, options.lookupOptions().redisConfig().defaultTimeoutMs());
     }
 
     @Test

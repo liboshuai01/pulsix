@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.engine.flink;
 
+import cn.liboshuai.pulsix.engine.feature.RedisLookupConfig;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceType;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -17,6 +18,7 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                                 RuntimeOptions runtimeOptions,
                                 SceneSnapshotSourceOptions snapshotSourceOptions,
                                 EventSourceOptions eventSourceOptions,
+                                LookupOptions lookupOptions,
                                 OutputOptions outputOptions) {
 
     private static final String DEFAULT_CONFIG_RESOURCE = "pulsix-engine.properties";
@@ -60,6 +62,15 @@ record DecisionEngineJobOptions(ParameterTool parameters,
     private static final String EVENT_KAFKA_TOPIC_KEY = "pulsix.engine.event-kafka-topic";
     private static final String EVENT_KAFKA_GROUP_ID_KEY = "pulsix.engine.event-kafka-group-id";
     private static final String EVENT_KAFKA_STARTING_OFFSETS_KEY = "pulsix.engine.event-kafka-starting-offsets";
+    private static final String LOOKUP_SOURCE_KEY = "pulsix.engine.lookup-source";
+    private static final String LOOKUP_REDIS_HOST_KEY = "pulsix.engine.lookup-redis-host";
+    private static final String LOOKUP_REDIS_PORT_KEY = "pulsix.engine.lookup-redis-port";
+    private static final String LOOKUP_REDIS_DATABASE_KEY = "pulsix.engine.lookup-redis-database";
+    private static final String LOOKUP_REDIS_USER_KEY = "pulsix.engine.lookup-redis-user";
+    private static final String LOOKUP_REDIS_PASSWORD_KEY = "pulsix.engine.lookup-redis-password";
+    private static final String LOOKUP_REDIS_SSL_KEY = "pulsix.engine.lookup-redis-ssl";
+    private static final String LOOKUP_REDIS_CONNECT_TIMEOUT_MS_KEY = "pulsix.engine.lookup-redis-connect-timeout-ms";
+    private static final String LOOKUP_REDIS_DEFAULT_TIMEOUT_MS_KEY = "pulsix.engine.lookup-redis-default-timeout-ms";
     private static final String OUTPUT_SINK_KEY = "pulsix.engine.output-sink";
     private static final String RESULT_SINK_KEY = "pulsix.engine.result-sink";
     private static final String LOG_SINK_KEY = "pulsix.engine.log-sink";
@@ -79,6 +90,9 @@ record DecisionEngineJobOptions(ParameterTool parameters,
             "--event-source", "--kafka-bootstrap-servers", "--event-kafka-topic", "--event-topic",
             "--event-kafka-group-id", "--event-group-id",
             "--event-kafka-starting-offsets", "--event-starting-offsets",
+            "--lookup-source", "--lookup-redis-host", "--lookup-redis-port", "--lookup-redis-database",
+            "--lookup-redis-user", "--lookup-redis-password", "--lookup-redis-ssl",
+            "--lookup-redis-connect-timeout-ms", "--lookup-redis-default-timeout-ms",
             "--output-sink", "--result-sink", "--log-sink", "--error-sink",
             "--result-kafka-topic", "--result-topic", "--log-kafka-topic", "--log-topic",
             "--error-kafka-topic", "--error-topic",
@@ -115,6 +129,11 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                 string(parameters, "latest", EVENT_KAFKA_STARTING_OFFSETS_KEY),
                 KafkaStartingOffsets.class,
                 "event kafka starting offsets"
+        );
+        LookupSourceType lookupSourceType = parseEnum(
+                string(parameters, "demo", LOOKUP_SOURCE_KEY),
+                LookupSourceType.class,
+                "lookup source"
         );
         StreamSinkType outputSinkType = parseEnum(
                 string(parameters, "print", OUTPUT_SINK_KEY),
@@ -189,6 +208,19 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                 string(parameters, "pulsix-engine", EVENT_KAFKA_GROUP_ID_KEY),
                 startingOffsets
         );
+        LookupOptions lookupOptions = new LookupOptions(
+                lookupSourceType,
+                new RedisLookupConfig(
+                        string(parameters, "127.0.0.1", LOOKUP_REDIS_HOST_KEY),
+                        integer(parameters, 6379, LOOKUP_REDIS_PORT_KEY),
+                        integer(parameters, 0, LOOKUP_REDIS_DATABASE_KEY),
+                        string(parameters, null, LOOKUP_REDIS_USER_KEY),
+                        string(parameters, null, LOOKUP_REDIS_PASSWORD_KEY),
+                        bool(parameters, false, LOOKUP_REDIS_SSL_KEY),
+                        integer(parameters, 50, LOOKUP_REDIS_CONNECT_TIMEOUT_MS_KEY),
+                        integer(parameters, 20, LOOKUP_REDIS_DEFAULT_TIMEOUT_MS_KEY)
+                )
+        );
         OutputOptions outputOptions = new OutputOptions(
                 new StreamSinkOptions(resultSinkType,
                         kafkaBootstrapServers,
@@ -204,6 +236,7 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                 runtimeOptions,
                 snapshotSourceOptions,
                 eventSourceOptions,
+                lookupOptions,
                 outputOptions);
     }
 
@@ -283,6 +316,15 @@ record DecisionEngineJobOptions(ParameterTool parameters,
             case "event-topic", "event-kafka-topic", EVENT_KAFKA_TOPIC_KEY -> EVENT_KAFKA_TOPIC_KEY;
             case "event-group-id", "event-kafka-group-id", EVENT_KAFKA_GROUP_ID_KEY -> EVENT_KAFKA_GROUP_ID_KEY;
             case "event-starting-offsets", "event-kafka-starting-offsets", EVENT_KAFKA_STARTING_OFFSETS_KEY -> EVENT_KAFKA_STARTING_OFFSETS_KEY;
+            case "lookup-source", LOOKUP_SOURCE_KEY -> LOOKUP_SOURCE_KEY;
+            case "lookup-redis-host", LOOKUP_REDIS_HOST_KEY -> LOOKUP_REDIS_HOST_KEY;
+            case "lookup-redis-port", LOOKUP_REDIS_PORT_KEY -> LOOKUP_REDIS_PORT_KEY;
+            case "lookup-redis-database", LOOKUP_REDIS_DATABASE_KEY -> LOOKUP_REDIS_DATABASE_KEY;
+            case "lookup-redis-user", LOOKUP_REDIS_USER_KEY -> LOOKUP_REDIS_USER_KEY;
+            case "lookup-redis-password", LOOKUP_REDIS_PASSWORD_KEY -> LOOKUP_REDIS_PASSWORD_KEY;
+            case "lookup-redis-ssl", LOOKUP_REDIS_SSL_KEY -> LOOKUP_REDIS_SSL_KEY;
+            case "lookup-redis-connect-timeout-ms", LOOKUP_REDIS_CONNECT_TIMEOUT_MS_KEY -> LOOKUP_REDIS_CONNECT_TIMEOUT_MS_KEY;
+            case "lookup-redis-default-timeout-ms", LOOKUP_REDIS_DEFAULT_TIMEOUT_MS_KEY -> LOOKUP_REDIS_DEFAULT_TIMEOUT_MS_KEY;
             case "output-sink", OUTPUT_SINK_KEY -> OUTPUT_SINK_KEY;
             case "result-sink", RESULT_SINK_KEY -> RESULT_SINK_KEY;
             case "log-sink", LOG_SINK_KEY -> LOG_SINK_KEY;
@@ -386,6 +428,10 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                 + "[--event-source demo|kafka] [--kafka-bootstrap-servers <servers>] "
                 + "[--event-kafka-topic <topic>] [--event-kafka-group-id <groupId>] "
                 + "[--event-kafka-starting-offsets earliest|latest|committed] "
+                + "[--lookup-source demo|redis] [--lookup-redis-host <host>] [--lookup-redis-port <port>] "
+                + "[--lookup-redis-database <db>] [--lookup-redis-user <user>] [--lookup-redis-password <password>] "
+                + "[--lookup-redis-ssl <true|false>] [--lookup-redis-connect-timeout-ms <ms>] "
+                + "[--lookup-redis-default-timeout-ms <ms>] "
                 + "[--output-sink print|kafka] [--result-sink print|kafka] "
                 + "[--log-sink print|kafka] [--error-sink print|kafka] "
                 + "[--result-kafka-topic <topic>] [--log-kafka-topic <topic>] "
@@ -428,6 +474,10 @@ record DecisionEngineJobOptions(ParameterTool parameters,
                               KafkaStartingOffsets kafkaStartingOffsets) {
     }
 
+    record LookupOptions(LookupSourceType sourceType,
+                         RedisLookupConfig redisConfig) {
+    }
+
     record OutputOptions(StreamSinkOptions decisionResultSinkOptions,
                          StreamSinkOptions decisionLogSinkOptions,
                          StreamSinkOptions engineErrorSinkOptions) {
@@ -441,6 +491,11 @@ record DecisionEngineJobOptions(ParameterTool parameters,
     enum EventSourceType {
         DEMO,
         KAFKA
+    }
+
+    enum LookupSourceType {
+        DEMO,
+        REDIS
     }
 
     enum StreamSinkType {

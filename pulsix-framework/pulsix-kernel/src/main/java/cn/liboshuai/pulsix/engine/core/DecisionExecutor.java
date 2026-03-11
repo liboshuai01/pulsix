@@ -1,11 +1,13 @@
 package cn.liboshuai.pulsix.engine.core;
 
 import cn.liboshuai.pulsix.engine.context.EvalContext;
+import cn.liboshuai.pulsix.engine.feature.LookupResult;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionMode;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
@@ -16,11 +18,13 @@ import cn.liboshuai.pulsix.engine.support.TemplateRenderer;
 import cn.liboshuai.pulsix.engine.support.ValueConverter;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DecisionExecutor {
@@ -29,8 +33,19 @@ public class DecisionExecutor {
                                   RiskEvent event,
                                   StreamFeatureStateStore stateStore,
                                   LookupService lookupService) {
+        return execute(runtime, event, stateStore, lookupService, record -> {
+        });
+    }
+
+    public DecisionResult execute(CompiledSceneRuntime runtime,
+                                  RiskEvent event,
+                                  StreamFeatureStateStore stateStore,
+                                  LookupService lookupService,
+                                  Consumer<EngineErrorRecord> errorCollector) {
         long startedAt = System.nanoTime();
         validateEvent(runtime.getSnapshot().getEventSchema(), event);
+        Consumer<EngineErrorRecord> safeErrorCollector = errorCollector == null ? record -> {
+        } : errorCollector;
 
         EvalContext context = new EvalContext();
         context.setSceneCode(runtime.sceneCode());
@@ -45,7 +60,7 @@ public class DecisionExecutor {
             context.trace("stream:" + feature.getSpec().getCode() + '=' + value);
         }
         for (CompiledSceneRuntime.CompiledLookupFeature feature : runtime.getLookupFeatures()) {
-            Object value = executeLookupFeature(feature, context, lookupService);
+            Object value = executeLookupFeature(runtime, event, feature, context, lookupService, safeErrorCollector);
             context.put(feature.getSpec().getCode(), value);
             context.trace("lookup:" + feature.getSpec().getCode() + '=' + value);
         }
@@ -99,11 +114,43 @@ public class DecisionExecutor {
         return stateStore.evaluate(feature, context);
     }
 
-    private Object executeLookupFeature(CompiledSceneRuntime.CompiledLookupFeature feature,
+    private Object executeLookupFeature(CompiledSceneRuntime runtime,
+                                        RiskEvent event,
+                                        CompiledSceneRuntime.CompiledLookupFeature feature,
                                         EvalContext context,
-                                        LookupService lookupService) {
-        Object value = lookupService.lookup(feature, context);
-        return value != null ? value : ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType());
+                                        LookupService lookupService,
+                                        Consumer<EngineErrorRecord> errorCollector) {
+        LookupResult lookupResult = lookupService.lookup(feature, context);
+        if (lookupResult == null) {
+            return ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType());
+        }
+        if (lookupResult.hasError()) {
+            errorCollector.accept(lookupError(runtime, event, feature, lookupResult));
+        }
+        return lookupResult.getValue();
+    }
+
+    private EngineErrorRecord lookupError(CompiledSceneRuntime runtime,
+                                          RiskEvent event,
+                                          CompiledSceneRuntime.CompiledLookupFeature feature,
+                                          LookupResult lookupResult) {
+        EngineErrorRecord record = new EngineErrorRecord();
+        record.setStage("decision-lookup");
+        record.setSceneCode(event != null ? event.getSceneCode() : runtime.sceneCode());
+        record.setVersion(runtime.version());
+        record.setEventId(event != null ? event.getEventId() : null);
+        record.setTraceId(event != null ? event.getTraceId() : null);
+        record.setErrorCode(lookupResult.getErrorCode());
+        record.setErrorMessage(lookupResult.getErrorMessage());
+        record.setFeatureCode(feature != null && feature.getSpec() != null ? feature.getSpec().getCode() : null);
+        record.setLookupType(feature != null && feature.getSpec() != null && feature.getSpec().getLookupType() != null
+                ? feature.getSpec().getLookupType().name()
+                : null);
+        record.setSourceRef(feature != null && feature.getSpec() != null ? feature.getSpec().getSourceRef() : null);
+        record.setLookupKey(lookupResult.getLookupKey());
+        record.setFallbackMode(lookupResult.getFallbackMode());
+        record.setOccurredAt(Instant.now());
+        return record;
     }
 
     private RuleHit executeRule(CompiledSceneRuntime.CompiledRule rule, EvalContext context) {

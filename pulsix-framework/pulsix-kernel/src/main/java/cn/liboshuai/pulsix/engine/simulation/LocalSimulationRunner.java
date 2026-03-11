@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.engine.core.DecisionExecutor;
 import cn.liboshuai.pulsix.engine.core.LocalDecisionEngine;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
+import cn.liboshuai.pulsix.engine.feature.LookupResult;
 import cn.liboshuai.pulsix.engine.feature.InMemoryStreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
@@ -528,11 +529,15 @@ public class LocalSimulationRunner {
         }
 
         @Override
-        public Object lookup(CompiledSceneRuntime.CompiledLookupFeature feature, EvalContext context) {
+        public LookupResult lookup(CompiledSceneRuntime.CompiledLookupFeature feature, EvalContext context) {
             if (feature != null && feature.getSpec() != null) {
                 String featureCode = feature.getSpec().getCode();
                 if (activeOverrides.getLookupFeatures().containsKey(featureCode)) {
-                    return ValueConverter.coerce(activeOverrides.getLookupFeatures().get(featureCode), feature.getSpec().getValueType());
+                    String lookupKey = feature.getKeyScript() == null ? null
+                            : ValueConverter.asString(feature.getKeyScript().execute(context));
+                    return LookupResult.success(
+                            ValueConverter.coerce(activeOverrides.getLookupFeatures().get(featureCode), feature.getSpec().getValueType()),
+                            lookupKey);
                 }
             }
             return delegate.lookup(feature, context);

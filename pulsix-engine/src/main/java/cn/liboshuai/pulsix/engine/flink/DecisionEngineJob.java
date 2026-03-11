@@ -1,6 +1,8 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
+import cn.liboshuai.pulsix.engine.feature.RedisLookupService;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceFactory;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
@@ -64,7 +66,8 @@ public class DecisionEngineJob {
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
-                .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor))
+                .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor,
+                        buildLookupServiceFactory(options.lookupOptions())))
                 .returns(EngineTypeInfos.decisionResult())
                 .name("decision-main-chain");
 
@@ -177,6 +180,14 @@ public class DecisionEngineJob {
                         .setValueSerializationSchema(new EngineJsonSerializationSchema<>())
                         .build())
                 .build();
+    }
+
+    private static DecisionBroadcastProcessFunction.LookupServiceFactory buildLookupServiceFactory(
+            DecisionEngineJobOptions.LookupOptions lookupOptions) {
+        if (lookupOptions == null || lookupOptions.sourceType() == DecisionEngineJobOptions.LookupSourceType.DEMO) {
+            return InMemoryLookupService::demo;
+        }
+        return () -> new RedisLookupService(lookupOptions.redisConfig());
     }
 
     private static Configuration localExecutionConfiguration(DecisionEngineJobOptions.RuntimeOptions options,
