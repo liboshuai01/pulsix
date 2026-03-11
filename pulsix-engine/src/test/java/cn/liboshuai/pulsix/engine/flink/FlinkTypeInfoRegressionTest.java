@@ -20,7 +20,9 @@ class FlinkTypeInfoRegressionTest {
     @Test
     void shouldNotFallbackToGenericTypeForCoreFlinkModels() {
         assertNoGenericFallback(EngineTypeInfos.riskEvent());
+        assertNoGenericFallback(EngineTypeInfos.sceneSnapshot());
         assertNoGenericFallback(EngineTypeInfos.sceneSnapshotEnvelope());
+        assertNoGenericFallback(EngineTypeInfos.sceneReleaseTimeline());
         assertNoGenericFallback(EngineTypeInfos.decisionResult());
         assertNoGenericFallback(EngineTypeInfos.decisionLogRecord());
         assertNoGenericFallback(EngineTypeInfos.numericWindowState());

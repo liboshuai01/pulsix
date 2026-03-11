@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink.typeinfo;
 
 import cn.liboshuai.pulsix.engine.feature.AbstractStreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
@@ -67,6 +68,10 @@ public final class EngineTypeInfos {
 
     public static TypeInformation<SceneSnapshotEnvelope> sceneSnapshotEnvelope() {
         return create(new EngineTypeInfoFactories.SceneSnapshotEnvelopeTypeInfoFactory(), SceneSnapshotEnvelope.class);
+    }
+
+    public static TypeInformation<SceneReleaseTimeline> sceneReleaseTimeline() {
+        return create(new EngineTypeInfoFactories.SceneReleaseTimelineTypeInfoFactory(), SceneReleaseTimeline.class);
     }
 
     public static TypeInformation<RuleHit> ruleHit() {

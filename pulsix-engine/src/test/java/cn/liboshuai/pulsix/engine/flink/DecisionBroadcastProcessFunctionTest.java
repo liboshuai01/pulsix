@@ -36,8 +36,19 @@ class DecisionBroadcastProcessFunctionTest {
     private static final MapStateDescriptor<String, SceneReleaseTimeline> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "scene-snapshot-broadcast-state",
             Types.STRING,
-            Types.GENERIC(SceneReleaseTimeline.class)
+            EngineTypeInfos.sceneReleaseTimeline()
     );
+
+    @Test
+    void shouldSnapshotBroadcastStateWithoutKryoFallback() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope envelope = baselineEnvelopeForBroadcastSwitch();
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.snapshot(1L, epochMillis(envelope.getPublishedAt()) + 1L);
+        }
+    }
 
     @Test
     void shouldSwitchToNewSnapshotAfterBroadcastUpdate() throws Exception {

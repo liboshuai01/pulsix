@@ -60,7 +60,7 @@ public class DecisionEngineJob {
         MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 Types.STRING,
-                Types.GENERIC(SceneReleaseTimeline.class)
+                EngineTypeInfos.sceneReleaseTimeline()
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::routeKey);

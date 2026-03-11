@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink.typeinfo;
 
 import cn.liboshuai.pulsix.engine.feature.AbstractStreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.AggType;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
@@ -234,6 +235,18 @@ public final class EngineTypeInfoFactories {
             fields.put("effectiveFrom", Types.INSTANT);
             fields.put("snapshot", EngineTypeInfos.sceneSnapshot());
             return EnginePojoTypeInfos.pojo(SceneSnapshotEnvelope.class, fields);
+        }
+
+    }
+
+    public static final class SceneReleaseTimelineTypeInfoFactory extends TypeInfoFactory<SceneReleaseTimeline> {
+
+        @Override
+        public TypeInformation<SceneReleaseTimeline> createTypeInfo(Type type, Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("sceneCode", Types.STRING);
+            fields.put("releases", Types.LIST(EngineTypeInfos.sceneSnapshotEnvelope()));
+            return EnginePojoTypeInfos.pojo(SceneReleaseTimeline.class, fields);
         }
 
     }
