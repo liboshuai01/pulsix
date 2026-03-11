@@ -20,10 +20,6 @@
     <dependencies>
         <dependency>
             <groupId>cn.liboshuai.pulsix</groupId>
-            <artifactId>pulsix-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cn.liboshuai.pulsix</groupId>
             <artifactId>pulsix-kernel</artifactId>
         </dependency>
 
@@ -140,31 +136,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.googlecode.aviator</groupId>
-            <artifactId>aviator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
@@ -184,13 +155,6 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-1.2-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-test-utils</artifactId>
