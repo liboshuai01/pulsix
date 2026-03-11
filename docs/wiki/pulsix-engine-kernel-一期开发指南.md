@@ -10,9 +10,9 @@
 
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
 - 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
-- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归，以及 `kernel` 物理模块归位。
-- 当前还缺：本地仿真 / 轻量回放工具、真实 `scene_release` 接入、真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
-- 一期后续最合理的顺序应是：**本地仿真 -> 轻量回放 -> 快照接入 -> Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
+- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位，以及本地仿真 / 轻量回放 / golden case 回归工具。
+- 当前还缺：真实 `scene_release` 接入、真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
+- 一期后续最合理的顺序应是：**快照接入 -> Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
 
 ---
 
@@ -72,7 +72,7 @@ standard RiskEvent
 
 - 当前 **逻辑上的 `kernel` 已经存在**。
 - 当前 **物理上的 `kernel` 也已经归位**。
-- 所以下一优先级不再是模块搬迁，而是基于现有 `kernel` 继续补齐本地仿真、轻量回放与正式接入能力。
+- 所以下一优先级不再是模块搬迁，也不再是补本地仿真 / 回放基础工具，而是基于现有 `kernel` 继续补齐正式接入与生产化能力。
 
 ---
 
@@ -92,8 +92,8 @@ standard RiskEvent
 | Flink 快照热切换 | 已完成 | `DecisionBroadcastProcessFunction` 已支持广播快照、版本切换、side output |
 | Flink Job | 部分完成 | `DecisionEngineJob` 仍是 Demo Job，输入输出依赖 `DemoFixtures` 与 `print` |
 | `scene_release` 运行时样例 | 已完成 | `docs/sql/pulsix-risk.sql` 已提供与 `DemoFixtures` 对齐的样例快照 |
-| 仿真 Runner | 未完成 | 还没有独立的本地仿真入口或 CLI |
-| 轻量回放 | 未完成 | 还没有文件级 replay / diff / golden case 工具 |
+| 仿真 Runner | 已完成 | 已有 `LocalSimulationRunner` 作为独立本地仿真入口，并提供 `main` CLI |
+| 轻量回放 | 已完成 | 已有 `LocalReplayRunner` 提供文件级 replay / diff / golden case 工具 |
 | 真实 Kafka Source / Sink | 未完成 | 当前没有正式事件 topic 接入和结果 topic 输出 |
 | 真实 `scene_release` Source / CDC | 未完成 | 当前没有正式读取 MySQL / CDC / JDBC 的快照源 |
 | 真实 Redis Lookup | 未完成 | `timeoutMs`、`cacheTtlSeconds` 等字段还未生效 |
@@ -118,7 +118,7 @@ standard RiskEvent
 
 ### 4.3 当前必须正视的缺口
 
-- `pulsix-kernel` 里还没有独立的本地仿真 Runner，导致“给定快照 + 事件直接跑结果”仍主要依赖测试或 Demo Job。
+- `pulsix-kernel` 已有独立的本地仿真 Runner 与轻量回放工具；当前缺口转为 mock lookup / mock stream feature 注入能力还未标准化，对接控制面前仍偏轻量。
 - `DecisionEngineJob` 仍然依赖 Demo 快照和 Demo 事件源，说明正式输入输出链路还没有接上。
 - `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`RuntimeHints.*`、`SceneSpec.allowedEventTypes`、`SceneSnapshot.effectiveFrom`、`SceneSnapshotEnvelope.publishType` 等字段当前大多只是契约字段，还没有真正驱动执行语义。
 - `GroovyCompiledScript` 直接使用 `GroovyClassLoader` 编译执行，当前没有沙箱、隔离、禁用反射、资源限制。
@@ -127,7 +127,7 @@ standard RiskEvent
 
 ## 5. 一期后续开发阶段
 
-下面的阶段切分只覆盖 **当前还没完成** 的内容，且每一阶段都要求：
+下面的阶段切分保留了阶段 1 ~ 3 的已完成记录，并继续列出当前尚未完成的内容；每一阶段都要求：
 
 - AI 完成后可以单独提交、单独回归。
 - 你可以用少量人工步骤验证是否满足要求。
@@ -159,7 +159,7 @@ standard RiskEvent
 - `pulsix-engine` 当前保留 `flink` 适配、`FlinkKeyedStateStreamFeatureStateStore`、Demo 作业入口与 Flink 相关回归。
 - 根目录新增 `.mvn/maven.config` 并默认启用 `-am`，保证 `mvn -q -pl pulsix-engine test` 在拆模块后仍可直接使用。
 
-### 阶段 2：本地仿真 Runner
+### 阶段 2：本地仿真 Runner（已完成，`2026-03-11`）
 
 **接手前提（基于 `2026-03-11` 阶段 1 完成态）**
 
@@ -176,7 +176,7 @@ standard RiskEvent
 
 - 支持读取 `SceneSnapshot` JSON / `SceneSnapshotEnvelope` JSON。
 - 支持读取单条事件 JSON 或事件数组 JSON。
-- 输出 `finalAction`、`finalScore`、命中规则、命中原因、特征快照、trace。
+- 输出报告中可稳定获取 `finalAction`、`finalScore`、命中规则、命中原因、特征快照、trace。
 
 **人工验证**
 
@@ -188,11 +188,11 @@ standard RiskEvent
 
 - `pulsix-framework/pulsix-kernel` 新增 `cn.liboshuai.pulsix.engine.simulation.LocalSimulationRunner`，作为阶段 2 的明确本地仿真入口。
 - 支持读取 `SceneSnapshot` JSON、`SceneSnapshotEnvelope` JSON，以及单条 / 数组两种事件 JSON 形态。
-- Runner 输出固定 `SimulationReport`，包含 `finalAction`、`finalScore`、`hitRules`、`hitReasons`、`featureSnapshot`、`trace`，且不暴露波动性的 `latency` 字段，便于重复回归。
+- Runner 输出固定 `SimulationReport`；其中 `finalResult / results` 内可稳定获取 `finalAction`、`finalScore`、`hitRules`、`hitReasons`、`featureSnapshot`、`trace`，且不暴露波动性的 `latency` 字段，便于重复回归。
 - 默认装配复用 `RuntimeCompiler + LocalDecisionEngine + InMemoryStreamFeatureStateStore + InMemoryLookupService.demo()`，没有新增第二套执行语义。
 - 新增 `LocalSimulationRunnerTest`，覆盖文件输入、黑名单拒绝、数组事件顺序执行、重复运行结果一致，以及空白 / 空数组事件输入失败路径。
 
-### 阶段 3：轻量回放与 golden case 回归
+### 阶段 3：轻量回放与 golden case 回归（已完成，`2026-03-11`）
 
 **目标**
 
@@ -363,20 +363,20 @@ standard RiskEvent
 
 如果没有新的明确指令，默认遵循以下规则：
 
-1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 的模块归位已经完成。
+1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 ~ 3 的基础工具化已经完成。
 2. `scene_release.snapshot_json` 是唯一运行态配置来源。
 3. 仿真、回放、Flink 执行必须复用同一套 kernel 语义。
 4. 一期主策略优先级是 `FIRST_HIT > SCORE_CARD`。
 5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
 6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
 7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
-8. 如果没有额外说明，默认下一步从 **阶段 2：本地仿真 Runner** 开始，不再重复做阶段 1 的模块搬迁。
+8. 如果没有额外说明，默认下一步从 **阶段 4：`scene_release` 快照接入收口** 开始，不再重复做阶段 1 ~ 3 的基础工具化。
 
 ---
 
 ## 9. 快速记忆版
 
-- `kernel` 语义已经有了，而且 **模块归位已经完成**；当前真正缺的是 **工具化 + 正式接入 + 生产化**。
+- `kernel` 语义已经有了，而且 **模块归位 + 本地仿真 + 轻量回放** 都已经完成；当前真正缺的是 **正式接入 + 版本治理 + 生产化**。
 - 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
-- 下一阶段默认从 **本地仿真 Runner** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
+- 下一阶段默认从 **阶段 4：`scene_release` 快照接入收口** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
