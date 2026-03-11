@@ -34,7 +34,7 @@ public final class MySqlCdcSceneSnapshotSourceFactory {
                 .username(options.cdcUsername())
                 .password(options.cdcPassword())
                 .serverTimeZone(options.cdcServerTimeZone())
-                .startupOptions(StartupOptions.initial())
+                .startupOptions(StartupOptions.latest())
                 .deserializer(new JsonDebeziumDeserializationSchema(false));
 
         if (options.cdcServerId() != null && !options.cdcServerId().isBlank()) {

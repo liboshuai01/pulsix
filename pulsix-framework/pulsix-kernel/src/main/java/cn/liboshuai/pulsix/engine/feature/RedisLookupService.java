@@ -78,20 +78,37 @@ public class RedisLookupService implements LookupService {
                     "lookup value not found for sourceRef=" + spec.getSourceRef(),
                     LookupResult.FALLBACK_DEFAULT_VALUE);
         } catch (JedisConnectionException exception) {
-            String errorCode = isTimeout(exception) ? LookupResult.ERROR_TIMEOUT : LookupResult.ERROR_CONNECTION_FAILED;
-            if (cacheEntry != null) {
-                return LookupResult.fallback(cacheEntry.value(),
-                        lookupKey,
-                        errorCode,
-                        exception.getMessage(),
-                        LookupResult.FALLBACK_CACHE_VALUE);
-            }
-            return LookupResult.fallback(defaultValue,
+            return failureFallback(cacheEntry,
+                    defaultValue,
+                    lookupKey,
+                    isTimeout(exception) ? LookupResult.ERROR_TIMEOUT : LookupResult.ERROR_CONNECTION_FAILED,
+                    exception);
+        } catch (RuntimeException exception) {
+            return failureFallback(cacheEntry,
+                    defaultValue,
+                    lookupKey,
+                    isTimeout(exception) ? LookupResult.ERROR_TIMEOUT : LookupResult.ERROR_CONNECTION_FAILED,
+                    exception);
+        }
+    }
+
+    private LookupResult failureFallback(CacheEntry cacheEntry,
+                                         Object defaultValue,
+                                         String lookupKey,
+                                         String errorCode,
+                                         Throwable throwable) {
+        if (cacheEntry != null) {
+            return LookupResult.fallback(cacheEntry.value(),
                     lookupKey,
                     errorCode,
-                    exception.getMessage(),
-                    LookupResult.FALLBACK_DEFAULT_VALUE);
+                    errorMessageOf(throwable),
+                    LookupResult.FALLBACK_CACHE_VALUE);
         }
+        return LookupResult.fallback(defaultValue,
+                lookupKey,
+                errorCode,
+                errorMessageOf(throwable),
+                LookupResult.FALLBACK_DEFAULT_VALUE);
     }
 
     private Object fetchFromRedis(LookupType lookupType,
@@ -166,6 +183,16 @@ public class RedisLookupService implements LookupService {
         }
         String message = throwable.getMessage();
         return message != null && message.toLowerCase(Locale.ROOT).contains("timed out");
+    }
+
+    private String errorMessageOf(Throwable throwable) {
+        if (throwable == null) {
+            return null;
+        }
+        if (throwable.getMessage() != null && !throwable.getMessage().isBlank()) {
+            return throwable.getMessage();
+        }
+        return throwable.getClass().getSimpleName();
     }
 
     private record CacheKey(LookupType lookupType, String sourceRef, String key, String valueType) {

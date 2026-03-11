@@ -88,9 +88,7 @@ class DecisionEngineJobOptionsTest {
         assertEquals("pulsix.event.standard", options.eventSourceOptions().kafkaTopic());
         assertEquals(DecisionEngineJobOptions.KafkaStartingOffsets.LATEST,
                 options.eventSourceOptions().kafkaStartingOffsets());
-        assertEquals(DecisionEngineJobOptions.LookupSourceType.REDIS, options.lookupOptions().sourceType());
-        assertEquals("127.0.0.1", options.lookupOptions().redisConfig().host());
-        assertEquals("pulsix_redis_123", options.lookupOptions().redisConfig().password());
+        assertEquals(DecisionEngineJobOptions.LookupSourceType.DEMO, options.lookupOptions().sourceType());
         assertEquals(DecisionEngineJobOptions.StreamSinkType.PRINT,
                 options.outputOptions().decisionResultSinkOptions().sinkType());
         assertEquals(DecisionEngineJobOptions.StreamSinkType.PRINT,

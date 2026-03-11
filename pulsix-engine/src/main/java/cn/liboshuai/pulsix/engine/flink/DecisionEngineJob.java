@@ -177,6 +177,7 @@ public class DecisionEngineJob {
                 .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
                 .setRecordSerializer(KafkaRecordSerializationSchema.<T>builder()
                         .setTopic(sinkOptions.kafkaTopic())
+                        .setKeySerializationSchema(new EngineKafkaKeySerializationSchema<>())
                         .setValueSerializationSchema(new EngineJsonSerializationSchema<>())
                         .build())
                 .build();

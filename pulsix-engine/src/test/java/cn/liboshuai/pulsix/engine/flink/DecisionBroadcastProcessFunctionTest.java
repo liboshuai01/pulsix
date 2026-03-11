@@ -156,6 +156,38 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     @Test
+    void shouldFallbackWhenLookupServiceThrowsUnexpectedException() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness(
+                () -> new cn.liboshuai.pulsix.engine.feature.LookupService() {
+                    @Override
+                    public LookupResult lookup(cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime.CompiledLookupFeature feature,
+                                               cn.liboshuai.pulsix.engine.context.EvalContext context) {
+                        throw new IllegalStateException("lookup exploded");
+                    }
+                })) {
+            SceneSnapshotEnvelope envelope = baselineEnvelopeForBroadcastSwitch();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size());
+            assertEquals(ActionType.PASS, results.get(0).getFinalAction());
+
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("decision-lookup", record.getStage());
+            assertEquals(LookupResult.ERROR_EXECUTION_FAILED, record.getErrorCode());
+            assertEquals("device_in_blacklist", record.getFeatureCode());
+            assertEquals(LookupResult.FALLBACK_DEFAULT_VALUE, record.getFallbackMode());
+        }
+    }
+
+    @Test
     void shouldFlushBufferedEventsAfterSnapshotArrivesWithoutNeedingNextEvent() throws Exception {
         try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
             SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();

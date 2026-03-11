@@ -13,6 +13,8 @@ public class LookupResult implements Serializable {
 
     public static final String ERROR_CONNECTION_FAILED = "LOOKUP_CONNECTION_FAILED";
 
+    public static final String ERROR_EXECUTION_FAILED = "LOOKUP_EXECUTION_FAILED";
+
     public static final String ERROR_VALUE_MISSING = "LOOKUP_VALUE_MISSING";
 
     public static final String ERROR_KEY_MISSING = "LOOKUP_KEY_MISSING";

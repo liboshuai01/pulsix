@@ -120,7 +120,19 @@ public class DecisionExecutor {
                                         EvalContext context,
                                         LookupService lookupService,
                                         Consumer<EngineErrorRecord> errorCollector) {
-        LookupResult lookupResult = lookupService.lookup(feature, context);
+        LookupResult lookupResult;
+        try {
+            lookupResult = lookupService.lookup(feature, context);
+        } catch (RuntimeException exception) {
+            LookupResult fallbackResult = LookupResult.fallback(
+                    ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType()),
+                    safeLookupKey(feature, context),
+                    LookupResult.ERROR_EXECUTION_FAILED,
+                    exception.getMessage(),
+                    LookupResult.FALLBACK_DEFAULT_VALUE);
+            errorCollector.accept(lookupError(runtime, event, feature, fallbackResult));
+            return fallbackResult.getValue();
+        }
         if (lookupResult == null) {
             return ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType());
         }
@@ -128,6 +140,18 @@ public class DecisionExecutor {
             errorCollector.accept(lookupError(runtime, event, feature, lookupResult));
         }
         return lookupResult.getValue();
+    }
+
+    private String safeLookupKey(CompiledSceneRuntime.CompiledLookupFeature feature,
+                                 EvalContext context) {
+        if (feature == null || feature.getKeyScript() == null) {
+            return null;
+        }
+        try {
+            return ValueConverter.asString(feature.getKeyScript().execute(context));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private EngineErrorRecord lookupError(CompiledSceneRuntime runtime,
