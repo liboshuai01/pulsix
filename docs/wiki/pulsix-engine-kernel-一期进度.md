@@ -8,13 +8,13 @@
 
 - 目标边界看 `docs/wiki/pulsix-engine-kernel-一期开发指南.md`
 - AI 执行协议看 `docs/wiki/pulsix-engine-kernel-一期-ai自动化开发方案.md`
-- 当前推荐下一张任务卡：`docs/wiki/pulsix-engine-kernel-一期任务卡-K02.md`（从 `K02a` 开始）
+- 当前推荐下一张任务卡：`docs/wiki/pulsix-engine-kernel-一期任务卡-K02.md`（下一张做 `K02b`）
 
 ---
 
 ## 1. 一句话结论
 
-当前已经完成 **执行内核主语义 + Flink 最小闭环 + JDK17/Flink 序列化稳定化**，`pulsix-engine` 可以在本地稳定跑通 demo 场景；但 **真实 Kafka/Redis/CDC/生产化治理** 还没有接上。
+当前已经完成 **执行内核主语义 + Flink 最小闭环 + JDK17/Flink 序列化稳定化 + K02a 最小闭环下沉**，`pulsix-kernel` 已承载一组真实可用的纯执行契约与纯执行核心；但 **本地运行支撑继续下沉、真实 Kafka/Redis/CDC/生产化治理** 还没有接上。
 
 也就是说：
 
@@ -34,7 +34,7 @@
 | Flink Broadcast + Keyed State 主链路 | 已完成 | 广播快照、事件处理、side output、event-time timer 清理已跑通 |
 | Flink/JDK17 序列化稳定性 | 已完成 | 当前主链路已去掉 `--add-opens` 依赖，显式类型信息与集合归一化已补齐 |
 | 本地 demo 运行与 checkpoint | 已完成 | `DecisionEngineJob` 能跑完、能 checkpoint、能正常退出 |
-| kernel 独立模块沉淀 | 未完成 | 当前执行语义仍主要落在 `pulsix-engine` 内部，尚未抽成独立 engine-kernel 产物 |
+| kernel 独立模块沉淀 | 部分完成 | `K02a` 已把纯契约、脚本、运行时编译与决策执行核心下沉到 `pulsix-kernel`；`LocalDecisionEngine` / in-memory 支撑仍在 `pulsix-engine` |
 | 真实 Kafka Source/Sink | 未完成 | 当前仍是 `DemoFixtures + print` |
 | 真实 Redis Lookup | 未完成 | 当前仍是 `InMemoryLookupService.demo()` |
 | 快照版本治理（延迟生效/回滚） | 未完成 | 当前只有基础版本缓存与切换，缺完整治理 |
@@ -60,10 +60,15 @@
 
 对应核心类主要是：
 
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/core/DecisionExecutor.java:26`
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/runtime/RuntimeCompiler.java:29`
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/runtime/SceneRuntimeManager.java:12`
+- `pulsix-framework/pulsix-kernel/src/main/java/cn/liboshuai/pulsix/engine/core/DecisionExecutor.java:26`
+- `pulsix-framework/pulsix-kernel/src/main/java/cn/liboshuai/pulsix/engine/runtime/RuntimeCompiler.java:29`
+- `pulsix-framework/pulsix-kernel/src/main/java/cn/liboshuai/pulsix/engine/runtime/SceneRuntimeManager.java:12`
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/core/LocalDecisionEngine.java:12`
+
+补充：
+
+- `K02a` 已将 `model/*`、`context/EvalContext`、`support/*`、`script/*`、`runtime/*`、`core/DecisionExecutor`、`feature/{LookupService,StreamFeatureStateStore}` 下沉到 `pulsix-framework/pulsix-kernel`
+- 为了控制单次 diff 和优先保持 `pulsix-engine` 行为不变，这一轮先保留 `cn.liboshuai.pulsix.engine.*` 作为**过渡包名前缀**；统一切到 `cn.liboshuai.pulsix.kernel.*` 留给后续任务卡评估
 
 ### 3.2 Demo 场景已经可解释
 
@@ -135,7 +140,8 @@
 
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink/typeinfo/EnginePojoTypeInfos.java:1`
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink/typeinfo/EngineTypeInfoFactories.java:1`
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/support/CollectionCopier.java:1`
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink/typeinfo/EngineTypeInfos.java:1`
+- `pulsix-framework/pulsix-kernel/src/main/java/cn/liboshuai/pulsix/engine/support/CollectionCopier.java:1`
 - `pulsix-engine/src/test/java/cn/liboshuai/pulsix/engine/flink/FlinkTypeInfoRegressionTest.java:13`
 
 ### 3.6 本地运行日志已经收口
@@ -221,10 +227,11 @@
 
 ### 5.4 kernel 还没有真正独立出来
 
-虽然文档里讲的是 `kernel + engine` 两层，但目前代码现实是：
+虽然 `K02a` 已经把第一批纯执行核心下沉了，但当前代码现实仍然是：
 
-- 执行语义核心类还主要都在 `pulsix-engine`
-- 还没有一个独立、清晰的 `engine-kernel` 产物边界
+- `LocalDecisionEngine`、`InMemoryLookupService`、`InMemoryStreamFeatureStateStore`、JSON 支撑仍在 `pulsix-engine`
+- `pulsix-engine` 仍同时承载 Flink adapter 和一部分本地运行支撑
+- 包名前缀仍是过渡态，尚未统一为 `cn.liboshuai.pulsix.kernel.*`
 
 这点对后续仿真、回放、控制面复用会有影响。
 
@@ -245,49 +252,31 @@
 
 按当前实际代码状态，建议下一步按这个顺序推进：
 
-### P0：继续收紧可回归性
+### P0：继续做 `K02b`
 
-先补齐：
+先把还留在 `pulsix-engine` 的本地运行支撑继续下沉：
 
-- `SCORE_CARD` 的样例和测试
-- 更多 golden case
-- 快照切换 / 顺序乱序 / 恢复场景测试
+- `LocalDecisionEngine`
+- `InMemoryLookupService`
+- `InMemoryStreamFeatureStateStore`
+- 必要 JSON 支撑
 
-### P1：把 demo 输入输出替换成真实链路
+### P1：再做 `K02c`
 
-优先替换：
+继续收窄 `pulsix-engine`，让它更明确地只保留：
 
-- 事件输入 -> Kafka Source
-- 快照输入 -> `scene_release` 的 CDC / 广播流
-- 结果输出 -> Kafka / DB sink
+- Flink adapter
+- demo source/sink
+- Flink type info / operator wiring
 
-### P2：落真实 LookupService
+### P2：之后再补真实链路与治理
 
-优先做：
+完成 `K02` 收口后，再优先推进：
 
+- 真实事件输入 / 快照广播 / 输出 sink
 - Redis lookup
-- timeout / cache / fallback
-- 监控埋点
-
-### P3：补版本治理
-
-重点补：
-
-- `effectiveFrom`
-- 延迟生效
-- 回滚
-- 编译失败保留旧版本
-- 版本切换一致性验证
-
-### P4：再做平台化配套
-
-最后再做：
-
-- 仿真接口化
-- 轻量回放 / 重型回放
-- 指标体系
-- 错误追踪
-- 控制面包装
+- `effectiveFrom` / rollback / recovery
+- `SCORE_CARD` 回归与 golden case
 
 ---
 
@@ -295,14 +284,14 @@
 
 如果没有新的额外指令，当前可以默认认为：
 
-1. 主开发范围仍然是 `pulsix-engine`
+1. 主开发范围应优先放在 `pulsix-kernel + pulsix-engine`
 2. 当前最稳定的主链路是 `FIRST_HIT`
 3. `SCORE_CARD` 只算“有代码入口”，不算“已稳定交付”
 4. 当前 lookup 仍然是 demo 级，不要假设 Redis 已接好
 5. 当前 Flink 主链路已能本地稳定跑通
 6. 当前 JDK17 / Flink 序列化问题已在主路径收口
 7. 当前还不适合把重心转去 `module-risk` 页面或 `access` 接入层
-8. 下一阶段应该优先补真实输入输出、lookup、版本治理和回归能力
+8. 下一阶段应先完成 `K02b / K02c`，再补真实输入输出、lookup、版本治理和回归能力
 
 ---
 
@@ -310,9 +299,9 @@
 
 只记住下面 6 句话就够：
 
-- 现在已经不是“空骨架”，而是“能跑通的最小引擎”。
+- 现在已经不是“空骨架”，而是“`kernel + engine` 已打通第一段边界的最小引擎”。
 - 真正稳定的是 `FIRST_HIT` 主链路，不是整个平台。
 - Flink Broadcast、Keyed State、timer、checkpoint、side output 已经打通。
 - JDK17 / Flink 序列化和本地 warning 这轮已经收过了。
 - 真实 Kafka / Redis / CDC / 输出链路还没接上。
-- 下一步不是做页面，而是做真实输入输出和生产化收口。
+- 下一步先做 `K02b`，不是做页面。

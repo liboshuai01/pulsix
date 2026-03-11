@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
@@ -27,7 +28,7 @@ class DecisionBroadcastProcessFunctionTest {
     private static final MapStateDescriptor<String, SceneSnapshotEnvelope> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "scene-snapshot-broadcast-state",
             TypeInformation.of(String.class),
-            TypeInformation.of(SceneSnapshotEnvelope.class)
+            EngineTypeInfos.sceneSnapshotEnvelope()
     );
 
     @Test

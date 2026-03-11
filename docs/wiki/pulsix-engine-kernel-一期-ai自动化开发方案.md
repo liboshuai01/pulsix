@@ -217,8 +217,8 @@
 
 | 一期目标 | 当前状态 | 主要落点 | 后续任务 |
 | --- | --- | --- | --- |
-| 运行时模型与快照契约 | 部分完成 | `pulsix-engine` 已成型 | `K01` `K02` |
-| `kernel` 纯执行语义独立 | 未完成 | 仍主要在 `pulsix-engine` | `K02` |
+| 运行时模型与快照契约 | 部分完成 | `pulsix-kernel` 已承接主契约，但仍保留过渡包名前缀 | `K01` `K02` |
+| `kernel` 纯执行语义独立 | 部分完成 | `K02a` 已下沉纯契约与纯执行核心，仍缺本地运行支撑继续下沉 | `K02b` `K02c` |
 | 本地仿真 / 轻量回放 | 部分完成 | 有 `LocalDecisionEngine`，无正式 runner | `K03` `K04` |
 | `FIRST_HIT` 主链路 | 已完成 | 本地/Flink/demo 均可跑 | 持续回归 |
 | `SCORE_CARD` 主链路 | 部分完成 | 有执行分支，缺样例与回归 | `K05` |
@@ -241,8 +241,8 @@
 | --- | --- | --- | --- |
 | `G00` | 建立开发指南、进度、AI 方案三件套 | `DONE` | 基础文档与协作协议已落地 |
 | `K01` | 冻结一期核心契约（RiskEvent / SceneSnapshot / EvalContext / Result） | `PARTIAL` | 模型已基本稳定，但还未正式抽成 `kernel` 契约 |
-| `K02` | 将执行语义核心下沉到 `pulsix-kernel`（epic） | `TODO` | 详见 `docs/wiki/pulsix-engine-kernel-一期任务卡-K02.md` |
-| `K02a` | 下沉纯契约 + 纯执行核心 | `TODO` | 当前推荐优先执行的第一张卡 |
+| `K02` | 将执行语义核心下沉到 `pulsix-kernel`（epic） | `PARTIAL` | `K02a` 已完成，下一张默认继续 `K02b` |
+| `K02a` | 下沉纯契约 + 纯执行核心 | `DONE` | 已完成最小闭环下沉；当前保留 `cn.liboshuai.pulsix.engine.*` 作为过渡包名前缀 |
 | `K02b` | 下沉本地运行支撑与 in-memory 实现 | `TODO` | 让 simulation/replay 底座跟 Flink 彻底分层 |
 | `K02c` | 收窄 `pulsix-engine` 为 Flink/demo adapter | `TODO` | 清理残留边界与重复类 |
 | `K02d` | 回归测试与文档收口 | `TODO` | 确保迁移后可解释、可验证 |

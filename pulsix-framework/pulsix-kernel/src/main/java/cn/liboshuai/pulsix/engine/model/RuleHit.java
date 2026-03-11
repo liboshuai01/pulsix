@@ -1,9 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
-import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -11,7 +9,6 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-@TypeInfo(EngineTypeInfoFactories.RuleHitTypeInfoFactory.class)
 public class RuleHit implements Serializable {
 
     private String ruleCode;

@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
@@ -15,6 +16,8 @@ import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
@@ -30,7 +33,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
-        extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> {
+        extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult>
+        implements ResultTypeQueryable<DecisionResult> {
 
     private final MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor;
 
@@ -54,6 +58,11 @@ public class DecisionBroadcastProcessFunction
                                             LookupServiceFactory lookupServiceFactory) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
         this.lookupServiceFactory = lookupServiceFactory;
+    }
+
+    @Override
+    public TypeInformation<DecisionResult> getProducedType() {
+        return EngineTypeInfos.decisionResult();
     }
 
     @Override
