@@ -207,15 +207,15 @@ public final class EngineTypeInfoFactories {
             fields.put("publishedAt", Types.INSTANT);
             fields.put("effectiveFrom", Types.INSTANT);
             fields.put("runtimeMode", Types.STRING);
-            fields.put("scene", EngineTypeInfos.sceneSpec());
-            fields.put("eventSchema", EngineTypeInfos.eventSchemaSpec());
+            fields.put("scene", TypeInformation.of(SceneSpec.class));
+            fields.put("eventSchema", TypeInformation.of(EventSchemaSpec.class));
             fields.put("variables", Types.MAP(Types.STRING, Types.LIST(Types.STRING)));
-            fields.put("streamFeatures", Types.LIST(EngineTypeInfos.streamFeatureSpec()));
-            fields.put("lookupFeatures", Types.LIST(EngineTypeInfos.lookupFeatureSpec()));
-            fields.put("derivedFeatures", Types.LIST(EngineTypeInfos.derivedFeatureSpec()));
-            fields.put("rules", Types.LIST(EngineTypeInfos.ruleSpec()));
-            fields.put("policy", EngineTypeInfos.policySpec());
-            fields.put("runtimeHints", EngineTypeInfos.runtimeHints());
+            fields.put("streamFeatures", Types.LIST(TypeInformation.of(StreamFeatureSpec.class)));
+            fields.put("lookupFeatures", Types.LIST(TypeInformation.of(LookupFeatureSpec.class)));
+            fields.put("derivedFeatures", Types.LIST(TypeInformation.of(DerivedFeatureSpec.class)));
+            fields.put("rules", Types.LIST(TypeInformation.of(RuleSpec.class)));
+            fields.put("policy", TypeInformation.of(PolicySpec.class));
+            fields.put("runtimeHints", TypeInformation.of(RuntimeHints.class));
             return EnginePojoTypeInfos.pojo(SceneSnapshot.class, fields);
         }
 
@@ -232,7 +232,7 @@ public final class EngineTypeInfoFactories {
             fields.put("publishType", Types.ENUM(PublishType.class));
             fields.put("publishedAt", Types.INSTANT);
             fields.put("effectiveFrom", Types.INSTANT);
-            fields.put("snapshot", EngineTypeInfos.sceneSnapshot());
+            fields.put("snapshot", TypeInformation.of(SceneSnapshot.class));
             return EnginePojoTypeInfos.pojo(SceneSnapshotEnvelope.class, fields);
         }
 
@@ -269,7 +269,7 @@ public final class EngineTypeInfoFactories {
             fields.put("finalAction", Types.ENUM(ActionType.class));
             fields.put("finalScore", Types.INT);
             fields.put("latencyMs", Types.LONG);
-            fields.put("ruleHits", Types.LIST(EngineTypeInfos.ruleHit()));
+            fields.put("ruleHits", Types.LIST(TypeInformation.of(RuleHit.class)));
             fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
             fields.put("traceLogs", Types.LIST(Types.STRING));
             fields.put("errorMessage", Types.STRING);
@@ -290,7 +290,7 @@ public final class EngineTypeInfoFactories {
             fields.put("finalAction", Types.ENUM(ActionType.class));
             fields.put("finalScore", Types.INT);
             fields.put("latencyMs", Types.LONG);
-            fields.put("ruleHits", Types.LIST(EngineTypeInfos.ruleHit()));
+            fields.put("ruleHits", Types.LIST(TypeInformation.of(RuleHit.class)));
             fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
             fields.put("traceLogs", Types.LIST(Types.STRING));
             return EnginePojoTypeInfos.pojo(DecisionLogRecord.class, fields);

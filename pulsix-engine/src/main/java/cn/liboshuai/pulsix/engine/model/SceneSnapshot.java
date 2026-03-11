@@ -1,8 +1,10 @@
 package cn.liboshuai.pulsix.engine.model;
 
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import cn.liboshuai.pulsix.engine.support.CollectionCopier;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -11,6 +13,7 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
+@TypeInfo(EngineTypeInfoFactories.SceneSnapshotTypeInfoFactory.class)
 public class SceneSnapshot implements Serializable {
 
     private String snapshotId;

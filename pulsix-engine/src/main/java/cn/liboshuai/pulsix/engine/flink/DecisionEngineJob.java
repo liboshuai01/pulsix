@@ -1,7 +1,6 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
-import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
@@ -44,7 +43,7 @@ public class DecisionEngineJob {
         MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 TypeInformation.of(String.class),
-                EngineTypeInfos.sceneSnapshotEnvelope()
+                TypeInformation.of(SceneSnapshotEnvelope.class)
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
@@ -77,7 +76,7 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoRiskEventSource(), EngineTypeInfos.riskEvent())
+        return env.addSource(new DemoRiskEventSource(), TypeInformation.of(RiskEvent.class))
                 .assignTimestampsAndWatermarks(WatermarkStrategy
                         .<RiskEvent>forBoundedOutOfOrderness(Duration.ofSeconds(1))
                         .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
@@ -87,7 +86,7 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoSnapshotSource(), EngineTypeInfos.sceneSnapshotEnvelope())
+        return env.addSource(new DemoSnapshotSource(), TypeInformation.of(SceneSnapshotEnvelope.class))
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
