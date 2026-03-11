@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.engine.flink.snapshot;
 
+import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.snapshot.SceneReleaseRecord;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 final class SceneReleaseJdbcSnapshotLoader {
 
@@ -123,11 +125,11 @@ final class SceneReleaseJdbcSnapshotLoader {
         return timestamp == null ? null : timestamp.toInstant();
     }
 
-    static Map<String, SnapshotMarker> updateMarkers(List<SceneSnapshotEnvelope> envelopes,
-                                                     Map<String, SnapshotMarker> markers) {
-        Map<String, SnapshotMarker> updatedMarkers = markers == null ? new LinkedHashMap<>() : new LinkedHashMap<>(markers);
+    static Map<SceneVersionKey, SnapshotMarker> updateMarkers(List<SceneSnapshotEnvelope> envelopes,
+                                                              Map<SceneVersionKey, SnapshotMarker> markers) {
+        Map<SceneVersionKey, SnapshotMarker> updatedMarkers = markers == null ? new LinkedHashMap<>() : new LinkedHashMap<>(markers);
         for (SceneSnapshotEnvelope envelope : envelopes) {
-            updatedMarkers.put(envelope.getSceneCode(), new SnapshotMarker(envelope.getVersion(), envelope.getChecksum()));
+            updatedMarkers.put(new SceneVersionKey(envelope.getSceneCode(), envelope.getVersion()), SnapshotMarker.from(envelope));
         }
         return updatedMarkers;
     }
@@ -136,14 +138,28 @@ final class SceneReleaseJdbcSnapshotLoader {
         if (previous == null) {
             return true;
         }
-        if (current.getVersion() > previous.version()) {
-            return true;
-        }
-        return current.getVersion().equals(previous.version())
-                && !current.getChecksum().equals(previous.checksum());
+        return !previous.sameRelease(current);
     }
 
-    record SnapshotMarker(Integer version, String checksum) {
+    record SceneVersionKey(String sceneCode, Integer version) {
+    }
+
+    record SnapshotMarker(String checksum,
+                          PublishType publishType,
+                          Instant publishedAt,
+                          Instant effectiveFrom) {
+
+        static SnapshotMarker from(SceneSnapshotEnvelope envelope) {
+            return new SnapshotMarker(envelope.getChecksum(), envelope.getPublishType(), envelope.getPublishedAt(), envelope.getEffectiveFrom());
+        }
+
+        boolean sameRelease(SceneSnapshotEnvelope envelope) {
+            return Objects.equals(checksum, envelope.getChecksum())
+                    && Objects.equals(publishType, envelope.getPublishType())
+                    && Objects.equals(publishedAt, envelope.getPublishedAt())
+                    && Objects.equals(effectiveFrom, envelope.getEffectiveFrom());
+        }
+
     }
 
 }

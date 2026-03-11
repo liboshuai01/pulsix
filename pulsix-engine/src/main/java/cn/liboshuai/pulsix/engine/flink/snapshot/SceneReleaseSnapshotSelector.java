@@ -1,14 +1,21 @@
 package cn.liboshuai.pulsix.engine.flink.snapshot;
 
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 final class SceneReleaseSnapshotSelector {
+
+    private static final Comparator<SceneSnapshotEnvelope> RELEASE_ORDER = Comparator
+            .comparing(SceneReleaseTimeline::activationTime)
+            .thenComparing(SceneSnapshotEnvelope::getPublishedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(SceneSnapshotEnvelope::getVersion, Comparator.nullsLast(Comparator.naturalOrder()));
 
     private SceneReleaseSnapshotSelector() {
     }
@@ -25,14 +32,28 @@ final class SceneReleaseSnapshotSelector {
         if (options.snapshotVersion() != null || hasCustomJdbcQuery(options)) {
             return filtered;
         }
-        Map<String, SceneSnapshotEnvelope> latestByScene = new LinkedHashMap<>();
+        Map<String, List<SceneSnapshotEnvelope>> byScene = new LinkedHashMap<>();
         for (SceneSnapshotEnvelope envelope : filtered) {
-            if (!isEffectiveNow(envelope, now)) {
-                continue;
-            }
-            latestByScene.put(envelope.getSceneCode(), envelope);
+            byScene.computeIfAbsent(envelope.getSceneCode(), ignored -> new ArrayList<>()).add(envelope);
         }
-        return new ArrayList<>(latestByScene.values());
+        List<SceneSnapshotEnvelope> selected = new ArrayList<>();
+        for (List<SceneSnapshotEnvelope> sceneEnvelopes : byScene.values()) {
+            sceneEnvelopes.sort(RELEASE_ORDER);
+            SceneSnapshotEnvelope latestEffective = null;
+            List<SceneSnapshotEnvelope> futureEnvelopes = new ArrayList<>();
+            for (SceneSnapshotEnvelope envelope : sceneEnvelopes) {
+                if (isEffectiveNow(envelope, now)) {
+                    latestEffective = envelope;
+                    continue;
+                }
+                futureEnvelopes.add(envelope);
+            }
+            if (latestEffective != null) {
+                selected.add(latestEffective);
+            }
+            selected.addAll(futureEnvelopes);
+        }
+        return selected;
     }
 
     static boolean matchesSelection(SceneSnapshotEnvelope envelope, SceneSnapshotSourceOptions options) {

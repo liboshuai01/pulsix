@@ -5,12 +5,12 @@ import cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.flink.runtime.SceneRuntimeCache;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
-import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
@@ -18,11 +18,10 @@ import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.state.BroadcastState;
-import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeDomain;
 import org.apache.flink.streaming.api.TimerService;
@@ -42,11 +41,9 @@ public class DecisionBroadcastProcessFunction
         extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult>
         implements ResultTypeQueryable<DecisionResult> {
 
-    private static final String PENDING_STATE_SUFFIX = "#pending";
-
     private static final long PENDING_RETRY_DELAY_MS = 1_000L;
 
-    private final MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor;
+    private final MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor;
 
     private final LookupServiceFactory lookupServiceFactory;
 
@@ -64,11 +61,11 @@ public class DecisionBroadcastProcessFunction
 
     private transient Map<String, Long> pendingRetryTimers;
 
-    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor) {
+    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor) {
         this(snapshotStateDescriptor, InMemoryLookupService::demo);
     }
 
-    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor,
+    public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
                                             LookupServiceFactory lookupServiceFactory) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
         this.lookupServiceFactory = lookupServiceFactory;
@@ -91,21 +88,23 @@ public class DecisionBroadcastProcessFunction
                                         Collector<DecisionResult> collector) throws Exception {
         try {
             SceneSnapshotEnvelope normalizedEnvelope = SceneSnapshotEnvelopes.fromEnvelope(envelope);
-            BroadcastState<String, SceneSnapshotEnvelope> broadcastState = context.getBroadcastState(snapshotStateDescriptor);
-            promotePendingIfEffective(normalizedEnvelope.getSceneCode(), broadcastState,
-                    Instant.ofEpochMilli(context.currentProcessingTime()));
-            SceneSnapshotEnvelope currentEnvelope = activeEnvelopeOf(broadcastState, normalizedEnvelope.getSceneCode());
-            SceneSnapshotEnvelope pendingEnvelope = pendingEnvelopeOf(broadcastState, normalizedEnvelope.getSceneCode());
-            if (shouldIgnoreEnvelope(currentEnvelope, pendingEnvelope, normalizedEnvelope, context)) {
+            org.apache.flink.api.common.state.BroadcastState<String, SceneReleaseTimeline> broadcastState =
+                    context.getBroadcastState(snapshotStateDescriptor);
+            SceneReleaseTimeline timeline = timelineOf(broadcastState, normalizedEnvelope.getSceneCode());
+            if (timeline.hasVersionConflict(normalizedEnvelope)) {
+                context.output(EngineOutputTags.ENGINE_ERROR,
+                        snapshotError("snapshot-version-conflict", normalizedEnvelope,
+                                new IllegalStateException("same version but different checksum")));
                 return;
             }
             CompiledSceneRuntime runtime = runtimeManager.compile(normalizedEnvelope.getSnapshot());
             runtimeCache.put(runtime);
-            if (isEffectiveAt(normalizedEnvelope, Instant.ofEpochMilli(context.currentProcessingTime()))) {
-                activateEnvelope(broadcastState, normalizedEnvelope, runtime);
-            } else {
-                broadcastState.put(pendingStateKey(normalizedEnvelope.getSceneCode()), normalizedEnvelope);
+            if (!timeline.contains(normalizedEnvelope)) {
+                timeline.add(normalizedEnvelope);
+                broadcastState.put(normalizedEnvelope.getSceneCode(), timeline);
             }
+            activateEffectiveRuntime(normalizedEnvelope.getSceneCode(), timeline,
+                    Instant.ofEpochMilli(context.currentProcessingTime()));
         } catch (Exception exception) {
             context.output(EngineOutputTags.ENGINE_ERROR, snapshotError("snapshot-activate", envelope, exception));
         }
@@ -115,15 +114,16 @@ public class DecisionBroadcastProcessFunction
     public void processElement(RiskEvent event,
                                ReadOnlyContext context,
                                Collector<DecisionResult> collector) throws Exception {
+        String routeKey = event.routeKey();
         CompiledSceneRuntime runtime = resolveRuntime(event.getSceneCode(),
                 Instant.ofEpochMilli(context.timerService().currentProcessingTime()),
                 context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
         if (runtime == null) {
-            bufferPendingEvent(event);
-            schedulePendingRetry(event.getSceneCode(), context.timerService());
+            bufferPendingEvent(routeKey, event);
+            schedulePendingRetry(routeKey, context.timerService());
             return;
         }
-        pendingRetryTimers.remove(event.getSceneCode());
+        pendingRetryTimers.remove(routeKey);
         OutputContext outputContext = new OutputContext() {
             @Override
             public void emitDecisionLog(DecisionLogRecord record) {
@@ -137,7 +137,7 @@ public class DecisionBroadcastProcessFunction
         };
         stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
         try {
-            flushPendingEvents(event.getSceneCode(), runtime, collector, outputContext);
+            flushPendingEvents(routeKey, runtime, collector, outputContext);
             emitDecision(event, runtime, collector, outputContext);
         } finally {
             stateStore.clearExecutionContext();
@@ -148,15 +148,16 @@ public class DecisionBroadcastProcessFunction
     public void onTimer(long timestamp,
                         OnTimerContext context,
                         Collector<DecisionResult> collector) throws Exception {
-        String sceneCode = context.getCurrentKey();
-        if (isPendingRetryTimer(sceneCode, timestamp, context)) {
-            pendingRetryTimers.remove(sceneCode);
+        String routeKey = context.getCurrentKey();
+        if (isPendingRetryTimer(routeKey, timestamp, context)) {
+            pendingRetryTimers.remove(routeKey);
+            String sceneCode = pendingSceneCode(routeKey);
             CompiledSceneRuntime runtime = resolveRuntime(sceneCode,
                     Instant.ofEpochMilli(timestamp),
                     context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
             if (runtime == null) {
-                if (hasPendingEvents(sceneCode)) {
-                    schedulePendingRetry(sceneCode, context.timerService());
+                if (hasPendingEvents(routeKey)) {
+                    schedulePendingRetry(routeKey, context.timerService());
                 }
                 return;
             }
@@ -173,7 +174,7 @@ public class DecisionBroadcastProcessFunction
             };
             stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
             try {
-                flushPendingEvents(sceneCode, runtime, collector, outputContext);
+                flushPendingEvents(routeKey, runtime, collector, outputContext);
             } finally {
                 stateStore.clearExecutionContext();
             }
@@ -188,13 +189,22 @@ public class DecisionBroadcastProcessFunction
 
     private Optional<CompiledSceneRuntime> resolveRuntime(String sceneCode,
                                                           Instant referenceTime,
-                                                          ReadOnlyBroadcastState<String, SceneSnapshotEnvelope> broadcastState) throws Exception {
-        SceneSnapshotEnvelope envelope = effectiveEnvelopeOf(broadcastState, sceneCode, referenceTime);
+                                                          ReadOnlyBroadcastState<String, SceneReleaseTimeline> broadcastState) throws Exception {
+        if (sceneCode == null || broadcastState == null) {
+            return Optional.empty();
+        }
+        SceneReleaseTimeline timeline = broadcastState.get(sceneCode);
+        if (timeline == null) {
+            return Optional.empty();
+        }
+        SceneSnapshotEnvelope envelope = timeline.effectiveAt(referenceTime).orElse(null);
         if (envelope == null || envelope.getSnapshot() == null) {
             return Optional.empty();
         }
         Optional<CompiledSceneRuntime> activeRuntime = runtimeManager.getActiveRuntime(sceneCode);
-        if (activeRuntime.isPresent() && Objects.equals(activeRuntime.get().version(), envelope.getVersion())) {
+        if (activeRuntime.isPresent()
+                && Objects.equals(activeRuntime.get().version(), envelope.getVersion())
+                && Objects.equals(activeRuntime.get().getSnapshot().getChecksum(), envelope.getChecksum())) {
             return activeRuntime;
         }
         Optional<CompiledSceneRuntime> cachedRuntime = runtimeCache.get(sceneCode, envelope.getVersion());
@@ -213,33 +223,41 @@ public class DecisionBroadcastProcessFunction
         return EngineTypeInfos.decisionResult();
     }
 
-    private void bufferPendingEvent(RiskEvent event) {
-        pendingEvents.computeIfAbsent(event.getSceneCode(), ignored -> new ArrayList<>()).add(event);
+    private void bufferPendingEvent(String routeKey, RiskEvent event) {
+        pendingEvents.computeIfAbsent(routeKey, ignored -> new ArrayList<>()).add(event);
     }
 
-    private boolean hasPendingEvents(String sceneCode) {
-        List<RiskEvent> events = pendingEvents.get(sceneCode);
+    private boolean hasPendingEvents(String routeKey) {
+        List<RiskEvent> events = pendingEvents.get(routeKey);
         return events != null && !events.isEmpty();
     }
 
-    private void schedulePendingRetry(String sceneCode, TimerService timerService) {
-        if (sceneCode == null || timerService == null) {
+    private String pendingSceneCode(String routeKey) {
+        List<RiskEvent> events = pendingEvents.get(routeKey);
+        if (events == null || events.isEmpty()) {
+            return null;
+        }
+        return events.get(0).getSceneCode();
+    }
+
+    private void schedulePendingRetry(String routeKey, TimerService timerService) {
+        if (routeKey == null || timerService == null) {
             return;
         }
         long nextRetryAt = timerService.currentProcessingTime() + PENDING_RETRY_DELAY_MS;
-        Long existingRetryAt = pendingRetryTimers.get(sceneCode);
+        Long existingRetryAt = pendingRetryTimers.get(routeKey);
         if (existingRetryAt != null && existingRetryAt >= nextRetryAt) {
             return;
         }
-        pendingRetryTimers.put(sceneCode, nextRetryAt);
+        pendingRetryTimers.put(routeKey, nextRetryAt);
         timerService.registerProcessingTimeTimer(nextRetryAt);
     }
 
-    private void flushPendingEvents(String sceneCode,
+    private void flushPendingEvents(String routeKey,
                                     CompiledSceneRuntime runtime,
                                     Collector<DecisionResult> collector,
                                     OutputContext outputContext) {
-        List<RiskEvent> events = pendingEvents.remove(sceneCode);
+        List<RiskEvent> events = pendingEvents.remove(routeKey);
         if (events == null || events.isEmpty()) {
             return;
         }
@@ -274,150 +292,46 @@ public class DecisionBroadcastProcessFunction
         }
     }
 
-    private boolean shouldIgnoreEnvelope(SceneSnapshotEnvelope currentEnvelope,
-                                         SceneSnapshotEnvelope pendingEnvelope,
-                                         SceneSnapshotEnvelope incomingEnvelope,
-                                         Context context) {
-        int incomingVersion = Optional.ofNullable(incomingEnvelope.getVersion()).orElse(0);
-        SceneSnapshotEnvelope sameVersionEnvelope = sameVersionEnvelope(currentEnvelope, pendingEnvelope, incomingVersion);
-        if (sameVersionEnvelope != null) {
-            if (Objects.equals(sameVersionEnvelope.getChecksum(), incomingEnvelope.getChecksum())) {
-                return true;
-            }
-            context.output(EngineOutputTags.ENGINE_ERROR,
-                    snapshotError("snapshot-version-conflict", incomingEnvelope,
-                            new IllegalStateException("same version but different checksum")));
-            return true;
-        }
-        int latestVersion = Math.max(versionOf(currentEnvelope), versionOf(pendingEnvelope));
-        if (incomingVersion < latestVersion && !isRollbackEnvelope(incomingEnvelope)) {
-            return true;
-        }
-        return false;
-    }
-
-    private void activateEnvelope(BroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                  SceneSnapshotEnvelope envelope,
-                                  CompiledSceneRuntime runtime) throws Exception {
-        broadcastState.put(activeStateKey(envelope.getSceneCode()), envelope);
-        SceneSnapshotEnvelope pendingEnvelope = pendingEnvelopeOf(broadcastState, envelope.getSceneCode());
-        if (pendingEnvelope != null && versionOf(pendingEnvelope) <= versionOf(envelope)) {
-            broadcastState.remove(pendingStateKey(envelope.getSceneCode()));
-        }
-        runtimeManager.activate(runtime);
-    }
-
-    private void promotePendingIfEffective(String sceneCode,
-                                           BroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                           Instant referenceTime) throws Exception {
-        SceneSnapshotEnvelope pendingEnvelope = pendingEnvelopeOf(broadcastState, sceneCode);
-        if (pendingEnvelope == null || !isEffectiveAt(pendingEnvelope, referenceTime)) {
+    private void activateEffectiveRuntime(String sceneCode,
+                                          SceneReleaseTimeline timeline,
+                                          Instant referenceTime) {
+        if (sceneCode == null || timeline == null) {
             return;
         }
-        SceneSnapshotEnvelope activeEnvelope = activeEnvelopeOf(broadcastState, sceneCode);
-        if (!shouldPreferPendingOverActive(activeEnvelope, pendingEnvelope)) {
-            broadcastState.remove(pendingStateKey(sceneCode));
+        SceneSnapshotEnvelope envelope = timeline.effectiveAt(referenceTime).orElse(null);
+        if (envelope == null || envelope.getSnapshot() == null) {
             return;
         }
-        CompiledSceneRuntime runtime = runtimeCache.get(sceneCode, pendingEnvelope.getVersion())
-                .orElseGet(() -> {
-                    CompiledSceneRuntime compiledRuntime = runtimeManager.compile(pendingEnvelope.getSnapshot());
-                    runtimeCache.put(compiledRuntime);
-                    return compiledRuntime;
-                });
-        activateEnvelope(broadcastState, pendingEnvelope, runtime);
-    }
-
-    private SceneSnapshotEnvelope effectiveEnvelopeOf(ReadOnlyBroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                                      String sceneCode,
-                                                      Instant referenceTime) throws Exception {
-        SceneSnapshotEnvelope activeEnvelope = activeEnvelopeOf(broadcastState, sceneCode);
-        SceneSnapshotEnvelope pendingEnvelope = pendingEnvelopeOf(broadcastState, sceneCode);
-        if (pendingEnvelope != null
-                && isEffectiveAt(pendingEnvelope, referenceTime)
-                && shouldPreferPendingOverActive(activeEnvelope, pendingEnvelope)) {
-            return pendingEnvelope;
+        Optional<CompiledSceneRuntime> activeRuntime = runtimeManager.getActiveRuntime(sceneCode);
+        if (activeRuntime.isPresent()
+                && Objects.equals(activeRuntime.get().version(), envelope.getVersion())
+                && Objects.equals(activeRuntime.get().getSnapshot().getChecksum(), envelope.getChecksum())) {
+            return;
         }
-        return activeEnvelope;
+        runtimeCache.get(sceneCode, envelope.getVersion())
+                .ifPresentOrElse(runtimeManager::activate, () -> runtimeManager.activate(runtimeManager.compile(envelope.getSnapshot())));
     }
 
-    private SceneSnapshotEnvelope activeEnvelopeOf(ReadOnlyBroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                                   String sceneCode) throws Exception {
-        return broadcastState == null || sceneCode == null ? null : broadcastState.get(activeStateKey(sceneCode));
-    }
-
-    private SceneSnapshotEnvelope pendingEnvelopeOf(ReadOnlyBroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                                    String sceneCode) throws Exception {
-        return broadcastState == null || sceneCode == null ? null : broadcastState.get(pendingStateKey(sceneCode));
-    }
-
-    private SceneSnapshotEnvelope activeEnvelopeOf(BroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                                   String sceneCode) throws Exception {
-        return broadcastState == null || sceneCode == null ? null : broadcastState.get(activeStateKey(sceneCode));
-    }
-
-    private SceneSnapshotEnvelope pendingEnvelopeOf(BroadcastState<String, SceneSnapshotEnvelope> broadcastState,
-                                                    String sceneCode) throws Exception {
-        return broadcastState == null || sceneCode == null ? null : broadcastState.get(pendingStateKey(sceneCode));
-    }
-
-    private SceneSnapshotEnvelope sameVersionEnvelope(SceneSnapshotEnvelope currentEnvelope,
-                                                      SceneSnapshotEnvelope pendingEnvelope,
-                                                      int incomingVersion) {
-        if (versionOf(currentEnvelope) == incomingVersion) {
-            return currentEnvelope;
+    private SceneReleaseTimeline timelineOf(org.apache.flink.api.common.state.BroadcastState<String, SceneReleaseTimeline> broadcastState,
+                                            String sceneCode) throws Exception {
+        SceneReleaseTimeline timeline = broadcastState == null || sceneCode == null ? null : broadcastState.get(sceneCode);
+        if (timeline != null) {
+            return timeline;
         }
-        if (versionOf(pendingEnvelope) == incomingVersion) {
-            return pendingEnvelope;
-        }
-        return null;
+        SceneReleaseTimeline createdTimeline = new SceneReleaseTimeline();
+        createdTimeline.setSceneCode(sceneCode);
+        return createdTimeline;
     }
 
-    private int versionOf(SceneSnapshotEnvelope envelope) {
-        return envelope == null || envelope.getVersion() == null ? 0 : envelope.getVersion();
-    }
-
-    private boolean shouldPreferPendingOverActive(SceneSnapshotEnvelope activeEnvelope,
-                                                  SceneSnapshotEnvelope pendingEnvelope) {
-        if (pendingEnvelope == null) {
+    private boolean isPendingRetryTimer(String routeKey, long timestamp, OnTimerContext context) {
+        if (routeKey == null) {
             return false;
         }
-        if (isRollbackEnvelope(pendingEnvelope)) {
-            return true;
-        }
-        return versionOf(pendingEnvelope) > versionOf(activeEnvelope);
-    }
-
-    private boolean isRollbackEnvelope(SceneSnapshotEnvelope envelope) {
-        return envelope != null && envelope.getPublishType() == PublishType.ROLLBACK;
-    }
-
-    private boolean isEffectiveAt(SceneSnapshotEnvelope envelope, Instant referenceTime) {
-        if (envelope == null || envelope.getEffectiveFrom() == null) {
-            return true;
-        }
-        Instant effectiveFrom = envelope.getEffectiveFrom();
-        Instant effectiveReference = referenceTime == null ? Instant.now() : referenceTime;
-        return !effectiveFrom.isAfter(effectiveReference);
-    }
-
-    private boolean isPendingRetryTimer(String sceneCode, long timestamp, OnTimerContext context) {
-        if (sceneCode == null) {
-            return false;
-        }
-        Long expectedRetryAt = pendingRetryTimers.get(sceneCode);
+        Long expectedRetryAt = pendingRetryTimers.get(routeKey);
         if (expectedRetryAt == null || expectedRetryAt != timestamp) {
             return false;
         }
         return context.timeDomain() == TimeDomain.PROCESSING_TIME;
-    }
-
-    private String activeStateKey(String sceneCode) {
-        return sceneCode;
-    }
-
-    private String pendingStateKey(String sceneCode) {
-        return sceneCode + PENDING_STATE_SUFFIX;
     }
 
     private EngineErrorRecord snapshotError(String stage,

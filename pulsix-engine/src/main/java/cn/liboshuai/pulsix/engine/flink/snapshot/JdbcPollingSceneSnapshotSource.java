@@ -20,14 +20,16 @@ public class JdbcPollingSceneSnapshotSource implements SourceFunction<SceneSnaps
     @Override
     public void run(SourceContext<SceneSnapshotEnvelope> context) throws Exception {
         SceneReleaseJdbcSnapshotLoader loader = new SceneReleaseJdbcSnapshotLoader(options);
-        Map<String, SceneReleaseJdbcSnapshotLoader.SnapshotMarker> markers = new LinkedHashMap<>();
+        Map<SceneReleaseJdbcSnapshotLoader.SceneVersionKey, SceneReleaseJdbcSnapshotLoader.SnapshotMarker> markers = new LinkedHashMap<>();
         while (running) {
             List<SceneSnapshotEnvelope> snapshots = loader.loadSnapshots();
             for (SceneSnapshotEnvelope envelope : snapshots) {
                 if (!running) {
                     return;
                 }
-                if (!SceneReleaseJdbcSnapshotLoader.shouldEmit(markers.get(envelope.getSceneCode()), envelope)) {
+                SceneReleaseJdbcSnapshotLoader.SceneVersionKey markerKey =
+                        new SceneReleaseJdbcSnapshotLoader.SceneVersionKey(envelope.getSceneCode(), envelope.getVersion());
+                if (!SceneReleaseJdbcSnapshotLoader.shouldEmit(markers.get(markerKey), envelope)) {
                     continue;
                 }
                 synchronized (context.getCheckpointLock()) {

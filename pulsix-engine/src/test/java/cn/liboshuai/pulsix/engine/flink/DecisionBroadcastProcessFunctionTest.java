@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.feature.LookupResult;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
@@ -32,10 +33,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DecisionBroadcastProcessFunctionTest {
 
-    private static final MapStateDescriptor<String, SceneSnapshotEnvelope> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
+    private static final MapStateDescriptor<String, SceneReleaseTimeline> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "scene-snapshot-broadcast-state",
             Types.STRING,
-            EngineTypeInfos.sceneSnapshotEnvelope()
+            Types.GENERIC(SceneReleaseTimeline.class)
     );
 
     @Test
@@ -116,6 +117,62 @@ class DecisionBroadcastProcessFunctionTest {
             assertEquals(1, results.size());
             assertEquals(12, results.get(0).getVersion());
             assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("same version but different checksum"));
+        }
+    }
+
+    @Test
+    void shouldNotPoisonRuntimeCacheWhenConflictingSnapshotIsRejected() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
+            SceneSnapshotEnvelope conflict = disableBlacklistRuleEnvelope();
+            conflict.getSnapshot().setVersion(baseline.getVersion());
+            conflict.getSnapshot().setChecksum("switch-checksum-conflict");
+            conflict.getSnapshot().setPublishedAt(Instant.parse("2026-03-07T20:01:00Z"));
+            conflict.getSnapshot().setEffectiveFrom(baseline.getEffectiveFrom());
+            conflict = envelopeOf(conflict.getSnapshot());
+
+            SceneSnapshotEnvelope version13 = disableBlacklistRuleEnvelope();
+            version13.getSnapshot().setPublishedAt(Instant.parse("2026-03-07T20:05:00Z"));
+            version13.getSnapshot().setEffectiveFrom(Instant.parse("2026-03-07T20:05:00Z"));
+            version13 = envelopeOf(version13.getSnapshot());
+
+            SceneSnapshotEnvelope rollback12 = rollbackEnvelope(baseline,
+                    Instant.parse("2026-03-07T20:10:00Z"),
+                    Instant.parse("2026-03-07T20:10:00Z"));
+
+            RiskEvent firstEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent secondEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent thirdEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            secondEvent.setEventId("E202603070155");
+            secondEvent.setTraceId("T202603070155");
+            secondEvent.setEventTime(Instant.parse("2026-03-07T20:05:30Z"));
+            thirdEvent.setEventId("E202603070255");
+            thirdEvent.setTraceId("T202603070255");
+            thirdEvent.setEventTime(Instant.parse("2026-03-07T20:10:30Z"));
+
+            harness.setProcessingTime(epochMillis(baseline.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(baseline, epochMillis(baseline.getPublishedAt()));
+            harness.processBroadcastElement(conflict, epochMillis(conflict.getPublishedAt()));
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(version13.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(version13, epochMillis(version13.getPublishedAt()));
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(rollback12.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(rollback12, epochMillis(rollback12.getPublishedAt()));
+            harness.processElement(thirdEvent, epochMillis(thirdEvent.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(3, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(13, results.get(1).getVersion());
+            assertEquals(ActionType.PASS, results.get(1).getFinalAction());
+            assertEquals(12, results.get(2).getVersion());
+            assertEquals(ActionType.REJECT, results.get(2).getFinalAction());
             assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
             assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("same version but different checksum"));
         }
@@ -240,6 +297,58 @@ class DecisionBroadcastProcessFunctionTest {
             assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
             assertEquals(13, results.get(1).getVersion());
             assertEquals(ActionType.PASS, results.get(1).getFinalAction());
+        }
+    }
+
+    @Test
+    void shouldActivateEarlierFutureVersionEvenIfHigherVersionArrivedFirst() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope version12 = baselineEnvelopeForBroadcastSwitch();
+            SceneSnapshotEnvelope version14 = baselineEnvelopeForBroadcastSwitch();
+            version14.getSnapshot().setVersion(14);
+            version14.getSnapshot().setChecksum("switch-checksum-v14");
+            version14.getSnapshot().setPublishedAt(Instant.parse("2026-03-07T20:06:00Z"));
+            version14.getSnapshot().setEffectiveFrom(Instant.parse("2026-03-07T20:10:00Z"));
+            version14 = envelopeOf(version14.getSnapshot());
+
+            SceneSnapshotEnvelope version13 = disableBlacklistRuleEnvelope();
+            version13.getSnapshot().setPublishedAt(Instant.parse("2026-03-07T20:07:00Z"));
+            version13.getSnapshot().setEffectiveFrom(Instant.parse("2026-03-07T20:08:00Z"));
+            version13 = envelopeOf(version13.getSnapshot());
+
+            RiskEvent firstEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent secondEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent thirdEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            secondEvent.setEventId("E202603070599");
+            secondEvent.setTraceId("T202603070599");
+            secondEvent.setEventTime(Instant.parse("2026-03-07T20:08:30Z"));
+            thirdEvent.setEventId("E202603070699");
+            thirdEvent.setTraceId("T202603070699");
+            thirdEvent.setEventTime(Instant.parse("2026-03-07T20:10:30Z"));
+
+            harness.setProcessingTime(epochMillis(version12.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(version12, epochMillis(version12.getPublishedAt()));
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(version14.getPublishedAt()) + 1L);
+            harness.processBroadcastElement(version14, epochMillis(version14.getPublishedAt()));
+
+            harness.setProcessingTime(epochMillis(version13.getPublishedAt()) + 1L);
+            harness.processBroadcastElement(version13, epochMillis(version13.getPublishedAt()));
+            harness.setProcessingTime(epochMillis(version13.getEffectiveFrom()) + 1L);
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(version14.getEffectiveFrom()) + 1L);
+            harness.processElement(thirdEvent, epochMillis(thirdEvent.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(3, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(13, results.get(1).getVersion());
+            assertEquals(ActionType.PASS, results.get(1).getFinalAction());
+            assertEquals(14, results.get(2).getVersion());
+            assertEquals(ActionType.REJECT, results.get(2).getFinalAction());
         }
     }
 

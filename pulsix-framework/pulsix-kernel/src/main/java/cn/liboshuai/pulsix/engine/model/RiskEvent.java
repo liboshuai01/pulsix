@@ -54,7 +54,30 @@ public class RiskEvent implements Serializable {
     }
 
     public String routeKey() {
-        return sceneCode;
+        String sceneRoute = normalizeRoutePart(sceneCode, "scene:default");
+        if (deviceId != null && !deviceId.isBlank()) {
+            return sceneRoute + "|device:" + deviceId.trim();
+        }
+        if (userId != null && !userId.isBlank()) {
+            return sceneRoute + "|user:" + userId.trim();
+        }
+        if (ip != null && !ip.isBlank()) {
+            return sceneRoute + "|ip:" + ip.trim();
+        }
+        if (merchantId != null && !merchantId.isBlank()) {
+            return sceneRoute + "|merchant:" + merchantId.trim();
+        }
+        if (eventId != null && !eventId.isBlank()) {
+            return sceneRoute + "|event:" + eventId.trim();
+        }
+        return sceneRoute + "|trace:" + normalizeRoutePart(traceId, "unknown");
+    }
+
+    private String normalizeRoutePart(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return value.trim();
     }
 
     public Map<String, Object> toFlatMap() {

@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SceneReleaseSnapshotSelectorTest {
 
     @Test
-    void shouldKeepLatestEffectiveSnapshotPerSceneForBootstrap() {
+    void shouldKeepLatestEffectiveAndFutureSnapshotsPerSceneForBootstrap() {
         SceneSnapshotEnvelope version12 = envelope("TRADE_RISK", 12, "checksum-v12", Instant.parse("2026-03-07T20:00:10Z"));
         SceneSnapshotEnvelope version13 = envelope("TRADE_RISK", 13, "checksum-v13", Instant.parse("2026-03-07T20:05:10Z"));
         SceneSnapshotEnvelope version14 = envelope("TRADE_RISK", 14, "checksum-v14", Instant.parse("2026-03-12T20:05:10Z"));
@@ -27,8 +27,8 @@ class SceneReleaseSnapshotSelectorTest {
                 options,
                 Instant.parse("2026-03-11T00:00:00Z"));
 
-        assertEquals(List.of("TRADE_RISK", "FRAUD_RISK"), selected.stream().map(SceneSnapshotEnvelope::getSceneCode).toList());
-        assertEquals(List.of(13, 2), selected.stream().map(SceneSnapshotEnvelope::getVersion).toList());
+        assertEquals(List.of("TRADE_RISK", "TRADE_RISK", "FRAUD_RISK"), selected.stream().map(SceneSnapshotEnvelope::getSceneCode).toList());
+        assertEquals(List.of(13, 14, 2), selected.stream().map(SceneSnapshotEnvelope::getVersion).toList());
     }
 
     @Test

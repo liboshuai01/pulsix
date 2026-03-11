@@ -129,7 +129,7 @@ public class RedisLookupService implements LookupService {
 
     private DefaultJedisClientConfig clientConfig(int timeoutMs) {
         DefaultJedisClientConfig.Builder builder = DefaultJedisClientConfig.builder()
-                .connectionTimeoutMillis(timeoutMs)
+                .connectionTimeoutMillis(config.connectTimeoutMs())
                 .socketTimeoutMillis(timeoutMs)
                 .database(config.database())
                 .ssl(config.ssl());

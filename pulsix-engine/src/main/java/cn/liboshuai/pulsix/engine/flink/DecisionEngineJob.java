@@ -3,6 +3,7 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.RedisLookupService;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceFactory;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
@@ -56,10 +57,10 @@ public class DecisionEngineJob {
                 options.runtimeOptions());
         DataStream<SceneSnapshotEnvelope> configStream = buildConfigStream(env, options.snapshotSourceOptions());
 
-        MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
+        MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
                 Types.STRING,
-                EngineTypeInfos.sceneSnapshotEnvelope()
+                Types.GENERIC(SceneReleaseTimeline.class)
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::routeKey);
