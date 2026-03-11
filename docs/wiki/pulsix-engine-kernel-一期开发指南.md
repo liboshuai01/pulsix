@@ -61,8 +61,8 @@ standard RiskEvent
 
 ### 3.1 当前模块真实分布
 
-- `pulsix-framework/pulsix-kernel`：已承载 `model / context / script / runtime / core / feature / support / json / flink/typeinfo / demo` 等共享执行语义。
-- `pulsix-framework/pulsix-kernel/src/test/java/...`：已承载本地执行、运行时缓存、JSON 编解码等共享回归测试。
+- `pulsix-framework/pulsix-kernel`：已承载 `model / context / script / runtime / core / feature / support / json / demo` 等共享执行语义。
+- `pulsix-framework/pulsix-kernel/src/test/java/...`：已承载本地执行、运行时编译、JSON 编解码等共享回归测试。
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink`：保留 Flink 广播快照、主链路作业、输出 tag 等运行适配层。
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/feature/FlinkKeyedStateStreamFeatureStateStore.java`：保留 Flink 专属 Keyed State 适配。
 - `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/package-info.java`：保留模块说明。
@@ -114,7 +114,7 @@ standard RiskEvent
 - `SCORE_CARD` 已在 `DecisionExecutor` 中实现，但当前样例、回归、一期主链路仍以 `FIRST_HIT` 为主。
 - `Groovy` 已可执行，但当前只是“可运行”，还不是“可生产”。
 - `FlinkKeyedStateStreamFeatureStateStore` 已经存在，所以“Flink Keyed State 基础版”不能再算未开始；真正未完成的是**生产级状态治理**。
-- `SceneRuntimeManager` 已支持按版本缓存，但当前缓存策略非常轻，只保留最近两个版本。
+- `pulsix-engine` 侧已补上 `SceneRuntimeCache` 做按版本缓存，但当前缓存策略仍非常轻，只保留最近两个版本。
 
 ### 4.3 当前必须正视的缺口
 
@@ -154,8 +154,8 @@ standard RiskEvent
 
 **本次落地结果**
 
-- 已迁移 `model / context / script / runtime / core / feature / support / json / flink/typeinfo / demo` 等共享代码到 `pulsix-framework/pulsix-kernel`。
-- 已把 `LocalDecisionEngineTest`、`EngineJsonTest`、`SceneRuntimeManagerTest` 等共享回归迁入 `pulsix-kernel`。
+- 已迁移 `model / context / script / runtime / core / feature / support / json / demo` 等共享代码到 `pulsix-framework/pulsix-kernel`。
+- 已把 `LocalDecisionEngineTest`、`EngineJsonTest`、`SceneRuntimeManagerTest` 等共享回归迁入 `pulsix-kernel`；Flink `typeinfo` 与版本缓存回归保留在 `pulsix-engine`。
 - `pulsix-engine` 当前保留 `flink` 适配、`FlinkKeyedStateStreamFeatureStateStore`、Demo 作业入口与 Flink 相关回归。
 - 根目录新增 `.mvn/maven.config` 并默认启用 `-am`，保证 `mvn -q -pl pulsix-engine test` 在拆模块后仍可直接使用。
 
@@ -265,7 +265,7 @@ standard RiskEvent
 **AI 交付内容**
 
 - 让 `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本真正生效。
-- 扩展 `SceneRuntimeManager`，不要只保留最近两个版本的最简缓存。
+- 扩展 `pulsix-engine` 侧版本缓存 / 切换能力，不要只保留最近两个版本的最简缓存。
 - 让 `RuntimeHints.maxRuleExecutionCount`、`allowGroovy`、`needFullDecisionLog` 具备基本约束作用。
 
 **人工验证**
@@ -324,7 +324,7 @@ standard RiskEvent
 - `RuntimeCompiler` 编译结果与依赖顺序测试。
 - `DecisionExecutor` 的规则 / 策略执行测试。
 - Stream Feature 五种基础聚合测试。
-- `SceneRuntimeManager` 的版本切换测试。
+- `SceneRuntimeCache` / 版本切换测试。
 - 本地仿真 / 回放 golden case 测试。
 
 ### 第二优先级
@@ -364,4 +364,3 @@ standard RiskEvent
 - 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
 - 下一阶段默认从 **本地仿真 Runner** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
-

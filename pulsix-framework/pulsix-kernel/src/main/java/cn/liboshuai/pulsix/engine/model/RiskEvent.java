@@ -1,9 +1,7 @@
 package cn.liboshuai.pulsix.engine.model;
 
-import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -13,7 +11,6 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-@TypeInfo(EngineTypeInfoFactories.RiskEventTypeInfoFactory.class)
 public class RiskEvent implements Serializable {
 
     private String eventId;

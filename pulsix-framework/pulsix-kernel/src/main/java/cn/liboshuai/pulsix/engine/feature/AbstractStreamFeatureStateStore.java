@@ -1,11 +1,9 @@
 package cn.liboshuai.pulsix.engine.feature;
 
 import cn.liboshuai.pulsix.engine.context.EvalContext;
-import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import cn.liboshuai.pulsix.engine.model.AggType;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.support.ValueConverter;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -334,7 +332,6 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
         };
     }
 
-    @TypeInfo(EngineTypeInfoFactories.NumericWindowStateTypeInfoFactory.class)
     public static class NumericWindowState implements Serializable {
 
         private long retentionMs;
@@ -369,7 +366,6 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
 
     }
 
-    @TypeInfo(EngineTypeInfoFactories.LatestValueStateTypeInfoFactory.class)
     public static class LatestValueState implements Serializable {
 
         private long retentionMs;
@@ -444,7 +440,6 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
 
     }
 
-    @TypeInfo(EngineTypeInfoFactories.DistinctWindowStateTypeInfoFactory.class)
     public static class DistinctWindowState implements Serializable {
 
         private long retentionMs;

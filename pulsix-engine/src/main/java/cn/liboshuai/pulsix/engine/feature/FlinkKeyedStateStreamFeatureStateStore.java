@@ -1,11 +1,12 @@
 package cn.liboshuai.pulsix.engine.feature;
 
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.StateTtlConfig;
 import org.apache.flink.api.common.time.Time;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,22 +28,22 @@ public class FlinkKeyedStateStreamFeatureStateStore extends AbstractStreamFeatur
 
         MapStateDescriptor<String, NumericWindowState> numericDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-numeric-state",
-                TypeInformation.of(String.class),
-                TypeInformation.of(NumericWindowState.class)
+                Types.STRING,
+                EngineTypeInfos.numericWindowState()
         );
         numericDescriptor.enableTimeToLive(ttlConfig);
 
         MapStateDescriptor<String, LatestValueState> latestDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-latest-state",
-                TypeInformation.of(String.class),
-                TypeInformation.of(LatestValueState.class)
+                Types.STRING,
+                EngineTypeInfos.latestValueState()
         );
         latestDescriptor.enableTimeToLive(ttlConfig);
 
         MapStateDescriptor<String, DistinctWindowState> distinctDescriptor = new MapStateDescriptor<>(
                 "engine-stream-feature-distinct-state",
-                TypeInformation.of(String.class),
-                TypeInformation.of(DistinctWindowState.class)
+                Types.STRING,
+                EngineTypeInfos.distinctWindowState()
         );
         distinctDescriptor.enableTimeToLive(ttlConfig);
 

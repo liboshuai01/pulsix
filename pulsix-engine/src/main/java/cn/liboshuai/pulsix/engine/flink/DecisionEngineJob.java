@@ -1,13 +1,14 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.SecurityOptions;
@@ -42,15 +43,16 @@ public class DecisionEngineJob {
 
         MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
                 "scene-snapshot-broadcast-state",
-                TypeInformation.of(String.class),
-                TypeInformation.of(SceneSnapshotEnvelope.class)
+                Types.STRING,
+                EngineTypeInfos.sceneSnapshotEnvelope()
         );
 
         KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
-                .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor));
+                .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor))
+                .returns(EngineTypeInfos.decisionResult());
 
         resultStream.print("decision-result");
         resultStream.getSideOutput(EngineOutputTags.DECISION_LOG).print("decision-log");
@@ -76,7 +78,7 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoRiskEventSource(), TypeInformation.of(RiskEvent.class))
+        return env.addSource(new DemoRiskEventSource(), EngineTypeInfos.riskEvent())
                 .assignTimestampsAndWatermarks(WatermarkStrategy
                         .<RiskEvent>forBoundedOutOfOrderness(Duration.ofSeconds(1))
                         .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
@@ -86,7 +88,7 @@ public class DecisionEngineJob {
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildDemoConfigStream(StreamExecutionEnvironment env) {
-        return env.addSource(new DemoSnapshotSource(), TypeInformation.of(SceneSnapshotEnvelope.class))
+        return env.addSource(new DemoSnapshotSource(), EngineTypeInfos.sceneSnapshotEnvelope())
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 

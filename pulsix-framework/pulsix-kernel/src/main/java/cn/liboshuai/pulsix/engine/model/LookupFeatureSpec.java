@@ -1,15 +1,12 @@
 package cn.liboshuai.pulsix.engine.model;
 
-import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoFactories;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@TypeInfo(EngineTypeInfoFactories.LookupFeatureSpecTypeInfoFactory.class)
 public class LookupFeatureSpec extends FeatureSpec {
 
     private LookupType lookupType;

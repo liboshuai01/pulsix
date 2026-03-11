@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
@@ -12,8 +13,11 @@ import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
+import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeCache;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimerService;
@@ -30,7 +34,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class DecisionBroadcastProcessFunction
-        extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> {
+        extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult>
+        implements ResultTypeQueryable<DecisionResult> {
 
     private final MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor;
 
@@ -39,6 +44,8 @@ public class DecisionBroadcastProcessFunction
     private transient LookupService lookupService;
 
     private transient SceneRuntimeManager runtimeManager;
+
+    private transient SceneRuntimeCache runtimeCache;
 
     private transient StreamFeatureStateStore stateStore;
 
@@ -59,6 +66,7 @@ public class DecisionBroadcastProcessFunction
     @Override
     public void open(Configuration parameters) {
         this.runtimeManager = new SceneRuntimeManager(new RuntimeCompiler(new DefaultScriptCompiler()));
+        this.runtimeCache = new SceneRuntimeCache();
         this.stateStore = new FlinkKeyedStateStreamFeatureStateStore(getRuntimeContext());
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
@@ -77,6 +85,7 @@ public class DecisionBroadcastProcessFunction
             }
             CompiledSceneRuntime runtime = runtimeManager.compile(envelope.getSnapshot());
             context.getBroadcastState(snapshotStateDescriptor).put(envelope.getSceneCode(), envelope);
+            runtimeCache.put(runtime);
             runtimeManager.activate(runtime);
         } catch (Exception exception) {
             context.output(EngineOutputTags.ENGINE_ERROR, snapshotError("snapshot-activate", envelope, exception));
@@ -133,14 +142,20 @@ public class DecisionBroadcastProcessFunction
         if (activeRuntime.isPresent() && Objects.equals(activeRuntime.get().version(), envelope.getVersion())) {
             return activeRuntime;
         }
-        Optional<CompiledSceneRuntime> cachedRuntime = runtimeManager.getRuntime(event.getSceneCode(), envelope.getVersion());
+        Optional<CompiledSceneRuntime> cachedRuntime = runtimeCache.get(event.getSceneCode(), envelope.getVersion());
         if (cachedRuntime.isPresent()) {
             runtimeManager.activate(cachedRuntime.get());
             return cachedRuntime;
         }
         CompiledSceneRuntime compiledRuntime = runtimeManager.compile(envelope.getSnapshot());
+        runtimeCache.put(compiledRuntime);
         runtimeManager.activate(compiledRuntime);
         return Optional.of(compiledRuntime);
+    }
+
+    @Override
+    public TypeInformation<DecisionResult> getProducedType() {
+        return EngineTypeInfos.decisionResult();
     }
 
     private void bufferPendingEvent(RiskEvent event) {
@@ -166,8 +181,17 @@ public class DecisionBroadcastProcessFunction
                               OutputContext outputContext) {
         try {
             DecisionResult result = decisionExecutor.execute(runtime, event, stateStore, lookupService);
-            collector.collect(result);
-            outputContext.emitDecisionLog(DecisionLogRecord.from(result));
+            try {
+                collector.collect(result);
+            } catch (Exception exception) {
+                outputContext.emitEngineError(EngineErrorRecord.of("decision-collect", event, runtime.version(), exception));
+                return;
+            }
+            try {
+                outputContext.emitDecisionLog(DecisionLogRecord.from(result));
+            } catch (Exception exception) {
+                outputContext.emitEngineError(EngineErrorRecord.of("decision-log", event, runtime.version(), exception));
+            }
         } catch (Exception exception) {
             outputContext.emitEngineError(EngineErrorRecord.of("decision-execute", event, runtime.version(), exception));
         }

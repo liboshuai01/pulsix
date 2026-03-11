@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SceneRuntimeManagerTest {
 
     @Test
-    void shouldCacheAndActivateRuntimeByVersion() {
+    void shouldSwitchActiveRuntimeByVersion() {
         SceneRuntimeManager runtimeManager = new SceneRuntimeManager(new RuntimeCompiler(new DefaultScriptCompiler()));
         SceneSnapshot version12 = DemoFixtures.demoSnapshot();
         SceneSnapshot version13 = DemoFixtures.demoSnapshot();
@@ -23,9 +23,8 @@ class SceneRuntimeManagerTest {
 
         assertEquals(12, runtime12.version());
         assertEquals(13, runtime13.version());
-        assertTrue(runtimeManager.getRuntime(version12.getSceneCode(), 12).isPresent());
-        assertTrue(runtimeManager.getRuntime(version13.getSceneCode(), 13).isPresent());
         assertEquals(13, runtimeManager.getActiveRuntime(version13.getSceneCode()).orElseThrow().version());
+        assertTrue(runtimeManager.getActiveRuntime(version12.getSceneCode()).isPresent());
     }
 
 }

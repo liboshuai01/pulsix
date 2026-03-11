@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.engine.flink;
 
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
@@ -9,9 +10,10 @@ import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.state.MapStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.serialization.SerializerConfigImpl;
+import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.streaming.api.operators.co.CoBroadcastWithKeyedOperator;
 import org.apache.flink.streaming.util.KeyedBroadcastOperatorTestHarness;
-import org.apache.flink.streaming.util.ProcessFunctionTestHarnesses;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -26,8 +28,8 @@ class DecisionBroadcastProcessFunctionTest {
 
     private static final MapStateDescriptor<String, SceneSnapshotEnvelope> SNAPSHOT_STATE_DESCRIPTOR = new MapStateDescriptor<>(
             "scene-snapshot-broadcast-state",
-            TypeInformation.of(String.class),
-            TypeInformation.of(SceneSnapshotEnvelope.class)
+            Types.STRING,
+            EngineTypeInfos.sceneSnapshotEnvelope()
     );
 
     @Test
@@ -87,12 +89,18 @@ class DecisionBroadcastProcessFunctionTest {
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness() throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
-                ProcessFunctionTestHarnesses.forKeyedBroadcastProcessFunction(
-                        new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR),
+                new KeyedBroadcastOperatorTestHarness<>(
+                        new CoBroadcastWithKeyedOperator<>(
+                                new DecisionBroadcastProcessFunction(SNAPSHOT_STATE_DESCRIPTOR),
+                                List.of(SNAPSHOT_STATE_DESCRIPTOR)
+                        ),
                         RiskEvent::routeKey,
-                        TypeInformation.of(String.class),
-                        SNAPSHOT_STATE_DESCRIPTOR
+                        Types.STRING,
+                        1,
+                        1,
+                        0
                 );
+        harness.setup(EngineTypeInfos.decisionResult().createSerializer(new SerializerConfigImpl()));
         harness.open();
         return harness;
     }
