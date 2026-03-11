@@ -2,17 +2,17 @@
 
 > 基于 `2026-03-11` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
 >
-> 当前仓库验证结果：`mvn -q -pl pulsix-engine test` 已通过。
+> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test` 已通过；另在 IDEA 直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob` 的 Demo 链路已完成 MiniCluster 启停、结果输出与 checkpoint 验证。
 
 ---
 
 ## 1. 一页结论
 
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
-- 当前最真实的 repo 状态不是“`kernel` 还没开始”，而是：**`kernel` 语义已经大部分写出来了，但代码仍主要放在 `pulsix-engine` 中；`pulsix-framework/pulsix-kernel` 还是空壳模块。**
-- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归。
-- 当前还缺：`kernel` 模块归位、仿真/轻量回放工具、真实 `scene_release` 接入、真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
-- 一期后续最合理的顺序应是：**内核归位 -> 本地仿真 -> 轻量回放 -> 快照接入 -> Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
+- 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
+- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归，以及 `kernel` 物理模块归位。
+- 当前还缺：本地仿真 / 轻量回放工具、真实 `scene_release` 接入、真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
+- 一期后续最合理的顺序应是：**本地仿真 -> 轻量回放 -> 快照接入 -> Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
 
 ---
 
@@ -61,22 +61,18 @@ standard RiskEvent
 
 ### 3.1 当前模块真实分布
 
-- `pulsix-framework/pulsix-kernel`：模块已创建，但当前只有 `pom.xml`，`src/main/java` 为空。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/model`：当前实际运行时契约层。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/context`：当前上下文层。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/script`：当前表达式 / 脚本编译执行层。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/runtime`：当前快照编译与运行时缓存层。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/core`：当前决策执行主链路。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/feature`：当前流式特征状态与 lookup 抽象。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink`：Flink 适配层。
-- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/demo`：样例快照与样例事件。
-- `pulsix-engine/src/test/java/...`：本地执行、运行时缓存、Flink 广播切换、TypeInfo、JSON、日志绑定回归测试。
+- `pulsix-framework/pulsix-kernel`：已承载 `model / context / script / runtime / core / feature / support / json / flink/typeinfo / demo` 等共享执行语义。
+- `pulsix-framework/pulsix-kernel/src/test/java/...`：已承载本地执行、运行时缓存、JSON 编解码等共享回归测试。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/flink`：保留 Flink 广播快照、主链路作业、输出 tag 等运行适配层。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/feature/FlinkKeyedStateStreamFeatureStateStore.java`：保留 Flink 专属 Keyed State 适配。
+- `pulsix-engine/src/main/java/cn/liboshuai/pulsix/engine/package-info.java`：保留模块说明。
+- `pulsix-engine/src/test/java/...`：当前主要保留 Flink harness 与日志绑定回归测试。
 
 ### 3.2 这意味着什么
 
 - 当前 **逻辑上的 `kernel` 已经存在**。
-- 当前 **物理上的 `kernel` 还没有归位**。
-- 所以后续开发的第一优先级不是“从 0 写 kernel”，而是“把已实现的 kernel 从 `pulsix-engine` 中收口到 `pulsix-framework/pulsix-kernel`”。
+- 当前 **物理上的 `kernel` 也已经归位**。
+- 所以下一优先级不再是模块搬迁，而是基于现有 `kernel` 继续补齐本地仿真、轻量回放与正式接入能力。
 
 ---
 
@@ -84,7 +80,7 @@ standard RiskEvent
 
 | 领域 | 当前状态 | 结论 |
 | --- | --- | --- |
-| `pulsix-kernel` 模块 | 未完成 | 模块已建壳，但尚未承载实现代码 |
+| `pulsix-kernel` 模块 | 已完成 | 共享执行语义、样例与核心回归已迁入 `pulsix-framework/pulsix-kernel` |
 | 运行时契约 | 已完成 | `SceneSnapshot`、`SceneSnapshotEnvelope`、`RiskEvent`、`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 已定义 |
 | 快照编译 | 已完成 | `RuntimeCompiler` 已支持 stream / lookup / derived / rule 编译、依赖排序、规则排序 |
 | 本地执行 | 已完成 | `DecisionExecutor` + `LocalDecisionEngine` 已可跑通样例闭环 |
@@ -103,10 +99,11 @@ standard RiskEvent
 | 真实 Redis Lookup | 未完成 | `timeoutMs`、`cacheTtlSeconds` 等字段还未生效 |
 | 版本治理 | 未完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本尚未真正落地 |
 | 生产化安全 | 未完成 | Groovy 沙箱、错误分级、指标、恢复验证仍缺 |
-| 测试基线 | 已完成 | 当前已有本地执行与 Flink harness 回归，且 `mvn -q -pl pulsix-engine test` 通过 |
+| 测试基线 | 已完成 | 当前已有 kernel 侧共享回归与 engine 侧 Flink harness 回归，且 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 均通过 |
 
 ### 4.1 已完成的关键内容
 
+- **`kernel` 物理归位已经完成**：共享执行语义已从 `pulsix-engine` 收口到 `pulsix-framework/pulsix-kernel`。
 - **快照契约已经稳定**：`SceneSnapshot`、`SceneSnapshotEnvelope`、`RuleSpec`、`PolicySpec`、`RuntimeHints` 等结构已经落地。
 - **执行主链路已经存在**：事件校验、上下文构建、特征计算、规则执行、策略收敛、结果组装都已可运行。
 - **Flink 适配骨架不是空的**：广播快照、Keyed State、事件时间 timer、side output、版本切换都已经有代码和测试。
@@ -121,8 +118,8 @@ standard RiskEvent
 
 ### 4.3 当前必须正视的缺口
 
-- `pulsix-framework/pulsix-kernel` 还是空模块，导致“仿真和线上共用一套 kernel”这件事在物理结构上还没完成。
-- `DecisionEngineJob` 仍然依赖 `DemoRiskEventSource` 与 `DemoSnapshotSource`，说明正式输入输出链路还没有接上。
+- `pulsix-kernel` 里还没有独立的本地仿真 Runner，导致“给定快照 + 事件直接跑结果”仍主要依赖测试或 Demo Job。
+- `DecisionEngineJob` 仍然依赖 Demo 快照和 Demo 事件源，说明正式输入输出链路还没有接上。
 - `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`RuntimeHints.*`、`SceneSpec.allowedEventTypes`、`SceneSnapshot.effectiveFrom`、`SceneSnapshotEnvelope.publishType` 等字段当前大多只是契约字段，还没有真正驱动执行语义。
 - `GroovyCompiledScript` 直接使用 `GroovyClassLoader` 编译执行，当前没有沙箱、隔离、禁用反射、资源限制。
 
@@ -136,7 +133,7 @@ standard RiskEvent
 - 你可以用少量人工步骤验证是否满足要求。
 - 不依赖先把 `pulsix-module-risk` 和 `pulsix-access` 一起做完。
 
-### 阶段 1：`kernel` 代码归位
+### 阶段 1：`kernel` 代码归位（已完成，`2026-03-11`）
 
 **目标**
 
@@ -151,11 +148,25 @@ standard RiskEvent
 
 **人工验证**
 
-- `pulsix-framework/pulsix-kernel/src/main/java` 下出现核心执行代码。
-- `pulsix-engine/src/main/java` 下主要只剩 `flink`、少量 `demo` 和适配代码。
-- 执行 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 可以通过。
+- `pulsix-framework/pulsix-kernel/src/main/java` 下已出现核心执行代码。
+- `pulsix-engine/src/main/java` 下当前主要只剩 `flink`、少量适配代码与模块说明。
+- 执行 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 已通过。
+
+**本次落地结果**
+
+- 已迁移 `model / context / script / runtime / core / feature / support / json / flink/typeinfo / demo` 等共享代码到 `pulsix-framework/pulsix-kernel`。
+- 已把 `LocalDecisionEngineTest`、`EngineJsonTest`、`SceneRuntimeManagerTest` 等共享回归迁入 `pulsix-kernel`。
+- `pulsix-engine` 当前保留 `flink` 适配、`FlinkKeyedStateStreamFeatureStateStore`、Demo 作业入口与 Flink 相关回归。
+- 根目录新增 `.mvn/maven.config` 并默认启用 `-am`，保证 `mvn -q -pl pulsix-engine test` 在拆模块后仍可直接使用。
 
 ### 阶段 2：本地仿真 Runner
+
+**接手前提（基于 `2026-03-11` 阶段 1 完成态）**
+
+- 不再回退当前 `kernel / engine` 模块布局；新增共享执行能力继续优先落到 `pulsix-framework/pulsix-kernel`。
+- 可直接复用 `DemoFixtures`、`EngineJson`、`LocalDecisionEngine`、`SceneRuntimeManager` 作为 Runner 的样例、解析与执行基座。
+- 当前固定回归命令为 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test`。
+- 阶段 2 交付重点是“明确入口 + 固定输入输出”，不是再做第二套执行语义。
 
 **目标**
 
@@ -295,7 +306,7 @@ standard RiskEvent
 
 - 每阶段结束时，至少保留一条**成功路径**回归。
 - 每阶段结束时，至少新增一条**失败路径**回归。
-- 每阶段结束时，`mvn -q -pl pulsix-engine test` 必须继续可通过。
+- 每阶段结束时，`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test` 与 `mvn -q -pl pulsix-engine test` 必须继续可通过。
 
 ### 6.3 人工验收基线
 
@@ -336,20 +347,21 @@ standard RiskEvent
 
 如果没有新的明确指令，默认遵循以下规则：
 
-1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`。
+1. 当前开发中心只放在 `pulsix-kernel + pulsix-engine`，且阶段 1 的模块归位已经完成。
 2. `scene_release.snapshot_json` 是唯一运行态配置来源。
 3. 仿真、回放、Flink 执行必须复用同一套 kernel 语义。
 4. 一期主策略优先级是 `FIRST_HIT > SCORE_CARD`。
 5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
 6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
 7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
+8. 如果没有额外说明，默认下一步从 **阶段 2：本地仿真 Runner** 开始，不再重复做阶段 1 的模块搬迁。
 
 ---
 
 ## 9. 快速记忆版
 
-- `kernel` 语义已经有了，真正缺的是 **模块归位 + 工具化 + 正式接入 + 生产化**。
-- 当前 `pulsix-engine` 里已经同时放了“实际 kernel”与“Flink 适配层”。
+- `kernel` 语义已经有了，而且 **模块归位已经完成**；当前真正缺的是 **工具化 + 正式接入 + 生产化**。
+- 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
-- 后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
+- 下一阶段默认从 **本地仿真 Runner** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
 
