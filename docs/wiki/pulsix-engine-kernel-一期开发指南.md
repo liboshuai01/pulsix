@@ -184,6 +184,14 @@ standard RiskEvent
 - 用黑名单事件验证结果应为 `REJECT`。
 - 同样输入连续运行两次，结果完全一致。
 
+**本次落地结果**
+
+- `pulsix-framework/pulsix-kernel` 新增 `cn.liboshuai.pulsix.engine.simulation.LocalSimulationRunner`，作为阶段 2 的明确本地仿真入口。
+- 支持读取 `SceneSnapshot` JSON、`SceneSnapshotEnvelope` JSON，以及单条 / 数组两种事件 JSON 形态。
+- Runner 输出固定 `SimulationReport`，包含 `finalAction`、`finalScore`、`hitRules`、`hitReasons`、`featureSnapshot`、`trace`，且不暴露波动性的 `latency` 字段，便于重复回归。
+- 默认装配复用 `RuntimeCompiler + LocalDecisionEngine + InMemoryStreamFeatureStateStore + InMemoryLookupService.demo()`，没有新增第二套执行语义。
+- 新增 `LocalSimulationRunnerTest`，覆盖文件输入、黑名单拒绝、数组事件顺序执行、重复运行结果一致，以及空事件输入失败路径。
+
 ### 阶段 3：轻量回放与 golden case 回归
 
 **目标**
