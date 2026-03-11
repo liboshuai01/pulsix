@@ -75,4 +75,24 @@ public final class ValueConverter {
         };
     }
 
+    public static Object coerce(Object rawValue, String valueType) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof String stringValue) {
+            return coerce(stringValue, valueType);
+        }
+        if (valueType == null || valueType.isBlank()) {
+            return rawValue;
+        }
+        return switch (valueType.trim().toUpperCase(Locale.ROOT)) {
+            case "BOOLEAN", "BOOL" -> asBoolean(rawValue);
+            case "INT", "INTEGER" -> asInt(rawValue);
+            case "LONG" -> asLong(rawValue);
+            case "DECIMAL", "NUMBER", "DOUBLE" -> asDecimal(rawValue);
+            case "STRING" -> asString(rawValue);
+            default -> rawValue;
+        };
+    }
+
 }

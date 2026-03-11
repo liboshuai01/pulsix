@@ -4,6 +4,7 @@ public enum SceneSnapshotSourceType {
 
     DEMO,
     FILE,
-    JDBC
+    JDBC,
+    CDC
 
 }

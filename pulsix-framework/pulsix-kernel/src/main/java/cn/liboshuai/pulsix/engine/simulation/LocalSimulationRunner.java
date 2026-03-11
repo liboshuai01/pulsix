@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.engine.simulation;
 
+import cn.liboshuai.pulsix.engine.context.EvalContext;
 import cn.liboshuai.pulsix.engine.core.DecisionExecutor;
 import cn.liboshuai.pulsix.engine.core.LocalDecisionEngine;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
@@ -14,10 +15,12 @@ import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleHit;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
+import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
+import cn.liboshuai.pulsix.engine.support.ValueConverter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -59,11 +62,19 @@ public class LocalSimulationRunner {
     }
 
     public SimulationReport simulate(Path snapshotPath, Path eventsPath) {
-        return simulate(readText(snapshotPath), readText(eventsPath));
+        return simulate(snapshotPath, eventsPath, null);
+    }
+
+    public SimulationReport simulate(Path snapshotPath, Path eventsPath, Path overridesPath) {
+        return simulate(readText(snapshotPath), readText(eventsPath), overridesPath == null ? null : readText(overridesPath));
     }
 
     public SimulationReport simulate(String snapshotJson, String eventsJson) {
-        return simulate(readSnapshotEnvelope(snapshotJson), readEvents(eventsJson));
+        return simulate(snapshotJson, eventsJson, null);
+    }
+
+    public SimulationReport simulate(String snapshotJson, String eventsJson, String overridesJson) {
+        return simulate(readSnapshotEnvelope(snapshotJson), readEvents(eventsJson), readOverrides(overridesJson));
     }
 
     public SimulationReport simulate(SceneSnapshot snapshot, RiskEvent event) {
@@ -79,10 +90,21 @@ public class LocalSimulationRunner {
     }
 
     public SimulationReport simulate(SceneSnapshotEnvelope envelope, List<RiskEvent> events) {
+        return simulate(envelope, events, SimulationOverrides.empty());
+    }
+
+    public SimulationReport simulate(SceneSnapshotEnvelope envelope,
+                                     List<RiskEvent> events,
+                                     SimulationOverrides overrides) {
         SceneSnapshotEnvelope normalizedEnvelope = SceneSnapshotEnvelopes.fromEnvelope(envelope);
         List<RiskEvent> normalizedEvents = normalizeEvents(events);
+        SimulationOverrides normalizedOverrides = overrides == null ? SimulationOverrides.empty() : overrides.normalized();
 
-        LocalDecisionEngine engine = newEngine();
+        SimulationOverrideStreamFeatureStateStore stateStore =
+                new SimulationOverrideStreamFeatureStateStore(stateStoreSupplier.get());
+        SimulationOverrideLookupService lookupService =
+                new SimulationOverrideLookupService(lookupServiceSupplier.get());
+        LocalDecisionEngine engine = newEngine(stateStore, lookupService);
         engine.publish(normalizedEnvelope);
 
         SceneSnapshot snapshot = normalizedEnvelope.getSnapshot();
@@ -90,12 +112,17 @@ public class LocalSimulationRunner {
         report.setSnapshotId(snapshot.getSnapshotId());
         report.setSceneCode(snapshot.getSceneCode());
         report.setVersion(snapshot.getVersion());
+        report.setUsedVersion(snapshot.getVersion());
         report.setChecksum(snapshot.getChecksum());
         report.setEventCount(normalizedEvents.size());
+        report.setOverridesApplied(!normalizedOverrides.isEmpty());
 
         List<SimulationEventResult> results = new ArrayList<>(normalizedEvents.size());
         for (int index = 0; index < normalizedEvents.size(); index++) {
             RiskEvent event = normalizedEvents.get(index);
+            EventOverrides eventOverrides = normalizedOverrides.resolve(index);
+            stateStore.setActiveOverrides(eventOverrides);
+            lookupService.setActiveOverrides(eventOverrides);
             DecisionResult decisionResult = engine.evaluate(event);
             results.add(toSimulationEventResult(index, decisionResult));
         }
@@ -116,13 +143,20 @@ public class LocalSimulationRunner {
         return normalizeEvents(List.of(EngineJson.read(payload, RiskEvent.class)));
     }
 
+    public SimulationOverrides readOverrides(String overridesJson) {
+        if (overridesJson == null || overridesJson.isBlank()) {
+            return SimulationOverrides.empty();
+        }
+        return EngineJson.read(requireText(overridesJson, "overridesJson"), SimulationOverrides.class).normalized();
+    }
+
     public static void main(String[] args) {
         String[] effectiveArgs = args == null || args.length == 0 ? new String[]{"--demo"} : args;
         CliOptions options = CliOptions.parse(effectiveArgs);
         LocalSimulationRunner runner = new LocalSimulationRunner();
         SimulationReport report = options.demo()
-                ? runner.simulate(DemoFixtures.demoEnvelope(), DemoFixtures.demoEvents())
-                : runner.simulate(options.snapshotPath(), options.eventsPath());
+                ? runner.simulate(DemoFixtures.demoEnvelope(), DemoFixtures.demoEvents(), SimulationOverrides.empty())
+                : runner.simulate(options.snapshotPath(), options.eventsPath(), options.overridesPath());
         String output = EngineJson.write(report);
         if (options.outputPath() != null) {
             writeText(options.outputPath(), output);
@@ -131,10 +165,10 @@ public class LocalSimulationRunner {
         System.out.println(output);
     }
 
-    private LocalDecisionEngine newEngine() {
+    private LocalDecisionEngine newEngine(StreamFeatureStateStore stateStore, LookupService lookupService) {
         return new LocalDecisionEngine(new SceneRuntimeManager(runtimeCompiler),
-                stateStoreSupplier.get(),
-                lookupServiceSupplier.get(),
+                stateStore,
+                lookupService,
                 decisionExecutor);
     }
 
@@ -159,6 +193,7 @@ public class LocalSimulationRunner {
         result.setTraceId(decisionResult.getTraceId());
         result.setSceneCode(decisionResult.getSceneCode());
         result.setVersion(decisionResult.getVersion());
+        result.setUsedVersion(decisionResult.getVersion());
         result.setFinalAction(decisionResult.getFinalAction());
         result.setFinalScore(decisionResult.getFinalScore());
         result.setHitRules(decisionResult.getRuleHits().stream()
@@ -225,9 +260,13 @@ public class LocalSimulationRunner {
 
         private Integer version;
 
+        private Integer usedVersion;
+
         private String checksum;
 
         private Integer eventCount;
+
+        private boolean overridesApplied;
 
         private SimulationEventResult finalResult;
 
@@ -251,6 +290,8 @@ public class LocalSimulationRunner {
         private String sceneCode;
 
         private Integer version;
+
+        private Integer usedVersion;
 
         private ActionType finalAction;
 
@@ -302,7 +343,79 @@ public class LocalSimulationRunner {
         }
     }
 
-    private record CliOptions(boolean demo, Path snapshotPath, Path eventsPath, Path outputPath) {
+    @Data
+    @NoArgsConstructor
+    public static class SimulationOverrides {
+
+        private Map<String, Object> lookupFeatures = new LinkedHashMap<>();
+
+        private Map<String, Object> streamFeatures = new LinkedHashMap<>();
+
+        private Map<Integer, EventOverrides> eventOverrides = new LinkedHashMap<>();
+
+        public static SimulationOverrides empty() {
+            return new SimulationOverrides();
+        }
+
+        public SimulationOverrides normalized() {
+            SimulationOverrides normalized = new SimulationOverrides();
+            normalized.setLookupFeatures(lookupFeatures);
+            normalized.setStreamFeatures(streamFeatures);
+            normalized.setEventOverrides(eventOverrides);
+            return normalized;
+        }
+
+        public boolean isEmpty() {
+            return lookupFeatures.isEmpty() && streamFeatures.isEmpty() && eventOverrides.isEmpty();
+        }
+
+        public EventOverrides resolve(int eventIndex) {
+            EventOverrides merged = new EventOverrides();
+            merged.getLookupFeatures().putAll(lookupFeatures);
+            merged.getStreamFeatures().putAll(streamFeatures);
+            EventOverrides specificOverrides = eventOverrides.get(eventIndex);
+            if (specificOverrides != null) {
+                merged.getLookupFeatures().putAll(specificOverrides.getLookupFeatures());
+                merged.getStreamFeatures().putAll(specificOverrides.getStreamFeatures());
+            }
+            return merged;
+        }
+
+        public void setLookupFeatures(Map<String, Object> lookupFeatures) {
+            this.lookupFeatures = copyObjectMap(lookupFeatures);
+        }
+
+        public void setStreamFeatures(Map<String, Object> streamFeatures) {
+            this.streamFeatures = copyObjectMap(streamFeatures);
+        }
+
+        public void setEventOverrides(Map<Integer, EventOverrides> eventOverrides) {
+            this.eventOverrides = eventOverrides == null ? new LinkedHashMap<>() : new LinkedHashMap<>(eventOverrides);
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class EventOverrides {
+
+        private Map<String, Object> lookupFeatures = new LinkedHashMap<>();
+
+        private Map<String, Object> streamFeatures = new LinkedHashMap<>();
+
+        public void setLookupFeatures(Map<String, Object> lookupFeatures) {
+            this.lookupFeatures = copyObjectMap(lookupFeatures);
+        }
+
+        public void setStreamFeatures(Map<String, Object> streamFeatures) {
+            this.streamFeatures = copyObjectMap(streamFeatures);
+        }
+    }
+
+    private record CliOptions(boolean demo,
+                              Path snapshotPath,
+                              Path eventsPath,
+                              Path overridesPath,
+                              Path outputPath) {
 
         private static CliOptions parse(String[] args) {
             if (args == null || args.length == 0) {
@@ -311,6 +424,7 @@ public class LocalSimulationRunner {
             boolean demo = false;
             Path snapshotPath = null;
             Path eventsPath = null;
+            Path overridesPath = null;
             Path outputPath = null;
             for (int index = 0; index < args.length; index++) {
                 String arg = args[index];
@@ -318,21 +432,22 @@ public class LocalSimulationRunner {
                     case "--demo" -> demo = true;
                     case "--snapshot-file" -> snapshotPath = Path.of(requireValue(args, ++index, "--snapshot-file"));
                     case "--events-file" -> eventsPath = Path.of(requireValue(args, ++index, "--events-file"));
+                    case "--overrides-file" -> overridesPath = Path.of(requireValue(args, ++index, "--overrides-file"));
                     case "--output-file" -> outputPath = Path.of(requireValue(args, ++index, "--output-file"));
                     case "--help", "-h" -> throw new IllegalArgumentException(usage());
                     default -> throw new IllegalArgumentException("unknown argument: " + arg + System.lineSeparator() + usage());
                 }
             }
             if (demo) {
-                if (snapshotPath != null || eventsPath != null) {
-                    throw new IllegalArgumentException("--demo can not be used with --snapshot-file or --events-file");
+                if (snapshotPath != null || eventsPath != null || overridesPath != null) {
+                    throw new IllegalArgumentException("--demo can not be used with --snapshot-file, --events-file or --overrides-file");
                 }
-                return new CliOptions(true, null, null, outputPath);
+                return new CliOptions(true, null, null, null, outputPath);
             }
             if (snapshotPath == null || eventsPath == null) {
                 throw new IllegalArgumentException("--snapshot-file and --events-file are required" + System.lineSeparator() + usage());
             }
-            return new CliOptions(false, snapshotPath, eventsPath, outputPath);
+            return new CliOptions(false, snapshotPath, eventsPath, overridesPath, outputPath);
         }
 
         private static String requireValue(String[] args, int index, String optionName) {
@@ -343,7 +458,84 @@ public class LocalSimulationRunner {
         }
 
         private static String usage() {
-            return "Usage: LocalSimulationRunner --demo | --snapshot-file <path> --events-file <path> [--output-file <path>]";
+            return "Usage: LocalSimulationRunner --demo | --snapshot-file <path> --events-file <path> "
+                    + "[--overrides-file <path>] [--output-file <path>]";
+        }
+    }
+
+    private static Map<String, Object> copyObjectMap(Map<String, Object> source) {
+        return source == null ? new LinkedHashMap<>() : new LinkedHashMap<>(source);
+    }
+
+    private static final class SimulationOverrideStreamFeatureStateStore implements StreamFeatureStateStore {
+
+        private final StreamFeatureStateStore delegate;
+
+        private EventOverrides activeOverrides = new EventOverrides();
+
+        private SimulationOverrideStreamFeatureStateStore(StreamFeatureStateStore delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        private void setActiveOverrides(EventOverrides activeOverrides) {
+            this.activeOverrides = activeOverrides == null ? new EventOverrides() : activeOverrides;
+        }
+
+        @Override
+        public Object evaluate(CompiledSceneRuntime.CompiledStreamFeature feature, EvalContext context) {
+            if (feature != null && feature.getSpec() != null) {
+                String featureCode = feature.getSpec().getCode();
+                if (activeOverrides.getStreamFeatures().containsKey(featureCode)) {
+                    return ValueConverter.coerce(activeOverrides.getStreamFeatures().get(featureCode), feature.getSpec().getValueType());
+                }
+            }
+            return delegate.evaluate(feature, context);
+        }
+
+        @Override
+        public void bindExecutionContext(StreamFeatureExecutionContext executionContext) {
+            delegate.bindExecutionContext(executionContext);
+        }
+
+        @Override
+        public void clearExecutionContext() {
+            delegate.clearExecutionContext();
+        }
+
+        @Override
+        public void onTimer(long timestamp) {
+            delegate.onTimer(timestamp);
+        }
+    }
+
+    private static final class SimulationOverrideLookupService implements LookupService {
+
+        private final LookupService delegate;
+
+        private EventOverrides activeOverrides = new EventOverrides();
+
+        private SimulationOverrideLookupService(LookupService delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        private void setActiveOverrides(EventOverrides activeOverrides) {
+            this.activeOverrides = activeOverrides == null ? new EventOverrides() : activeOverrides;
+        }
+
+        @Override
+        public Object lookup(cn.liboshuai.pulsix.engine.model.LookupType lookupType, String sourceRef, String key) {
+            return delegate.lookup(lookupType, sourceRef, key);
+        }
+
+        @Override
+        public Object lookup(CompiledSceneRuntime.CompiledLookupFeature feature, EvalContext context) {
+            if (feature != null && feature.getSpec() != null) {
+                String featureCode = feature.getSpec().getCode();
+                if (activeOverrides.getLookupFeatures().containsKey(featureCode)) {
+                    return ValueConverter.coerce(activeOverrides.getLookupFeatures().get(featureCode), feature.getSpec().getValueType());
+                }
+            }
+            return delegate.lookup(feature, context);
         }
     }
 }

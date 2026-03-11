@@ -164,9 +164,17 @@ public class DecisionEngineJob {
             String jdbcUrl = property("pulsix.engine.snapshot-jdbc-url", null);
             String jdbcUser = property("pulsix.engine.snapshot-jdbc-user", null);
             String jdbcPassword = property("pulsix.engine.snapshot-jdbc-password", null);
-            String jdbcSceneCode = property("pulsix.engine.snapshot-scene-code", null);
-            Integer jdbcVersion = integerProperty("pulsix.engine.snapshot-version");
+            String snapshotSceneCode = property("pulsix.engine.snapshot-scene-code", null);
+            Integer snapshotVersion = integerProperty("pulsix.engine.snapshot-version");
             String jdbcQuery = property("pulsix.engine.snapshot-jdbc-query", null);
+            String cdcHost = property("pulsix.engine.snapshot-cdc-host", null);
+            Integer cdcPort = integerProperty("pulsix.engine.snapshot-cdc-port");
+            String cdcDatabase = property("pulsix.engine.snapshot-cdc-database", null);
+            String cdcTable = property("pulsix.engine.snapshot-cdc-table", "scene_release");
+            String cdcUser = property("pulsix.engine.snapshot-cdc-user", null);
+            String cdcPassword = property("pulsix.engine.snapshot-cdc-password", null);
+            String cdcServerId = property("pulsix.engine.snapshot-cdc-server-id", null);
+            String cdcServerTimeZone = property("pulsix.engine.snapshot-cdc-server-time-zone", "UTC");
 
             if (args != null) {
                 for (int index = 0; index < args.length; index++) {
@@ -178,9 +186,17 @@ public class DecisionEngineJob {
                         case "--snapshot-jdbc-url" -> jdbcUrl = requireValue(args, ++index, arg);
                         case "--snapshot-jdbc-user" -> jdbcUser = requireValue(args, ++index, arg);
                         case "--snapshot-jdbc-password" -> jdbcPassword = requireValue(args, ++index, arg);
-                        case "--snapshot-scene-code" -> jdbcSceneCode = requireValue(args, ++index, arg);
-                        case "--snapshot-version" -> jdbcVersion = Integer.parseInt(requireValue(args, ++index, arg));
+                        case "--snapshot-scene-code" -> snapshotSceneCode = requireValue(args, ++index, arg);
+                        case "--snapshot-version" -> snapshotVersion = Integer.parseInt(requireValue(args, ++index, arg));
                         case "--snapshot-jdbc-query" -> jdbcQuery = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-host" -> cdcHost = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-port" -> cdcPort = Integer.parseInt(requireValue(args, ++index, arg));
+                        case "--snapshot-cdc-database" -> cdcDatabase = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-table" -> cdcTable = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-user" -> cdcUser = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-password" -> cdcPassword = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-server-id" -> cdcServerId = requireValue(args, ++index, arg);
+                        case "--snapshot-cdc-server-time-zone" -> cdcServerTimeZone = requireValue(args, ++index, arg);
                         case "--help", "-h" -> throw new IllegalArgumentException(usage());
                         default -> throw new IllegalArgumentException("unknown argument: " + arg + System.lineSeparator() + usage());
                     }
@@ -194,9 +210,17 @@ public class DecisionEngineJob {
                     jdbcUrl,
                     jdbcUser,
                     jdbcPassword,
-                    jdbcSceneCode,
-                    jdbcVersion,
-                    jdbcQuery);
+                    snapshotSceneCode,
+                    snapshotVersion,
+                    jdbcQuery,
+                    cdcHost,
+                    cdcPort,
+                    cdcDatabase,
+                    cdcTable,
+                    cdcUser,
+                    cdcPassword,
+                    cdcServerId,
+                    cdcServerTimeZone);
             return new JobOptions(options);
         }
 
@@ -228,10 +252,13 @@ public class DecisionEngineJob {
         }
 
         private static String usage() {
-            return "Usage: DecisionEngineJob [--snapshot-source demo|file|jdbc] "
+            return "Usage: DecisionEngineJob [--snapshot-source demo|file|jdbc|cdc] "
                     + "[--snapshot-file <path>] [--snapshot-poll-ms <ms>] "
                     + "[--snapshot-jdbc-url <url> --snapshot-jdbc-user <user> --snapshot-jdbc-password <password>] "
-                    + "[--snapshot-scene-code <sceneCode>] [--snapshot-version <version>] [--snapshot-jdbc-query <sql>]";
+                    + "[--snapshot-scene-code <sceneCode>] [--snapshot-version <version>] [--snapshot-jdbc-query <sql>] "
+                    + "[--snapshot-cdc-host <host> --snapshot-cdc-port <port> --snapshot-cdc-database <db> "
+                    + "--snapshot-cdc-table <table> --snapshot-cdc-user <user> --snapshot-cdc-password <password> "
+                    + "[--snapshot-cdc-server-id <serverId>] [--snapshot-cdc-server-time-zone <tz>]]";
         }
     }
 

@@ -102,8 +102,7 @@ public class DecisionExecutor {
     private Object executeLookupFeature(CompiledSceneRuntime.CompiledLookupFeature feature,
                                         EvalContext context,
                                         LookupService lookupService) {
-        String key = ValueConverter.asString(feature.getKeyScript().execute(context));
-        Object value = lookupService.lookup(feature.getSpec().getLookupType(), feature.getSpec().getSourceRef(), key);
+        Object value = lookupService.lookup(feature, context);
         return value != null ? value : ValueConverter.coerce(feature.getSpec().getDefaultValue(), feature.getSpec().getValueType());
     }
 

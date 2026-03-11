@@ -15,12 +15,21 @@ public final class SceneSnapshotSourceFactory {
     public static DataStream<SceneSnapshotEnvelope> build(StreamExecutionEnvironment env,
                                                           SceneSnapshotSourceOptions options) {
         SceneSnapshotSourceOptions effectiveOptions = options == null ? SceneSnapshotSourceOptions.demo() : options;
-        SourceFunction<SceneSnapshotEnvelope> source = switch (effectiveOptions.type()) {
-            case DEMO -> new DemoSceneSnapshotSource();
-            case FILE -> new FilePollingSceneSnapshotSource(effectiveOptions.filePath(), effectiveOptions.pollIntervalMs());
-            case JDBC -> new JdbcPollingSceneSnapshotSource(effectiveOptions);
+        return switch (effectiveOptions.type()) {
+            case CDC -> MySqlCdcSceneSnapshotSourceFactory.build(env, effectiveOptions);
+            case DEMO, FILE, JDBC -> buildSourceFunctionStream(env, effectiveOptions);
         };
-        String sourceName = "scene-snapshot-source-" + effectiveOptions.type().name().toLowerCase();
+    }
+
+    private static DataStream<SceneSnapshotEnvelope> buildSourceFunctionStream(StreamExecutionEnvironment env,
+                                                                               SceneSnapshotSourceOptions options) {
+        SourceFunction<SceneSnapshotEnvelope> source = switch (options.type()) {
+            case DEMO -> new DemoSceneSnapshotSource();
+            case FILE -> new FilePollingSceneSnapshotSource(options.filePath(), options.pollIntervalMs());
+            case JDBC -> new JdbcPollingSceneSnapshotSource(options);
+            case CDC -> throw new IllegalArgumentException("CDC source must be built via MySqlCdcSceneSnapshotSourceFactory");
+        };
+        String sourceName = "scene-snapshot-source-" + options.type().name().toLowerCase();
         return env.addSource(source, EngineTypeInfos.sceneSnapshotEnvelope())
                 .name(sourceName)
                 .uid(sourceName);

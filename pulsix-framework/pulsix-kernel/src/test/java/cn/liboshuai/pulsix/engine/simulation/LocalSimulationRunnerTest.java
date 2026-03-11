@@ -3,15 +3,16 @@ package cn.liboshuai.pulsix.engine.simulation;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
+import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,12 +37,68 @@ class LocalSimulationRunnerTest {
         assertEquals("TRADE_RISK_v12", report.getSnapshotId());
         assertEquals("TRADE_RISK", report.getSceneCode());
         assertEquals(12, report.getVersion());
+        assertEquals(12, report.getUsedVersion());
         assertEquals(1, report.getEventCount());
         assertEquals(ActionType.REJECT, report.getFinalResult().getFinalAction());
         assertEquals(100, report.getFinalResult().getFinalScore());
         assertEquals(List.of("设备命中黑名单"), report.getFinalResult().getHitReasons());
         assertEquals("true", report.getFinalResult().getFeatureSnapshot().get("device_in_blacklist"));
         assertEquals(List.of("R001"), report.getFinalResult().getHitRules().stream()
+                .map(LocalSimulationRunner.MatchedRule::getRuleCode)
+                .toList());
+    }
+
+    @Test
+    void shouldApplyGlobalStreamFeatureOverridesFromFile() throws IOException {
+        LocalSimulationRunner runner = new LocalSimulationRunner();
+        Path snapshotFile = tempDir.resolve("snapshot-envelope.json");
+        Path eventFile = tempDir.resolve("high-amount-event.json");
+        Path overridesFile = tempDir.resolve("simulation-overrides.json");
+        Files.writeString(snapshotFile, DemoFixtures.demoEnvelopeJson());
+        Files.writeString(eventFile, DemoFixtures.toJson(highAmountEvent()));
+        Files.writeString(overridesFile, """
+                {
+                  "streamFeatures": {
+                    "user_trade_cnt_5m": 3
+                  }
+                }
+                """);
+
+        LocalSimulationRunner.SimulationReport report = runner.simulate(snapshotFile, eventFile, overridesFile);
+
+        assertTrue(report.isOverridesApplied());
+        assertEquals(ActionType.REVIEW, report.getFinalResult().getFinalAction());
+        assertEquals(60, report.getFinalResult().getFinalScore());
+        assertEquals(List.of("R002"), report.getFinalResult().getHitRules().stream()
+                .map(LocalSimulationRunner.MatchedRule::getRuleCode)
+                .toList());
+        assertEquals("3", report.getFinalResult().getFeatureSnapshot().get("user_trade_cnt_5m"));
+    }
+
+    @Test
+    void shouldApplyPerEventLookupOverrides() {
+        LocalSimulationRunner runner = new LocalSimulationRunner();
+        String overridesJson = """
+                {
+                  "eventOverrides": {
+                    "1": {
+                      "lookupFeatures": {
+                        "device_in_blacklist": true
+                      }
+                    }
+                  }
+                }
+                """;
+
+        LocalSimulationRunner.SimulationReport report = runner.simulate(
+                DemoFixtures.demoEnvelopeJson(),
+                DemoFixtures.toJson(List.of(normalPassEvent("E-001", "T-001"), normalPassEvent("E-002", "T-002"))),
+                overridesJson);
+
+        assertEquals(2, report.getEventCount());
+        assertEquals(ActionType.PASS, report.getResults().get(0).getFinalAction());
+        assertEquals(ActionType.REJECT, report.getResults().get(1).getFinalAction());
+        assertEquals(List.of("R001"), report.getResults().get(1).getHitRules().stream()
                 .map(LocalSimulationRunner.MatchedRule::getRuleCode)
                 .toList());
     }
@@ -105,6 +162,24 @@ class LocalSimulationRunnerTest {
         } finally {
             System.setOut(originalOut);
         }
+    }
+
+    private RiskEvent highAmountEvent() {
+        RiskEvent event = EngineJson.read(DemoFixtures.toJson(DemoFixtures.demoEvents().get(0)), RiskEvent.class);
+        event.setEventId("E-HIGH-001");
+        event.setTraceId("T-HIGH-001");
+        event.setAmount(new java.math.BigDecimal("6800"));
+        return event;
+    }
+
+    private RiskEvent normalPassEvent(String eventId, String traceId) {
+        RiskEvent event = EngineJson.read(DemoFixtures.toJson(DemoFixtures.demoEvents().get(0)), RiskEvent.class);
+        event.setEventId(eventId);
+        event.setTraceId(traceId);
+        event.setDeviceId("D-NORMAL-001");
+        event.setUserId("U2002");
+        event.setAmount(new java.math.BigDecimal("800"));
+        return event;
     }
 
 }
