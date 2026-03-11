@@ -14,6 +14,7 @@ string_no_ttl_count=0
 string_ttl_count=0
 hash_count=0
 set_count=0
+ttl_repair_count=0
 
 redis_cli() {
   if [ -n "${password}" ]; then
@@ -24,19 +25,59 @@ redis_cli() {
   redis-cli -h "${host}" -p "${port}" -n "${database}" "$@"
 }
 
+ensure_expire() {
+  redis_key="$1"
+  redis_ttl="$2"
+
+  if [ "${redis_ttl}" -le 0 ]; then
+    return
+  fi
+
+  redis_type="$(redis_cli TYPE "${redis_key}")"
+  if [ "${redis_type}" = "none" ]; then
+    return
+  fi
+
+  current_ttl="$(redis_cli TTL "${redis_key}")"
+  if [ "${current_ttl}" -lt 0 ]; then
+    redis_cli EXPIRE "${redis_key}" "${redis_ttl}" >/dev/null
+    ttl_repair_count=$((ttl_repair_count + 1))
+  fi
+}
+
 set_string() {
   redis_key="$1"
   redis_value="$2"
   redis_ttl="${3:-0}"
 
-  if [ "${redis_ttl}" -gt 0 ]; then
-    redis_cli SETEX "${redis_key}" "${redis_ttl}" "${redis_value}" >/dev/null
-    string_ttl_count=$((string_ttl_count + 1))
+  if [ "${force_init}" = "true" ]; then
+    if [ "${redis_ttl}" -gt 0 ]; then
+      redis_cli SETEX "${redis_key}" "${redis_ttl}" "${redis_value}" >/dev/null
+      string_ttl_count=$((string_ttl_count + 1))
+      return
+    fi
+
+    redis_cli SET "${redis_key}" "${redis_value}" >/dev/null
+    string_no_ttl_count=$((string_no_ttl_count + 1))
     return
   fi
 
-  redis_cli SET "${redis_key}" "${redis_value}" >/dev/null
-  string_no_ttl_count=$((string_no_ttl_count + 1))
+  if [ "${redis_ttl}" -gt 0 ]; then
+    key_exists="$(redis_cli EXISTS "${redis_key}")"
+    if [ "${key_exists}" -eq 0 ]; then
+      redis_cli SETEX "${redis_key}" "${redis_ttl}" "${redis_value}" >/dev/null
+      string_ttl_count=$((string_ttl_count + 1))
+      return
+    fi
+
+    ensure_expire "${redis_key}" "${redis_ttl}"
+    return
+  fi
+
+  written="$(redis_cli SETNX "${redis_key}" "${redis_value}")"
+  if [ "${written}" -eq 1 ]; then
+    string_no_ttl_count=$((string_no_ttl_count + 1))
+  fi
 }
 
 set_hash() {
@@ -44,12 +85,30 @@ set_hash() {
   redis_ttl="$2"
   shift 2
 
-  redis_cli DEL "${redis_key}" >/dev/null
-  redis_cli HSET "${redis_key}" "$@" >/dev/null
-  if [ "${redis_ttl}" -gt 0 ]; then
-    redis_cli EXPIRE "${redis_key}" "${redis_ttl}" >/dev/null
+  if [ "${force_init}" = "true" ]; then
+    redis_cli DEL "${redis_key}" >/dev/null
+    redis_cli HSET "${redis_key}" "$@" >/dev/null
+    ensure_expire "${redis_key}" "${redis_ttl}"
+    hash_count=$((hash_count + 1))
+    return
   fi
-  hash_count=$((hash_count + 1))
+
+  wrote_any=0
+  while [ "$#" -gt 1 ]; do
+    redis_field="$1"
+    redis_value="$2"
+    shift 2
+
+    inserted="$(redis_cli HSETNX "${redis_key}" "${redis_field}" "${redis_value}")"
+    if [ "${inserted}" -eq 1 ]; then
+      wrote_any=1
+    fi
+  done
+
+  if [ "${wrote_any}" -eq 1 ]; then
+    hash_count=$((hash_count + 1))
+  fi
+  ensure_expire "${redis_key}" "${redis_ttl}"
 }
 
 set_members() {
@@ -57,12 +116,19 @@ set_members() {
   redis_ttl="$2"
   shift 2
 
-  redis_cli DEL "${redis_key}" >/dev/null
-  redis_cli SADD "${redis_key}" "$@" >/dev/null
-  if [ "${redis_ttl}" -gt 0 ]; then
-    redis_cli EXPIRE "${redis_key}" "${redis_ttl}" >/dev/null
+  if [ "${force_init}" = "true" ]; then
+    redis_cli DEL "${redis_key}" >/dev/null
+    redis_cli SADD "${redis_key}" "$@" >/dev/null
+    ensure_expire "${redis_key}" "${redis_ttl}"
+    set_count=$((set_count + 1))
+    return
   fi
-  set_count=$((set_count + 1))
+
+  added="$(redis_cli SADD "${redis_key}" "$@")"
+  if [ "${added}" -gt 0 ]; then
+    set_count=$((set_count + 1))
+  fi
+  ensure_expire "${redis_key}" "${redis_ttl}"
 }
 
 seed_redis() {
@@ -165,19 +231,17 @@ until redis_cli PING >/dev/null 2>&1; do
   sleep "${retry_interval_seconds}"
 done
 
-echo "[redis-init] Redis 已就绪，准备装载开发种子数据"
-
-if [ "${force_init}" != "true" ]; then
-  existing_marker="$(redis_cli GET "${marker_key}" 2>/dev/null || true)"
-  if [ -n "${existing_marker}" ]; then
-    echo "[redis-init] 检测到初始化标记 ${marker_key}=${existing_marker}，跳过装载"
-    exit 0
-  fi
+if [ "${force_init}" = "true" ]; then
+  mode="force"
+  echo "[redis-init] Redis 已就绪，准备全量重装开发种子数据"
+else
+  mode="ensure"
+  echo "[redis-init] Redis 已就绪，准备校验并补齐开发种子数据"
 fi
 
 seed_redis
-marker_value="seeded:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+marker_value="${mode}:$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 redis_cli SET "${marker_key}" "${marker_value}" >/dev/null
 
-echo "[redis-init] Redis 种子数据装载完成"
-echo "[redis-init] string(no ttl)=${string_no_ttl_count}, string(ttl)=${string_ttl_count}, hash=${hash_count}, set=${set_count}"
+echo "[redis-init] Redis 种子数据检查完成"
+echo "[redis-init] mode=${mode}, string(no ttl writes)=${string_no_ttl_count}, string(ttl writes)=${string_ttl_count}, hash ops=${hash_count}, set ops=${set_count}, ttl repairs=${ttl_repair_count}"

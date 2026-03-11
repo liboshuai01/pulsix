@@ -6,6 +6,7 @@ import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceType;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 
+import java.io.Serializable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -475,7 +476,7 @@ record DecisionEngineJobOptions(ParameterTool parameters,
     }
 
     record LookupOptions(LookupSourceType sourceType,
-                         RedisLookupConfig redisConfig) {
+                         RedisLookupConfig redisConfig) implements Serializable {
     }
 
     record OutputOptions(StreamSinkOptions decisionResultSinkOptions,

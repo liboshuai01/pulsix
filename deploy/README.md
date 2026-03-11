@@ -79,13 +79,13 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
 - 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql`
-- `Redis` 通过 `redis-init` 初始化服务在 `docker compose up -d` 后检查并装载默认开发数据；它会写入 marker key，后续重复执行不会覆盖已经初始化过的数据
+- `Redis` 通过 `redis-init` 初始化服务在 `docker compose up -d` 后检查并补齐默认开发数据；marker key 只记录最近一次成功校验，后续重复执行会保持幂等，并自动补回已经过期的 TTL 种子
 - `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
 - `Doris` 通过 `doris-init` 初始化服务在 `docker compose up -d` 后检查并创建默认库表
-- 后续仅执行 `docker compose restart`、`docker compose stop/start`、`docker compose up -d` 不会重复导入 MySQL；Redis、Kafka、Doris 的初始化服务都会做幂等检查，不会覆盖已存在对象
+- 后续再次执行 `docker compose up -d`、`docker compose up -d redis-init`，或先 `docker compose stop` 再 `docker compose up -d`，都不会重复导入 MySQL；Redis、Kafka、Doris 的初始化服务会继续做幂等检查，其中 Redis 会保留已存在值，并自动补齐缺失或已过期的 TTL 种子
 - 由于 Doris 使用固定容器 IP，若你修改了 `PULSIX_SUBNET` 或 Doris IP 配置，需要先执行一次 `docker compose down` 以重建网络
 - `Doris` 使用独立 Docker Volume 持久化 FE 元数据和 BE 存储，重复执行 `docker compose up -d` 不会丢数据
-- 如需强制重装 Redis 种子数据，可在 `.env` 里临时把 `REDIS_INIT_FORCE=true`，然后执行 `docker compose up -d redis-init`；完成后建议改回 `false`
+- 如需强制重装 Redis 种子数据，可在 `.env` 里临时把 `REDIS_INIT_FORCE=true`，然后执行 `docker compose up -d redis-init`；该模式会覆盖当前 seed key 的值，完成后建议改回 `false`
 - 如果你已经初始化过一次，又想重新执行初始化，需要显式删除数据卷后重建：
 
 ```bash
@@ -123,6 +123,7 @@ docker compose up -d
 - 缓存：`pulsix:cache:scene:active_version:*`、`pulsix:cache:simulation:*`、`pulsix:cache:warmup:*`
 - 字典：`pulsix:dict:geo:ip:*`、`pulsix:dict:merchant:risk:*`
 - 数据口径主要对齐 `docs/wiki/pulsix-engine-kernel-一期开发指南.md`、`docs/wiki/kafka-redis-doris-落地清单.md`、`docs/sql/pulsix-risk.sql` 与 `pulsix-engine` 的 demo fixture / lookup 约定
+- 再次执行 `docker compose up -d redis-init` 或整套 `docker compose up -d` 时，`redis-init` 会只补缺失 seed；像 `24h` / `2h` / `30m` 这类 TTL key 过期后，会在下一次校验时自动恢复，无需再手工打开 `REDIS_INIT_FORCE`
 
 ## 默认 Doris 库表
 
