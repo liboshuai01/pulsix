@@ -10,7 +10,7 @@
 
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
 - 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
-- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具、`scene_release` 的 `demo/file/jdbc/cdc` 快照接入骨架，以及真实 Redis Lookup 与基础降级能力。
+- 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具、`scene_release` 的 `demo/file/jdbc/cdc` 快照接入、Kafka 主链路稳定输出，以及真实 Redis Lookup 与降级能力。
 - 当前还缺：版本治理、运行时约束进一步落地，以及 Groovy 安全 / 错误分级 / 指标 / 恢复验证等生产化能力。
 - 一期后续最合理的顺序应是：**版本治理 -> 生产化收口**。
 
@@ -241,7 +241,7 @@ standard RiskEvent
 
 - `SceneSnapshotSourceType` 与 `SceneSnapshotSourceFactory` 已统一支持 `demo/file/jdbc/cdc` 四种快照来源。
 - `SceneReleaseJdbcSnapshotLoader`、`JdbcPollingSceneSnapshotSource`、`JdbcBootstrapSceneSnapshotSource` 已支持从 `scene_release` 读取快照，并统一还原为 `SceneSnapshotEnvelope`。
-- `SceneReleaseCdcPayloadParser` 与 `MySqlCdcSceneSnapshotSourceFactory` 已支持 MySQL CDC 增量接入，并复用 JDBC bootstrap 做当前快照预热。
+- `SceneReleaseCdcPayloadParser` 与 `MySqlCdcSceneSnapshotSourceFactory` 已支持 MySQL CDC 增量接入，并复用 JDBC bootstrap 做当前快照预热；CDC 首发已收口为“JDBC bootstrap + CDC latest 增量”。
 - `SceneReleaseSnapshotSelector` 已统一 bootstrap 选择逻辑：默认选择每个 scene 当前生效的最新版本，也支持 `snapshotSceneCode / snapshotVersion / jdbcQuery` 精确筛选。
 - `DecisionEngineJob` 已补齐 `--snapshot-source demo|file|jdbc|cdc` 及 JDBC/CDC 相关 CLI 参数，文件或数据库样例都可直接喂给引擎。
 - 新增 `SceneReleaseSnapshotSelectorTest` 与 `SceneReleaseCdcPayloadParserTest`，覆盖版本筛选、future `effectiveFrom`、CDC payload 解析与发布状态过滤等关键回归。
@@ -267,11 +267,11 @@ standard RiskEvent
 **本次落地结果**
 
 - `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
-- 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`。
+- 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`，Kafka 输出默认按 `traceId` 写 key，缺失时回退到 `eventId`。
 - Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
 - 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。
 - 新增 `DecisionEngineJobOptionsTest` 与 `RiskEventJsonCodecTest`，覆盖 Kafka 参数解析、默认 Demo 回退、非法事件校验与 JSON 序列化关键回归。
-- `DecisionEngineJob` 现已支持通过类路径默认 `pulsix-engine.properties`、外部 `--config-file` 与 `ParameterTool` 统一收口作业参数；Kafka、快照源、checkpoint、状态后端、MiniCluster 资源与本地日志路径都可以通过配置文件管理。
+- `DecisionEngineJob` 现已支持通过类路径默认 `pulsix-engine.properties`、外部 `--config-file` 与 `ParameterTool` 统一收口作业参数；Kafka、快照源、checkpoint、状态后端、MiniCluster 资源与本地日志路径都可以通过配置文件管理，默认仍保留纯 Demo 最小回归基线。
 
 ### 阶段 6：真实 Redis Lookup 与降级（已完成，`2026-03-12`）
 
@@ -294,9 +294,9 @@ standard RiskEvent
 **本次落地结果**
 
 - `pulsix-kernel` 新增 `RedisLookupConfig`、`RedisLookupService`、`LookupResult`，已支持 `REDIS_SET / REDIS_HASH / REDIS_STRING / DICT` 在线查询。
-- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`defaultValue` 已真实生效：Redis 访问超时走 feature 级超时，成功值按 `cacheTtlSeconds` 做进程内短缓存，lookup key 为空 / Redis 值缺失 / 连接失败时按 `defaultValue` 或缓存值降级。
+- `LookupFeatureSpec.timeoutMs`、`cacheTtlSeconds`、`defaultValue` 已真实生效：Redis 访问超时走 feature 级超时，成功值按 `cacheTtlSeconds` 做进程内短缓存，lookup key 为空 / Redis 值缺失 / 连接失败 / 其他运行时异常时按 `defaultValue` 或缓存值降级。
 - `DecisionExecutor`、`EngineErrorRecord`、`DecisionBroadcastProcessFunction` 已打通 lookup 错误流，错误码可区分 `LOOKUP_TIMEOUT`、`LOOKUP_CONNECTION_FAILED`、`LOOKUP_VALUE_MISSING`、`LOOKUP_KEY_MISSING`，并携带 `featureCode`、`sourceRef`、`lookupKey`、`fallbackMode`。
-- `DecisionEngineJob` 已支持 `--lookup-source redis` 及 Redis 连接参数，默认配置已切到本地 `deploy` 启动的 Redis；`DecisionEngineJobOptions.LookupOptions` 也已补齐 `Serializable`，IDEA 本地启动不再因 Flink closure clean 失败。
+- `DecisionEngineJob` 已支持 `--lookup-source redis` 及 Redis 连接参数；默认配置仍保留 `demo` lookup 作为最小样例基线，需要联调时再切到本地 `deploy` 启动的 Redis；`DecisionEngineJobOptions.LookupOptions` 也已补齐 `Serializable`，IDEA 本地启动不再因 Flink closure clean 失败。
 - 新增 / 更新 `RedisLookupServiceTest`、`DecisionBroadcastProcessFunctionTest`、`DecisionEngineJobOptionsTest`，覆盖 Redis lookup、timeout/default fallback、错误流与参数解析回归。
 - 已在本地 `deploy` 的 `Redis + Kafka` 上完成真实链路 smoke：先验证缺失画像时会输出 `LOOKUP_VALUE_MISSING + DEFAULT_VALUE`，再补齐 Redis 画像后复测，`DecisionEngineJob` 可直接消费 Kafka 事件并命中真实 `user_risk_level=H`；四条交易事件累积后，`E-SMOKE-20260312C-4` 最终得到 `REJECT / 80`，无额外 lookup 错误输出。
 - `deploy/redis/init/01-init-redis.sh` 已改为“幂等校验 + TTL 自动补种”模式：再次执行 `docker compose up -d redis-init` 时会保留已有 seed，并自动补回过期的画像 / 特征 / 缓存 key，不再依赖手工打开 `REDIS_INIT_FORCE`。
