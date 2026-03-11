@@ -6,9 +6,12 @@ import cn.liboshuai.pulsix.engine.model.ActionType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,6 +76,25 @@ class LocalSimulationRunnerTest {
                 () -> runner.simulate(DemoFixtures.demoEnvelopeJson(), "   "));
 
         assertEquals("eventsJson must not be blank", exception.getMessage());
+    }
+
+    @Test
+    void shouldFallbackToDemoWhenMainRunsWithoutArguments() {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            System.setOut(new PrintStream(outputStream, true, StandardCharsets.UTF_8));
+
+            LocalSimulationRunner.main(new String[0]);
+
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            LocalSimulationRunner.SimulationReport report = EngineJson.read(output, LocalSimulationRunner.SimulationReport.class);
+            assertEquals(6, report.getEventCount());
+            assertEquals(ActionType.REJECT, report.getFinalResult().getFinalAction());
+            assertEquals(80, report.getFinalResult().getFinalScore());
+        } finally {
+            System.setOut(originalOut);
+        }
     }
 
 }

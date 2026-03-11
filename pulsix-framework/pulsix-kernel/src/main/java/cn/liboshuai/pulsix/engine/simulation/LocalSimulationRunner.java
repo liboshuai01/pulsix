@@ -128,7 +128,8 @@ public class LocalSimulationRunner {
     }
 
     public static void main(String[] args) {
-        CliOptions options = CliOptions.parse(args);
+        String[] effectiveArgs = args == null || args.length == 0 ? new String[]{"--demo"} : args;
+        CliOptions options = CliOptions.parse(effectiveArgs);
         LocalSimulationRunner runner = new LocalSimulationRunner();
         SimulationReport report = options.demo()
                 ? runner.simulate(DemoFixtures.demoEnvelope(), DemoFixtures.demoEvents())
