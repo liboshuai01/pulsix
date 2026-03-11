@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore
 import cn.liboshuai.pulsix.engine.feature.InMemoryLookupService;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
 import cn.liboshuai.pulsix.engine.feature.StreamFeatureStateStore;
+import cn.liboshuai.pulsix.engine.flink.runtime.SceneRuntimeCache;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
@@ -13,7 +14,6 @@ import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
-import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeCache;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import org.apache.flink.api.common.typeinfo.TypeInformation;

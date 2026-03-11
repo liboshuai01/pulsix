@@ -155,7 +155,7 @@ standard RiskEvent
 **本次落地结果**
 
 - 已迁移 `model / context / script / runtime / core / feature / support / json / demo` 等共享代码到 `pulsix-framework/pulsix-kernel`。
-- 已把 `LocalDecisionEngineTest`、`EngineJsonTest`、`SceneRuntimeManagerTest` 等共享回归迁入 `pulsix-kernel`；Flink `typeinfo` 与版本缓存回归保留在 `pulsix-engine`。
+- 已把 `LocalDecisionEngineTest`、`EngineJsonTest`、`SceneRuntimeManagerTest` 等共享回归迁入 `pulsix-kernel`；Flink `typeinfo` 与 `flink.runtime` 侧版本缓存回归保留在 `pulsix-engine`。
 - `pulsix-engine` 当前保留 `flink` 适配、`FlinkKeyedStateStreamFeatureStateStore`、Demo 作业入口与 Flink 相关回归。
 - 根目录新增 `.mvn/maven.config` 并默认启用 `-am`，保证 `mvn -q -pl pulsix-engine test` 在拆模块后仍可直接使用。
 
@@ -190,7 +190,7 @@ standard RiskEvent
 - 支持读取 `SceneSnapshot` JSON、`SceneSnapshotEnvelope` JSON，以及单条 / 数组两种事件 JSON 形态。
 - Runner 输出固定 `SimulationReport`，包含 `finalAction`、`finalScore`、`hitRules`、`hitReasons`、`featureSnapshot`、`trace`，且不暴露波动性的 `latency` 字段，便于重复回归。
 - 默认装配复用 `RuntimeCompiler + LocalDecisionEngine + InMemoryStreamFeatureStateStore + InMemoryLookupService.demo()`，没有新增第二套执行语义。
-- 新增 `LocalSimulationRunnerTest`，覆盖文件输入、黑名单拒绝、数组事件顺序执行、重复运行结果一致，以及空事件输入失败路径。
+- 新增 `LocalSimulationRunnerTest`，覆盖文件输入、黑名单拒绝、数组事件顺序执行、重复运行结果一致，以及空白 / 空数组事件输入失败路径。
 
 ### 阶段 3：轻量回放与 golden case 回归
 

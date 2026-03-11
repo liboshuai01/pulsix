@@ -79,6 +79,16 @@ class LocalSimulationRunnerTest {
     }
 
     @Test
+    void shouldRejectEmptyEventArrayPayload() {
+        LocalSimulationRunner runner = new LocalSimulationRunner();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> runner.simulate(DemoFixtures.demoEnvelopeJson(), "[]"));
+
+        assertEquals("events must not be empty", exception.getMessage());
+    }
+
+    @Test
     void shouldFallbackToDemoWhenMainRunsWithoutArguments() {
         PrintStream originalOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
