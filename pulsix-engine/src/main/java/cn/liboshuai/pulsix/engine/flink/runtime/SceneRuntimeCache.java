@@ -10,12 +10,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 public class SceneRuntimeCache {
 
+    private static final int DEFAULT_MAX_VERSIONS_PER_SCENE = 8;
+
     private final int maxVersionsPerScene;
 
     private final Map<String, NavigableMap<Integer, CompiledSceneRuntime>> runtimeCache = new ConcurrentHashMap<>();
 
     public SceneRuntimeCache() {
-        this(2);
+        this(DEFAULT_MAX_VERSIONS_PER_SCENE);
     }
 
     public SceneRuntimeCache(int maxVersionsPerScene) {

@@ -5,8 +5,10 @@ import cn.liboshuai.pulsix.engine.feature.LookupResult;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.json.EngineJson;
 import cn.liboshuai.pulsix.engine.model.ActionType;
+import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
@@ -25,6 +27,7 @@ import java.util.Objects;
 import java.util.Queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DecisionBroadcastProcessFunctionTest {
@@ -240,6 +243,93 @@ class DecisionBroadcastProcessFunctionTest {
         }
     }
 
+    @Test
+    void shouldRollbackToOlderVersionWhenPublishTypeIsRollback() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope version12 = baselineEnvelopeForBroadcastSwitch();
+            SceneSnapshotEnvelope version13 = disableBlacklistRuleEnvelope();
+            SceneSnapshotEnvelope rollback12 = rollbackEnvelope(version12,
+                    Instant.parse("2026-03-07T20:10:00Z"),
+                    Instant.parse("2026-03-07T20:10:00Z"));
+            RiskEvent firstEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent secondEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent thirdEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            secondEvent.setEventId("E202603070399");
+            secondEvent.setTraceId("T202603070399");
+            secondEvent.setEventTime(firstEvent.getEventTime().plusSeconds(30));
+            thirdEvent.setEventId("E202603070499");
+            thirdEvent.setTraceId("T202603070499");
+            thirdEvent.setEventTime(firstEvent.getEventTime().plusSeconds(60));
+
+            harness.setProcessingTime(epochMillis(version12.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(version12, epochMillis(version12.getPublishedAt()));
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(version13.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(version13, epochMillis(version13.getPublishedAt()));
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+
+            harness.setProcessingTime(epochMillis(rollback12.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(rollback12, epochMillis(rollback12.getPublishedAt()));
+            harness.processElement(thirdEvent, epochMillis(thirdEvent.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(3, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(13, results.get(1).getVersion());
+            assertEquals(ActionType.PASS, results.get(1).getFinalAction());
+            assertEquals(12, results.get(2).getVersion());
+            assertEquals(ActionType.REJECT, results.get(2).getFinalAction());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldKeepCurrentRuntimeWhenNewSnapshotCompilationFails() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope version12 = baselineEnvelopeForBroadcastSwitch();
+            SceneSnapshotEnvelope invalidVersion14 = groovyDisabledEnvelope();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.setProcessingTime(epochMillis(version12.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(version12, epochMillis(version12.getPublishedAt()));
+
+            harness.setProcessingTime(epochMillis(invalidVersion14.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(invalidVersion14, epochMillis(invalidVersion14.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size());
+            assertEquals(12, results.get(0).getVersion());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(1, sideOutput(harness, EngineOutputTags.ENGINE_ERROR).size());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).toString().contains("allowGroovy"));
+        }
+    }
+
+    @Test
+    void shouldTrimDecisionLogWhenFullDecisionLogDisabled() throws Exception {
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            SceneSnapshotEnvelope envelope = minimalDecisionLogEnvelope();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            harness.processElement(event, epochMillis(event.getEventTime()));
+
+            Queue<?> decisionLogs = sideOutput(harness, EngineOutputTags.DECISION_LOG);
+            assertEquals(1, decisionLogs.size());
+            @SuppressWarnings("unchecked")
+            DecisionLogRecord record = ((StreamRecord<DecisionLogRecord>) decisionLogs.peek()).getValue();
+            assertEquals(ActionType.REJECT, record.getFinalAction());
+            assertEquals(1, record.getRuleHits().size());
+            assertEquals("R001", record.getRuleHits().get(0).getRuleCode());
+            assertNull(record.getFeatureSnapshot());
+            assertNull(record.getTraceLogs());
+        }
+    }
+
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness() throws Exception {
         return newHarness(null);
     }
@@ -292,6 +382,37 @@ class DecisionBroadcastProcessFunctionTest {
         rule.setEnabled(false);
         snapshot.setRules(List.of(rule));
         snapshot.getPolicy().setRuleOrder(List.of("R001"));
+        return envelopeOf(snapshot);
+    }
+
+    private SceneSnapshotEnvelope rollbackEnvelope(SceneSnapshotEnvelope baseline,
+                                                   Instant publishedAt,
+                                                   Instant effectiveFrom) {
+        SceneSnapshot snapshot = copy(baseline.getSnapshot(), SceneSnapshot.class);
+        snapshot.setPublishedAt(publishedAt);
+        snapshot.setEffectiveFrom(effectiveFrom);
+        SceneSnapshotEnvelope envelope = envelopeOf(snapshot);
+        envelope.setPublishType(PublishType.ROLLBACK);
+        return envelope;
+    }
+
+    private SceneSnapshotEnvelope groovyDisabledEnvelope() {
+        SceneSnapshot snapshot = DemoFixtures.demoSnapshot();
+        snapshot.setVersion(14);
+        snapshot.setChecksum("switch-checksum-v14-groovy-disabled");
+        snapshot.setPublishedAt(Instant.parse("2026-03-07T20:08:00Z"));
+        snapshot.setEffectiveFrom(snapshot.getPublishedAt());
+        snapshot.getRuntimeHints().setAllowGroovy(false);
+        return envelopeOf(snapshot);
+    }
+
+    private SceneSnapshotEnvelope minimalDecisionLogEnvelope() {
+        SceneSnapshot snapshot = baselineEnvelopeForBroadcastSwitch().getSnapshot();
+        snapshot.setVersion(16);
+        snapshot.setChecksum("switch-checksum-v16-min-log");
+        snapshot.setPublishedAt(Instant.parse("2026-03-07T20:12:00Z"));
+        snapshot.setEffectiveFrom(snapshot.getPublishedAt());
+        snapshot.getRuntimeHints().setNeedFullDecisionLog(false);
         return envelopeOf(snapshot);
     }
 

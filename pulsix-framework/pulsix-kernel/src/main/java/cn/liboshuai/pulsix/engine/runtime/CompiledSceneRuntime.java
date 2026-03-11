@@ -3,6 +3,7 @@ package cn.liboshuai.pulsix.engine.runtime;
 import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.LookupFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
+import cn.liboshuai.pulsix.engine.model.RuntimeHints;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
@@ -36,6 +37,25 @@ public class CompiledSceneRuntime implements Serializable {
 
     public Integer version() {
         return snapshot.getVersion();
+    }
+
+    public RuntimeHints runtimeHints() {
+        return snapshot == null ? null : snapshot.getRuntimeHints();
+    }
+
+    public Integer maxRuleExecutionCount() {
+        RuntimeHints hints = runtimeHints();
+        return hints == null ? null : hints.getMaxRuleExecutionCount();
+    }
+
+    public boolean allowGroovy() {
+        RuntimeHints hints = runtimeHints();
+        return hints == null || !Boolean.FALSE.equals(hints.getAllowGroovy());
+    }
+
+    public boolean needFullDecisionLog() {
+        RuntimeHints hints = runtimeHints();
+        return hints == null || !Boolean.FALSE.equals(hints.getNeedFullDecisionLog());
     }
 
     public List<String> featureCodes() {

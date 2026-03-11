@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,10 @@ public class DecisionLogRecord implements Serializable {
     }
 
     public static DecisionLogRecord from(DecisionResult result) {
+        return from(result, true);
+    }
+
+    public static DecisionLogRecord from(DecisionResult result, boolean needFullDecisionLog) {
         DecisionLogRecord record = new DecisionLogRecord();
         record.setEventId(result.getEventId());
         record.setTraceId(result.getTraceId());
@@ -53,9 +58,21 @@ public class DecisionLogRecord implements Serializable {
         record.setFinalAction(result.getFinalAction());
         record.setFinalScore(result.getFinalScore());
         record.setLatencyMs(result.getLatencyMs());
-        record.setRuleHits(result.getRuleHits());
-        record.setFeatureSnapshot(result.getFeatureSnapshot());
-        record.setTraceLogs(result.getTraceLogs());
+        if (needFullDecisionLog) {
+            record.setRuleHits(result.getRuleHits());
+            record.setFeatureSnapshot(result.getFeatureSnapshot());
+            record.setTraceLogs(result.getTraceLogs());
+            return record;
+        }
+        List<RuleHit> matchedRuleHits = new ArrayList<>();
+        if (result.getRuleHits() != null) {
+            for (RuleHit ruleHit : result.getRuleHits()) {
+                if (ruleHit != null && Boolean.TRUE.equals(ruleHit.getHit())) {
+                    matchedRuleHits.add(ruleHit);
+                }
+            }
+        }
+        record.setRuleHits(matchedRuleHits);
         return record;
     }
 

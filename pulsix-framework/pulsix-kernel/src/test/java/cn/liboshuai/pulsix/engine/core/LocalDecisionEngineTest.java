@@ -6,6 +6,7 @@ import cn.liboshuai.pulsix.engine.feature.InMemoryStreamFeatureStateStore;
 import cn.liboshuai.pulsix.engine.model.ActionType;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
+import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LocalDecisionEngineTest {
@@ -48,6 +50,38 @@ class LocalDecisionEngineTest {
         assertEquals(ActionType.REJECT, result.getFinalAction());
         assertEquals(100, result.getFinalScore());
         assertEquals("true", result.getFeatureSnapshot().get("device_in_blacklist"));
+    }
+
+    @Test
+    void shouldStopEvaluatingRulesWhenMaxRuleExecutionCountReached() {
+        LocalDecisionEngine engine = newEngine();
+        SceneSnapshot snapshot = DemoFixtures.demoSnapshot();
+        snapshot.getRuntimeHints().setMaxRuleExecutionCount(1);
+        engine.publish(snapshot);
+
+        DecisionResult result = null;
+        for (RiskEvent event : DemoFixtures.demoEvents()) {
+            result = engine.evaluate(event);
+        }
+
+        assertEquals(ActionType.PASS, result.getFinalAction());
+        assertEquals(1, result.getRuleHits().size());
+        assertEquals("R001", result.getRuleHits().get(0).getRuleCode());
+        assertEquals(Boolean.FALSE, result.getRuleHits().get(0).getHit());
+    }
+
+    @Test
+    void shouldRejectEventTypeOutsideSceneAllowedEventTypes() {
+        LocalDecisionEngine engine = newEngine();
+        engine.publish(DemoFixtures.demoSnapshot());
+
+        RiskEvent event = DemoFixtures.blacklistedEvent();
+        event.setEventType("login");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> engine.evaluate(event));
+
+        assertEquals("eventType not allowed by scene", exception.getMessage());
     }
 
     private LocalDecisionEngine newEngine() {

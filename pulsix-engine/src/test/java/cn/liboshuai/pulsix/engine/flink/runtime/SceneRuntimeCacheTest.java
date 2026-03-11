@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SceneRuntimeCacheTest {
 
     @Test
-    void shouldKeepOnlyLatestTwoVersions() {
+    void shouldKeepHistoricalVersionsByDefault() {
         RuntimeCompiler compiler = new RuntimeCompiler(new DefaultScriptCompiler());
         SceneRuntimeCache cache = new SceneRuntimeCache();
 
@@ -21,9 +21,25 @@ class SceneRuntimeCacheTest {
         cache.put(compiler.compile(versionedSnapshot(13, "checksum-v13")));
         cache.put(compiler.compile(versionedSnapshot(14, "checksum-v14")));
 
-        assertFalse(cache.get("TRADE_RISK", 12).isPresent());
+        assertTrue(cache.get("TRADE_RISK", 12).isPresent());
         assertTrue(cache.get("TRADE_RISK", 13).isPresent());
         assertEquals(14, cache.get("TRADE_RISK", 14).orElseThrow().version());
+    }
+
+    @Test
+    void shouldTrimOldestVersionsWhenCustomLimitExceeded() {
+        RuntimeCompiler compiler = new RuntimeCompiler(new DefaultScriptCompiler());
+        SceneRuntimeCache cache = new SceneRuntimeCache(3);
+
+        cache.put(compiler.compile(versionedSnapshot(12, "checksum-v12")));
+        cache.put(compiler.compile(versionedSnapshot(13, "checksum-v13")));
+        cache.put(compiler.compile(versionedSnapshot(14, "checksum-v14")));
+        cache.put(compiler.compile(versionedSnapshot(15, "checksum-v15")));
+
+        assertFalse(cache.get("TRADE_RISK", 12).isPresent());
+        assertTrue(cache.get("TRADE_RISK", 13).isPresent());
+        assertTrue(cache.get("TRADE_RISK", 14).isPresent());
+        assertEquals(15, cache.get("TRADE_RISK", 15).orElseThrow().version());
     }
 
     private SceneSnapshot versionedSnapshot(int version, String checksum) {

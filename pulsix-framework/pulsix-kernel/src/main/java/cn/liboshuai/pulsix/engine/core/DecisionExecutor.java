@@ -11,6 +11,8 @@ import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
+import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
+import cn.liboshuai.pulsix.engine.model.SceneSpec;
 import cn.liboshuai.pulsix.engine.model.RuleHit;
 import cn.liboshuai.pulsix.engine.model.ScoreBandSpec;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
@@ -43,7 +45,7 @@ public class DecisionExecutor {
                                   LookupService lookupService,
                                   Consumer<EngineErrorRecord> errorCollector) {
         long startedAt = System.nanoTime();
-        validateEvent(runtime.getSnapshot().getEventSchema(), event);
+        validateEvent(runtime.getSnapshot(), event);
         Consumer<EngineErrorRecord> safeErrorCollector = errorCollector == null ? record -> {
         } : errorCollector;
 
@@ -69,8 +71,15 @@ public class DecisionExecutor {
             context.put(feature.getSpec().getCode(), value);
             context.trace("derived:" + feature.getSpec().getCode() + '=' + value);
         }
+        int maxRuleExecutionCount = resolveMaxRuleExecutionCount(runtime);
+        int executedRuleCount = 0;
         for (CompiledSceneRuntime.CompiledRule rule : runtime.getOrderedRules()) {
+            if (executedRuleCount >= maxRuleExecutionCount) {
+                context.trace("rule-limit:" + maxRuleExecutionCount);
+                break;
+            }
             context.getRuleHits().add(executeRule(rule, context));
+            executedRuleCount++;
         }
 
         PolicyOutcome outcome = applyPolicy(runtime.getPolicy(), context.getRuleHits());
@@ -89,10 +98,15 @@ public class DecisionExecutor {
         return result;
     }
 
-    private void validateEvent(EventSchemaSpec schema, RiskEvent event) {
+    private void validateEvent(SceneSnapshot snapshot, RiskEvent event) {
         if (event == null) {
             throw new IllegalArgumentException("event must not be null");
         }
+        if (snapshot == null) {
+            return;
+        }
+        validateAllowedEventTypes(snapshot.getScene(), event);
+        EventSchemaSpec schema = snapshot.getEventSchema();
         if (schema == null) {
             return;
         }
@@ -106,6 +120,26 @@ public class DecisionExecutor {
                 throw new IllegalArgumentException("required field missing: " + field);
             }
         }
+    }
+
+    private void validateAllowedEventTypes(SceneSpec scene, RiskEvent event) {
+        if (scene == null || scene.getAllowedEventTypes() == null || scene.getAllowedEventTypes().isEmpty()) {
+            return;
+        }
+        if (!scene.getAllowedEventTypes().contains(event.getEventType())) {
+            throw new IllegalArgumentException("eventType not allowed by scene");
+        }
+    }
+
+    private int resolveMaxRuleExecutionCount(CompiledSceneRuntime runtime) {
+        Integer maxRuleExecutionCount = runtime == null ? null : runtime.maxRuleExecutionCount();
+        if (maxRuleExecutionCount == null) {
+            return Integer.MAX_VALUE;
+        }
+        if (maxRuleExecutionCount < 0) {
+            return Integer.MAX_VALUE;
+        }
+        return maxRuleExecutionCount;
     }
 
     private Object executeStreamFeature(CompiledSceneRuntime.CompiledStreamFeature feature,

@@ -97,7 +97,7 @@ standard RiskEvent
 | 真实 Kafka Source / Sink | 已完成 | 已支持 `pulsix.event.standard -> DecisionResult/DecisionLogRecord/EngineErrorRecord` 的 Kafka 主链路 |
 | 真实 `scene_release` Source / CDC | 已完成 | 已支持 `demo/file/jdbc/cdc` 四种快照来源，并复用统一 `scene_release -> SceneSnapshotEnvelope` 归一化入口 |
 | 真实 Redis Lookup | 已完成 | `RedisLookupService`、`timeoutMs`、`cacheTtlSeconds`、`defaultValue` 与 lookup 降级错误流已落地，并已在本地 `Redis + Kafka` 联调验证 |
-| 版本治理 | 未完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本尚未真正落地 |
+| 版本治理 | 已完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本、运行时约束已真正参与治理 |
 | 生产化安全 | 未完成 | Groovy 沙箱、错误分级、指标、恢复验证仍缺 |
 | 测试基线 | 已完成 | 当前已有 kernel 侧共享回归与 engine 侧 Flink harness 回归，且 `mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 均通过 |
 
@@ -114,7 +114,7 @@ standard RiskEvent
 - `SCORE_CARD` 已在 `DecisionExecutor` 中实现，但当前样例、回归、一期主链路仍以 `FIRST_HIT` 为主。
 - `Groovy` 已可执行，但当前只是“可运行”，还不是“可生产”。
 - `FlinkKeyedStateStreamFeatureStateStore` 已经存在，所以“Flink Keyed State 基础版”不能再算未开始；真正未完成的是**生产级状态治理**。
-- `pulsix-engine` 侧已补上 `SceneRuntimeCache` 做按版本缓存，但当前缓存策略仍非常轻，只保留最近两个版本。
+- `pulsix-engine` 侧已补上 `SceneRuntimeCache` 做按版本缓存，当前默认保留每个 scene 最近 `8` 个编译版本，已能支撑延迟生效与显式回滚场景。
 
 ### 4.3 当前必须正视的缺口
 
@@ -301,7 +301,7 @@ standard RiskEvent
 - 已在本地 `deploy` 的 `Redis + Kafka` 上完成真实链路 smoke：先验证缺失画像时会输出 `LOOKUP_VALUE_MISSING + DEFAULT_VALUE`，再补齐 Redis 画像后复测，`DecisionEngineJob` 可直接消费 Kafka 事件并命中真实 `user_risk_level=H`；四条交易事件累积后，`E-SMOKE-20260312C-4` 最终得到 `REJECT / 80`，无额外 lookup 错误输出。
 - `deploy/redis/init/01-init-redis.sh` 已改为“幂等校验 + TTL 自动补种”模式：再次执行 `docker compose up -d redis-init` 时会保留已有 seed，并自动补回过期的画像 / 特征 / 缓存 key，不再依赖手工打开 `REDIS_INIT_FORCE`。
 
-### 阶段 7：版本治理与运行时约束落地
+### 阶段 7：版本治理与运行时约束落地（已完成，`2026-03-12`）
 
 **目标**
 
@@ -318,6 +318,17 @@ standard RiskEvent
 - 发送一个编译失败的新快照，当前运行版本不被破坏。
 - 发送一个延迟生效的快照，在生效时间前后结果表现不同且可解释。
 - 显式发送回滚版本后，当前 active runtime 能切回旧版本。
+
+**本次落地结果**
+
+- `DecisionBroadcastProcessFunction` 已让 `publishType` 真正参与版本治理：普通 `PUBLISH` 仍按版本单调前进，而显式 `ROLLBACK` 已允许切回旧版本；已补齐“先升级到 v13，再显式回滚到 v12”的 Flink harness 回归。
+- `effectiveFrom` 不再只是建模字段：future 快照继续以 pending 方式等待生效；一旦到达生效时点，版本解析会按 `effectiveFrom + publishType` 共同决定 active runtime；延迟生效回归继续保留。
+- 快照编译仍保持 `compile-before-activate`，且已补齐失败路径回归：当新快照因 `runtimeHints.allowGroovy=false` 与 Groovy 规则冲突而编译失败时，旧 active runtime 会被完整保留，并通过 `ENGINE_ERROR` 输出失败原因。
+- `SceneRuntimeCache` 默认缓存窗口已从“最近两个版本”扩到“每个场景最近 8 个编译版本”，并新增自定义窗口裁剪测试，避免历史版本切换能力继续停留在最简缓存。
+- `RuntimeHints.maxRuleExecutionCount` 已在 `DecisionExecutor` 中生效：超过上限后会停止继续执行后续规则；`LocalDecisionEngineTest` 已覆盖“只允许执行首条规则时最终回落为 PASS”的场景。
+- `RuntimeHints.allowGroovy` 已在 `RuntimeCompiler` 中生效：当 hint 显式关闭时，任何 Groovy 派生特征 / 规则都会在编译期失败，而不是带着风险进入运行态。
+- `RuntimeHints.needFullDecisionLog` 已在 Flink 日志 side output 中生效：关闭后仍保留最终动作与命中规则，但不再下沉 `featureSnapshot / traceLogs` 全量细节；已补齐 `DecisionLogRecord` 精简输出回归。
+- 顺手让 `SceneSpec.allowedEventTypes` 也真正参与运行时校验：事件类型不在场景白名单时，内核会直接拒绝执行，避免 scene 层约束继续只停留在快照契约上。
 
 ### 阶段 8：生产化收口
 

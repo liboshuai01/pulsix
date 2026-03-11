@@ -4,6 +4,7 @@ import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.EngineType;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
+import cn.liboshuai.pulsix.engine.model.RuntimeHints;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.WindowType;
@@ -66,7 +67,7 @@ public class RuntimeCompiler {
         for (DerivedFeatureSpec spec : orderDerived(defaultList(snapshot.getDerivedFeatures()))) {
             CompiledSceneRuntime.CompiledDerivedFeature compiledFeature = new CompiledSceneRuntime.CompiledDerivedFeature();
             compiledFeature.setSpec(spec);
-            compiledFeature.setExpression(scriptCompiler.compile(defaultEngine(spec.getEngineType()), spec.getExpr()));
+            compiledFeature.setExpression(compileScript(snapshot, spec.getEngineType(), spec.getExpr()));
             runtime.getOrderedDerivedFeatures().add(compiledFeature);
         }
 
@@ -77,7 +78,7 @@ public class RuntimeCompiler {
             }
             CompiledSceneRuntime.CompiledRule compiledRule = new CompiledSceneRuntime.CompiledRule();
             compiledRule.setSpec(spec);
-            compiledRule.setCondition(scriptCompiler.compile(defaultEngine(spec.getEngineType()), spec.getWhenExpr()));
+            compiledRule.setCondition(compileScript(snapshot, spec.getEngineType(), spec.getWhenExpr()));
             ruleByCode.put(spec.getCode(), compiledRule);
         }
         runtime.setOrderedRules(orderRules(ruleByCode.values(), snapshot.getPolicy()));
@@ -87,6 +88,21 @@ public class RuntimeCompiler {
 
     private CompiledScript compileAviator(String expression) {
         return scriptCompiler.compile(EngineType.AVIATOR, expression);
+    }
+
+    private CompiledScript compileScript(SceneSnapshot snapshot,
+                                         EngineType engineType,
+                                         String expression) {
+        EngineType resolvedEngineType = defaultEngine(engineType);
+        if (resolvedEngineType == EngineType.GROOVY && !allowGroovy(snapshot)) {
+            throw new IllegalArgumentException("groovy script is disabled by runtimeHints.allowGroovy");
+        }
+        return scriptCompiler.compile(resolvedEngineType, expression);
+    }
+
+    private boolean allowGroovy(SceneSnapshot snapshot) {
+        RuntimeHints hints = snapshot == null ? null : snapshot.getRuntimeHints();
+        return hints == null || !Boolean.FALSE.equals(hints.getAllowGroovy());
     }
 
     private EngineType defaultEngine(EngineType engineType) {

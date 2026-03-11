@@ -10,6 +10,7 @@ import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
+import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
@@ -264,7 +265,7 @@ public class DecisionBroadcastProcessFunction
                 return;
             }
             try {
-                outputContext.emitDecisionLog(DecisionLogRecord.from(result));
+                outputContext.emitDecisionLog(DecisionLogRecord.from(result, runtime.needFullDecisionLog()));
             } catch (Exception exception) {
                 outputContext.emitEngineError(EngineErrorRecord.of("decision-log", event, runtime.version(), exception));
             }
@@ -289,7 +290,7 @@ public class DecisionBroadcastProcessFunction
             return true;
         }
         int latestVersion = Math.max(versionOf(currentEnvelope), versionOf(pendingEnvelope));
-        if (incomingVersion < latestVersion) {
+        if (incomingVersion < latestVersion && !isRollbackEnvelope(incomingEnvelope)) {
             return true;
         }
         return false;
@@ -314,7 +315,7 @@ public class DecisionBroadcastProcessFunction
             return;
         }
         SceneSnapshotEnvelope activeEnvelope = activeEnvelopeOf(broadcastState, sceneCode);
-        if (versionOf(pendingEnvelope) <= versionOf(activeEnvelope)) {
+        if (!shouldPreferPendingOverActive(activeEnvelope, pendingEnvelope)) {
             broadcastState.remove(pendingStateKey(sceneCode));
             return;
         }
@@ -334,7 +335,7 @@ public class DecisionBroadcastProcessFunction
         SceneSnapshotEnvelope pendingEnvelope = pendingEnvelopeOf(broadcastState, sceneCode);
         if (pendingEnvelope != null
                 && isEffectiveAt(pendingEnvelope, referenceTime)
-                && versionOf(pendingEnvelope) > versionOf(activeEnvelope)) {
+                && shouldPreferPendingOverActive(activeEnvelope, pendingEnvelope)) {
             return pendingEnvelope;
         }
         return activeEnvelope;
@@ -374,6 +375,21 @@ public class DecisionBroadcastProcessFunction
 
     private int versionOf(SceneSnapshotEnvelope envelope) {
         return envelope == null || envelope.getVersion() == null ? 0 : envelope.getVersion();
+    }
+
+    private boolean shouldPreferPendingOverActive(SceneSnapshotEnvelope activeEnvelope,
+                                                  SceneSnapshotEnvelope pendingEnvelope) {
+        if (pendingEnvelope == null) {
+            return false;
+        }
+        if (isRollbackEnvelope(pendingEnvelope)) {
+            return true;
+        }
+        return versionOf(pendingEnvelope) > versionOf(activeEnvelope);
+    }
+
+    private boolean isRollbackEnvelope(SceneSnapshotEnvelope envelope) {
+        return envelope != null && envelope.getPublishType() == PublishType.ROLLBACK;
     }
 
     private boolean isEffectiveAt(SceneSnapshotEnvelope envelope, Instant referenceTime) {
