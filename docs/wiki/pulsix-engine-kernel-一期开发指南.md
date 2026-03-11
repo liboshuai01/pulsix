@@ -11,8 +11,8 @@
 - 一期主线不变：先把 **执行内核** 和 **Flink 实时主链路** 打透，再补控制面和正式接入层。
 - 当前最真实的 repo 状态已经从“`kernel` 还没开始”推进到：**共享执行语义已归位到 `pulsix-framework/pulsix-kernel`；`pulsix-engine` 主要保留 Flink 适配、Demo Job 与少量 Flink 专属状态适配代码。**
 - 当前已经具备：运行时快照契约、事件契约、运行时编译、规则/策略执行、本地执行、基础流式特征、Flink `Broadcast + Keyed State` 适配、样例 SQL/JSON、单测回归、`kernel` 物理模块归位、本地仿真 / 轻量回放 / golden case 回归工具，以及 `scene_release` 的 `demo/file/jdbc/cdc` 快照接入骨架。
-- 当前还缺：真实 Kafka/Redis 集成、版本治理、生产化观测与降级能力。
-- 一期后续最合理的顺序应是：**Kafka 主链路 -> Redis/版本治理 -> 生产化收口**。
+- 当前还缺：真实 Redis 集成、版本治理、生产化观测与降级能力。
+- 一期后续最合理的顺序应是：**Redis Lookup 与降级 -> 版本治理 -> 生产化收口**。
 
 ---
 
@@ -90,11 +90,11 @@ standard RiskEvent
 | Derived Feature | 已完成 | Aviator / Groovy 两条分支均可编译执行 |
 | Rule / Policy 执行 | 已完成 | `FIRST_HIT` 主链路已稳定；`SCORE_CARD` 代码已实现 |
 | Flink 快照热切换 | 已完成 | `DecisionBroadcastProcessFunction` 已支持广播快照、版本切换、side output |
-| Flink Job | 部分完成 | `DecisionEngineJob` 仍是 Demo Job，输入输出依赖 `DemoFixtures` 与 `print` |
+| Flink Job | 已完成 | `DecisionEngineJob` 已支持 `demo/kafka` 事件源、`print/kafka` 可配置输出，快照来源保持 `demo/file/jdbc/cdc` |
 | `scene_release` 运行时样例 | 已完成 | `docs/sql/pulsix-risk.sql` 已提供与 `DemoFixtures` 对齐的样例快照 |
 | 仿真 Runner | 已完成 | 已有 `LocalSimulationRunner` 作为独立本地仿真入口，提供 `main` CLI，并支持标准化 overrides 注入 |
 | 轻量回放 | 已完成 | 已有 `LocalReplayRunner` 提供文件级 replay / diff / golden case 工具 |
-| 真实 Kafka Source / Sink | 未完成 | 当前没有正式事件 topic 接入和结果 topic 输出 |
+| 真实 Kafka Source / Sink | 已完成 | 已支持 `pulsix.event.standard -> DecisionResult/DecisionLogRecord/EngineErrorRecord` 的 Kafka 主链路 |
 | 真实 `scene_release` Source / CDC | 已完成 | 已支持 `demo/file/jdbc/cdc` 四种快照来源，并复用统一 `scene_release -> SceneSnapshotEnvelope` 归一化入口 |
 | 真实 Redis Lookup | 未完成 | `timeoutMs`、`cacheTtlSeconds` 等字段还未生效 |
 | 版本治理 | 未完成 | `effectiveFrom`、`publishType`、回滚、编译失败保留旧版本尚未真正落地 |
@@ -246,7 +246,7 @@ standard RiskEvent
 - `DecisionEngineJob` 已补齐 `--snapshot-source demo|file|jdbc|cdc` 及 JDBC/CDC 相关 CLI 参数，文件或数据库样例都可直接喂给引擎。
 - 新增 `SceneReleaseSnapshotSelectorTest` 与 `SceneReleaseCdcPayloadParserTest`，覆盖版本筛选、future `effectiveFrom`、CDC payload 解析与发布状态过滤等关键回归。
 
-### 阶段 5：Kafka 主链路接入
+### 阶段 5：Kafka 主链路接入（已完成，`2026-03-11`）
 
 **目标**
 
@@ -263,6 +263,15 @@ standard RiskEvent
 - 向输入 topic 写入一条标准事件，可以在结果 topic 收到 `DecisionResult`。
 - side output 能分别看到 `DecisionLogRecord` 和 `EngineErrorRecord`。
 - `DecisionEngineJob` 不再硬编码依赖 `DemoRiskEventSource` / `DemoSnapshotSource` 才能工作。
+
+**本次落地结果**
+
+- `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
+- 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`。
+- Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
+- 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。
+- 新增 `DecisionEngineJobOptionsTest` 与 `RiskEventJsonCodecTest`，覆盖 Kafka 参数解析、默认 Demo 回退、非法事件校验与 JSON 序列化关键回归。
+- `DecisionEngineJob` 现已支持通过类路径默认 `pulsix-engine.properties`、外部 `--config-file` 与 `ParameterTool` 统一收口作业参数；Kafka、快照源、checkpoint、状态后端、MiniCluster 资源与本地日志路径都可以通过配置文件管理。
 
 ### 阶段 6：真实 Redis Lookup 与降级
 
@@ -380,7 +389,7 @@ standard RiskEvent
 5. 一期表达式主力是 Aviator；`Groovy` 只做补位，不做主路径扩张。
 6. 不主动扩展 `pulsix-module-risk` 和 `pulsix-access`。
 7. 每次改造都优先做“可验证的小步增量”，并附带人工验证说明。
-8. 如果没有额外说明，默认下一步从 **阶段 5：Kafka 主链路接入** 开始，不再重复做阶段 1 ~ 4 的基础工具化。
+8. 如果没有额外说明，默认下一步从 **阶段 6：真实 Redis Lookup 与降级** 开始，不再重复做阶段 1 ~ 5 的基础工具化。
 
 ---
 
@@ -389,4 +398,4 @@ standard RiskEvent
 - `kernel` 语义已经有了，而且 **模块归位 + 本地仿真 + 轻量回放** 都已经完成；当前真正缺的是 **正式接入 + 版本治理 + 生产化**。
 - 当前 `pulsix-engine` 已主要收敛为 Flink 适配层，`pulsix-kernel` 承载共享执行语义。
 - 一期不是先做平台页面，而是先把 **快照 -> 编译 -> 执行 -> 输出 -> 回归** 这条链做稳。
-- 下一阶段默认从 **阶段 5：Kafka 主链路接入** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。
+- 下一阶段默认从 **阶段 6：真实 Redis Lookup 与降级** 开始；后续每一阶段都必须让你可以人工验证，不接受“一次性做完再看”。

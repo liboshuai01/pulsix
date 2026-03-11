@@ -3,20 +3,26 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.demo.DemoFixtures;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceFactory;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
-import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceType;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
+import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
+import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.configuration.BlobServerOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.WebOptions;
+import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
@@ -37,12 +43,15 @@ import java.util.List;
 public class DecisionEngineJob {
 
     public static void main(String[] args) throws Exception {
-        JobOptions options = JobOptions.parse(args);
-        Path localLogFile = prepareLocalLogFile();
+        DecisionEngineJobOptions options = DecisionEngineJobOptions.parse(args);
+        Path localLogFile = prepareLocalLogFile(options.runtimeOptions());
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        configureRuntime(env, localLogFile);
+        env.getConfig().setGlobalJobParameters(options.parameters());
+        configureRuntime(env, options.runtimeOptions(), localLogFile);
 
-        DataStream<RiskEvent> eventStream = buildDemoEventStream(env);
+        EventSourceStreams eventSourceStreams = buildEventSourceStreams(env,
+                options.eventSourceOptions(),
+                options.runtimeOptions());
         DataStream<SceneSnapshotEnvelope> configStream = buildConfigStream(env, options.snapshotSourceOptions());
 
         MapStateDescriptor<String, SceneSnapshotEnvelope> snapshotStateDescriptor = new MapStateDescriptor<>(
@@ -51,44 +60,95 @@ public class DecisionEngineJob {
                 EngineTypeInfos.sceneSnapshotEnvelope()
         );
 
-        KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::routeKey);
+        KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::routeKey);
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
         SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
                 .connect(broadcastStream)
                 .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor))
-                .returns(EngineTypeInfos.decisionResult());
+                .returns(EngineTypeInfos.decisionResult())
+                .name("decision-main-chain");
 
-        resultStream.print("decision-result");
-        resultStream.getSideOutput(EngineOutputTags.DECISION_LOG).print("decision-log");
-        resultStream.getSideOutput(EngineOutputTags.ENGINE_ERROR).print("engine-error");
+        DataStream<DecisionLogRecord> decisionLogStream = resultStream.getSideOutput(EngineOutputTags.DECISION_LOG);
+        DataStream<EngineErrorRecord> engineErrorStream = resultStream.getSideOutput(EngineOutputTags.ENGINE_ERROR);
+        if (eventSourceStreams.inputErrorStream() != null) {
+            engineErrorStream = eventSourceStreams.inputErrorStream().union(engineErrorStream);
+        }
 
-        env.execute("pulsix-engine-demo-job");
+        sinkStream("decision-result", resultStream, options.outputOptions().decisionResultSinkOptions());
+        sinkStream("decision-log", decisionLogStream, options.outputOptions().decisionLogSinkOptions());
+        sinkStream("engine-error", engineErrorStream, options.outputOptions().engineErrorSinkOptions());
+
+        env.execute(options.runtimeOptions().jobName());
     }
 
-    private static void configureRuntime(StreamExecutionEnvironment env, Path localLogFile) {
-        env.setParallelism(1);
-        env.getConfig().enableObjectReuse();
-        env.configure(localExecutionConfiguration(localLogFile));
-        env.enableCheckpointing(30_000L, CheckpointingMode.EXACTLY_ONCE);
-        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5_000L);
-        env.getCheckpointConfig().setCheckpointTimeout(60_000L);
-        env.getCheckpointConfig().setTolerableCheckpointFailureNumber(3);
-        String backend = System.getProperty("pulsix.engine.state-backend", "hashmap").trim().toLowerCase();
-        if ("rocksdb".equals(backend)) {
-            env.setStateBackend(new org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend(true));
-            return;
+    private static void configureRuntime(StreamExecutionEnvironment env,
+                                         DecisionEngineJobOptions.RuntimeOptions options,
+                                         Path localLogFile) {
+        env.setParallelism(options.parallelism());
+        if (options.objectReuseEnabled()) {
+            env.getConfig().enableObjectReuse();
+        } else {
+            env.getConfig().disableObjectReuse();
         }
-        env.setStateBackend(new HashMapStateBackend());
+        env.configure(localExecutionConfiguration(options, localLogFile));
+        env.enableCheckpointing(options.checkpointIntervalMs(), CheckpointingMode.EXACTLY_ONCE);
+        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(options.checkpointMinPauseMs());
+        env.getCheckpointConfig().setCheckpointTimeout(options.checkpointTimeoutMs());
+        env.getCheckpointConfig().setTolerableCheckpointFailureNumber(options.checkpointTolerableFailureNumber());
+        switch (options.stateBackendType()) {
+            case ROCKSDB -> env.setStateBackend(new org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend(true));
+            case HASHMAP -> env.setStateBackend(new HashMapStateBackend());
+        }
+    }
+
+    private static EventSourceStreams buildEventSourceStreams(StreamExecutionEnvironment env,
+                                                              DecisionEngineJobOptions.EventSourceOptions options,
+                                                              DecisionEngineJobOptions.RuntimeOptions runtimeOptions) {
+        return switch (options.sourceType()) {
+            case DEMO -> new EventSourceStreams(withEventTimeWatermarks(buildDemoEventStream(env), runtimeOptions), null);
+            case KAFKA -> buildKafkaEventSourceStreams(env, options, runtimeOptions);
+        };
     }
 
     private static DataStream<RiskEvent> buildDemoEventStream(StreamExecutionEnvironment env) {
         return env.addSource(new DemoRiskEventSource(), EngineTypeInfos.riskEvent())
-                .assignTimestampsAndWatermarks(WatermarkStrategy
-                        .<RiskEvent>forBoundedOutOfOrderness(Duration.ofSeconds(1))
-                        .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
-                            Instant eventTime = event.getEventTime();
-                            return eventTime != null ? eventTime.toEpochMilli() : timestamp;
-                        }));
+                .name("demo-risk-event-source");
+    }
+
+    private static EventSourceStreams buildKafkaEventSourceStreams(StreamExecutionEnvironment env,
+                                                                   DecisionEngineJobOptions.EventSourceOptions options,
+                                                                   DecisionEngineJobOptions.RuntimeOptions runtimeOptions) {
+        KafkaSource<String> kafkaSource = KafkaSource.<String>builder()
+                .setBootstrapServers(options.kafkaBootstrapServers())
+                .setTopics(options.kafkaTopic())
+                .setGroupId(options.kafkaGroupId())
+                .setStartingOffsets(options.kafkaStartingOffsets().toOffsetsInitializer())
+                .setValueOnlyDeserializer(new org.apache.flink.api.common.serialization.SimpleStringSchema())
+                .build();
+        SingleOutputStreamOperator<RiskEvent> parsedEventStream = env.fromSource(
+                        kafkaSource,
+                        WatermarkStrategy.noWatermarks(),
+                        "risk-event-kafka-source"
+                )
+                .process(new RiskEventJsonProcessFunction())
+                .returns(EngineTypeInfos.riskEvent())
+                .name("risk-event-json-parse");
+        return new EventSourceStreams(
+                withEventTimeWatermarks(parsedEventStream, runtimeOptions),
+                parsedEventStream.getSideOutput(EngineOutputTags.ENGINE_ERROR)
+        );
+    }
+
+    private static SingleOutputStreamOperator<RiskEvent> withEventTimeWatermarks(
+            DataStream<RiskEvent> eventStream,
+            DecisionEngineJobOptions.RuntimeOptions runtimeOptions) {
+        Duration outOfOrderness = Duration.ofSeconds(Math.max(runtimeOptions.eventOutOfOrdernessSeconds(), 0L));
+        return eventStream.assignTimestampsAndWatermarks(WatermarkStrategy
+                .<RiskEvent>forBoundedOutOfOrderness(outOfOrderness)
+                .withTimestampAssigner((SerializableTimestampAssigner<RiskEvent>) (event, timestamp) -> {
+                    Instant eventTime = event.getEventTime();
+                    return eventTime != null ? eventTime.toEpochMilli() : timestamp;
+                }));
     }
 
     private static DataStream<SceneSnapshotEnvelope> buildConfigStream(StreamExecutionEnvironment env,
@@ -97,15 +157,39 @@ public class DecisionEngineJob {
                 .assignTimestampsAndWatermarks(WatermarkStrategy.noWatermarks());
     }
 
-    private static Configuration localExecutionConfiguration(Path localLogFile) {
+    private static <T> void sinkStream(String streamName,
+                                       DataStream<T> stream,
+                                       DecisionEngineJobOptions.StreamSinkOptions sinkOptions) {
+        if (sinkOptions.sinkType() == DecisionEngineJobOptions.StreamSinkType.KAFKA) {
+            stream.sinkTo(buildKafkaSink(sinkOptions))
+                    .name(streamName + "-kafka-sink");
+            return;
+        }
+        stream.print(streamName);
+    }
+
+    private static <T> KafkaSink<T> buildKafkaSink(DecisionEngineJobOptions.StreamSinkOptions sinkOptions) {
+        return KafkaSink.<T>builder()
+                .setBootstrapServers(sinkOptions.kafkaBootstrapServers())
+                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .setRecordSerializer(KafkaRecordSerializationSchema.<T>builder()
+                        .setTopic(sinkOptions.kafkaTopic())
+                        .setValueSerializationSchema(new EngineJsonSerializationSchema<>())
+                        .build())
+                .build();
+    }
+
+    private static Configuration localExecutionConfiguration(DecisionEngineJobOptions.RuntimeOptions options,
+                                                             Path localLogFile) {
         Configuration configuration = new Configuration();
-        configuration.set(TaskManagerOptions.CPU_CORES, 1.0);
-        configuration.set(TaskManagerOptions.NUM_TASK_SLOTS, 1);
-        configuration.set(TaskManagerOptions.TASK_HEAP_MEMORY, MemorySize.ofMebiBytes(256));
-        configuration.set(TaskManagerOptions.TASK_OFF_HEAP_MEMORY, MemorySize.ofMebiBytes(128));
-        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MIN, MemorySize.ofMebiBytes(64));
-        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MAX, MemorySize.ofMebiBytes(64));
-        configuration.set(TaskManagerOptions.MANAGED_MEMORY_SIZE, MemorySize.ofMebiBytes(128));
+        configuration.set(TaskManagerOptions.CPU_CORES, options.taskCpuCores());
+        configuration.set(TaskManagerOptions.NUM_TASK_SLOTS, options.taskSlots());
+        configuration.set(TaskManagerOptions.TASK_HEAP_MEMORY, MemorySize.ofMebiBytes(options.taskHeapMb()));
+        configuration.set(TaskManagerOptions.TASK_OFF_HEAP_MEMORY, MemorySize.ofMebiBytes(options.taskOffHeapMb()));
+        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MIN, MemorySize.ofMebiBytes(options.taskNetworkMb()));
+        configuration.set(TaskManagerOptions.NETWORK_MEMORY_MAX, MemorySize.ofMebiBytes(options.taskNetworkMb()));
+        configuration.set(TaskManagerOptions.MANAGED_MEMORY_SIZE, MemorySize.ofMebiBytes(options.taskManagedMb()));
+        configuration.set(BlobServerOptions.PORT, options.blobServerPortRange());
         configuration.set(SecurityOptions.DELEGATION_TOKENS_ENABLED, false);
         SecurityOptions.forProvider(configuration, "hadoopfs")
                 .set(SecurityOptions.DELEGATION_TOKEN_PROVIDER_ENABLED, false);
@@ -117,9 +201,11 @@ public class DecisionEngineJob {
         return configuration;
     }
 
-    private static Path prepareLocalLogFile() throws IOException {
-        Path logFile = Paths.get(System.getProperty("java.io.tmpdir"), "pulsix-engine-demo.log")
-                .toAbsolutePath();
+    private static Path prepareLocalLogFile(DecisionEngineJobOptions.RuntimeOptions options) throws IOException {
+        Path logFile = options.localLogFile() == null || options.localLogFile().isBlank()
+                ? Paths.get(System.getProperty("java.io.tmpdir"), "pulsix-engine-job.log")
+                : Path.of(options.localLogFile());
+        logFile = logFile.toAbsolutePath();
         Path parent = logFile.getParent();
         if (parent != null) {
             Files.createDirectories(parent);
@@ -155,111 +241,8 @@ public class DecisionEngineJob {
         }
     }
 
-    private record JobOptions(SceneSnapshotSourceOptions snapshotSourceOptions) {
-
-        private static JobOptions parse(String[] args) {
-            String snapshotSource = property("pulsix.engine.snapshot-source", "demo");
-            Path snapshotFile = pathProperty("pulsix.engine.snapshot-file");
-            long snapshotPollMs = longProperty("pulsix.engine.snapshot-poll-ms", 1_000L);
-            String jdbcUrl = property("pulsix.engine.snapshot-jdbc-url", null);
-            String jdbcUser = property("pulsix.engine.snapshot-jdbc-user", null);
-            String jdbcPassword = property("pulsix.engine.snapshot-jdbc-password", null);
-            String snapshotSceneCode = property("pulsix.engine.snapshot-scene-code", null);
-            Integer snapshotVersion = integerProperty("pulsix.engine.snapshot-version");
-            String jdbcQuery = property("pulsix.engine.snapshot-jdbc-query", null);
-            String cdcHost = property("pulsix.engine.snapshot-cdc-host", null);
-            Integer cdcPort = integerProperty("pulsix.engine.snapshot-cdc-port");
-            String cdcDatabase = property("pulsix.engine.snapshot-cdc-database", null);
-            String cdcTable = property("pulsix.engine.snapshot-cdc-table", "scene_release");
-            String cdcUser = property("pulsix.engine.snapshot-cdc-user", null);
-            String cdcPassword = property("pulsix.engine.snapshot-cdc-password", null);
-            String cdcServerId = property("pulsix.engine.snapshot-cdc-server-id", null);
-            String cdcServerTimeZone = property("pulsix.engine.snapshot-cdc-server-time-zone", "UTC");
-
-            if (args != null) {
-                for (int index = 0; index < args.length; index++) {
-                    String arg = args[index];
-                    switch (arg) {
-                        case "--snapshot-source" -> snapshotSource = requireValue(args, ++index, arg);
-                        case "--snapshot-file" -> snapshotFile = Path.of(requireValue(args, ++index, arg));
-                        case "--snapshot-poll-ms" -> snapshotPollMs = Long.parseLong(requireValue(args, ++index, arg));
-                        case "--snapshot-jdbc-url" -> jdbcUrl = requireValue(args, ++index, arg);
-                        case "--snapshot-jdbc-user" -> jdbcUser = requireValue(args, ++index, arg);
-                        case "--snapshot-jdbc-password" -> jdbcPassword = requireValue(args, ++index, arg);
-                        case "--snapshot-scene-code" -> snapshotSceneCode = requireValue(args, ++index, arg);
-                        case "--snapshot-version" -> snapshotVersion = Integer.parseInt(requireValue(args, ++index, arg));
-                        case "--snapshot-jdbc-query" -> jdbcQuery = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-host" -> cdcHost = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-port" -> cdcPort = Integer.parseInt(requireValue(args, ++index, arg));
-                        case "--snapshot-cdc-database" -> cdcDatabase = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-table" -> cdcTable = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-user" -> cdcUser = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-password" -> cdcPassword = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-server-id" -> cdcServerId = requireValue(args, ++index, arg);
-                        case "--snapshot-cdc-server-time-zone" -> cdcServerTimeZone = requireValue(args, ++index, arg);
-                        case "--help", "-h" -> throw new IllegalArgumentException(usage());
-                        default -> throw new IllegalArgumentException("unknown argument: " + arg + System.lineSeparator() + usage());
-                    }
-                }
-            }
-
-            SceneSnapshotSourceType sourceType = SceneSnapshotSourceType.valueOf(snapshotSource.trim().toUpperCase());
-            SceneSnapshotSourceOptions options = new SceneSnapshotSourceOptions(sourceType,
-                    snapshotFile,
-                    snapshotPollMs,
-                    jdbcUrl,
-                    jdbcUser,
-                    jdbcPassword,
-                    snapshotSceneCode,
-                    snapshotVersion,
-                    jdbcQuery,
-                    cdcHost,
-                    cdcPort,
-                    cdcDatabase,
-                    cdcTable,
-                    cdcUser,
-                    cdcPassword,
-                    cdcServerId,
-                    cdcServerTimeZone);
-            return new JobOptions(options);
-        }
-
-        private static String property(String key, String defaultValue) {
-            String value = System.getProperty(key);
-            return value == null || value.isBlank() ? defaultValue : value.trim();
-        }
-
-        private static Path pathProperty(String key) {
-            String value = property(key, null);
-            return value == null ? null : Path.of(value);
-        }
-
-        private static long longProperty(String key, long defaultValue) {
-            String value = property(key, null);
-            return value == null ? defaultValue : Long.parseLong(value);
-        }
-
-        private static Integer integerProperty(String key) {
-            String value = property(key, null);
-            return value == null ? null : Integer.parseInt(value);
-        }
-
-        private static String requireValue(String[] args, int index, String optionName) {
-            if (index >= args.length) {
-                throw new IllegalArgumentException("missing value for " + optionName + System.lineSeparator() + usage());
-            }
-            return args[index];
-        }
-
-        private static String usage() {
-            return "Usage: DecisionEngineJob [--snapshot-source demo|file|jdbc|cdc] "
-                    + "[--snapshot-file <path>] [--snapshot-poll-ms <ms>] "
-                    + "[--snapshot-jdbc-url <url> --snapshot-jdbc-user <user> --snapshot-jdbc-password <password>] "
-                    + "[--snapshot-scene-code <sceneCode>] [--snapshot-version <version>] [--snapshot-jdbc-query <sql>] "
-                    + "[--snapshot-cdc-host <host> --snapshot-cdc-port <port> --snapshot-cdc-database <db> "
-                    + "--snapshot-cdc-table <table> --snapshot-cdc-user <user> --snapshot-cdc-password <password> "
-                    + "[--snapshot-cdc-server-id <serverId>] [--snapshot-cdc-server-time-zone <tz>]]";
-        }
+    private record EventSourceStreams(DataStream<RiskEvent> eventStream,
+                                      DataStream<EngineErrorRecord> inputErrorStream) {
     }
 
 }
