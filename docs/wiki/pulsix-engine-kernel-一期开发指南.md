@@ -210,6 +210,14 @@ standard RiskEvent
 - 构造一个“关闭黑名单规则”的新快照，回放 diff 能看到 `REJECT -> PASS` 或命中链路变化。
 - 人工改坏一条 golden case 后，回归应显式报错。
 
+**本次落地结果**
+
+- `pulsix-framework/pulsix-kernel` 新增 `cn.liboshuai.pulsix.engine.simulation.LocalReplayRunner`，复用 `LocalSimulationRunner` 提供文件级 replay、双版本 diff 与 golden case 校验能力。
+- Replay 默认按 `eventTime` 升序回放，同时间再按 `eventId / traceId / 原始顺序` 稳定排序，避免输入文件顺序漂移影响回归结果。
+- 新增 `ReplayReport`、`ReplayDiffReport`、`ReplayGoldenCase` 等固定输出模型，覆盖 action 统计、差异事件列表、命中规则与命中原因，便于长期回归。
+- `LocalReplayRunner` 已补充 `main` CLI，支持 `replay / diff / capture-golden / verify-golden` 四种文件模式，便于直接做本地回放与回归校验。
+- 新增 `LocalReplayRunnerTest`，覆盖乱序事件回放、关闭黑名单规则后的版本 diff、golden case 生成与校验，以及 golden case 漂移时的显式失败路径。
+
 ### 阶段 4：`scene_release` 快照接入收口
 
 **目标**
