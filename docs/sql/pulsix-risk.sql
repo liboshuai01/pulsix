@@ -768,6 +768,14 @@ INSERT INTO `event_field_def` (`id`, `scene_code`, `event_code`, `field_code`, `
 (2130, 'TRADE_RISK', 'TRADE_EVENT', 'result', '交易结果', 'STRING', '$.result', 0, 1, 0, NULL, 'SUCCESS', NULL, '交易处理结果，例如 SUCCESS / FAIL', 100, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of ingest_source
+-- ----------------------------
+DELETE FROM `ingest_source` WHERE `source_code` IN ('trade_http_demo', 'trade_sdk_demo');
+INSERT INTO `ingest_source` (`id`, `source_code`, `source_name`, `source_type`, `auth_type`, `auth_config_json`, `scene_scope_json`, `standard_topic_name`, `error_topic_name`, `rate_limit_qps`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2141, 'trade_http_demo', '交易 HTTP Demo', 'HTTP', 'HMAC', '{"headerName":"X-Pulsix-Signature","timestampHeader":"X-Pulsix-Timestamp","algorithm":"HmacSHA256","appKey":"trade-http-demo"}', '["TRADE_RISK"]', 'pulsix.event.standard', 'pulsix.event.dlq', 300, 0, 'S05 HTTP 接入源样例，演示 Header + HMAC 鉴权配置。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2142, 'trade_sdk_demo', '交易 SDK Demo', 'SDK', 'TOKEN', '{"tokenHeader":"Authorization","tokenPrefix":"Bearer ","expireToleranceSeconds":60}', '["TRADE_RISK"]', 'pulsix.event.standard', 'pulsix.event.dlq', 1000, 0, 'S05 SDK 接入源样例，演示 Token 鉴权与更高 QPS 限额。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- Records of event_sample
 -- ----------------------------
 DELETE FROM `event_sample` WHERE `scene_code` = 'TRADE_RISK' AND `event_code` = 'TRADE_EVENT';
@@ -816,7 +824,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7143, '事件样例修改', 'risk:event-sample:update', 3, 3, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7144, '事件样例删除', 'risk:event-sample:delete', 3, 4, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7145, '事件样例预览', 'risk:event-sample:preview', 3, 5, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7150, '接入源', 'risk:ingest-source:query', 2, 50, 7100, 'ingest-source', 'ep:link', 'risk/placeholder/index?code=ingest-source', 'RiskIngestSource', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7150, '接入源', 'risk:ingest-source:query', 2, 50, 7100, 'ingest-source', 'ep:link', 'risk/ingest-source/index', 'RiskIngestSource', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7151, '接入源查询', 'risk:ingest-source:query', 3, 1, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7152, '接入源新增', 'risk:ingest-source:create', 3, 2, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7153, '接入源修改', 'risk:ingest-source:update', 3, 3, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),

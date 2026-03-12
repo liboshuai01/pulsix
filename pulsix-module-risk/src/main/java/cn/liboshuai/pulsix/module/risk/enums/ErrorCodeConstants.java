@@ -25,4 +25,8 @@ public interface ErrorCodeConstants {
     ErrorCode EVENT_SAMPLE_NOT_EXISTS = new ErrorCode(1_005_004_000, "事件样例不存在");
     ErrorCode EVENT_SAMPLE_CODE_DUPLICATE = new ErrorCode(1_005_004_001, "当前事件下样例编码已存在");
 
+    // ========== 接入源管理 1-005-005-000 ==========
+    ErrorCode INGEST_SOURCE_NOT_EXISTS = new ErrorCode(1_005_005_000, "接入源不存在");
+    ErrorCode INGEST_SOURCE_CODE_DUPLICATE = new ErrorCode(1_005_005_001, "接入源编码已存在");
+
 }
