@@ -63,17 +63,41 @@ public class DecisionEngineJob {
                 EngineTypeInfos.sceneReleaseTimeline()
         );
 
-        KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::routeKey);
+        KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::getSceneCode);
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
-        SingleOutputStreamOperator<DecisionResult> resultStream = keyedEventStream
+
+        SingleOutputStreamOperator<StreamFeatureRouteEvent> routedFeatureStream = keyedEventStream
                 .connect(broadcastStream)
-                .process(new DecisionBroadcastProcessFunction(snapshotStateDescriptor,
-                        buildLookupServiceFactory(options.lookupOptions())))
+                .process(new StreamFeatureRoutingProcessFunction(snapshotStateDescriptor))
+                .returns(EngineTypeInfos.streamFeatureRouteEvent())
+                .name("stream-feature-route");
+
+        SingleOutputStreamOperator<PreparedStreamFeatureChunk> preparedStreamFeatureStream = routedFeatureStream
+                .keyBy(StreamFeatureRouteEvent::getRouteExecutionKey)
+                .process(new StreamFeaturePrepareProcessFunction())
+                .returns(EngineTypeInfos.preparedStreamFeatureChunk())
+                .name("stream-feature-prepare");
+
+        SingleOutputStreamOperator<PreparedDecisionInput> aggregatedPreparedDecisionStream = preparedStreamFeatureStream
+                .keyBy(PreparedStreamFeatureChunk::getEventJoinKey)
+                .process(new PreparedDecisionAggregateProcessFunction())
+                .returns(EngineTypeInfos.preparedDecisionInput())
+                .name("prepared-decision-aggregate");
+
+        DataStream<PreparedDecisionInput> preparedDecisionInputStream = aggregatedPreparedDecisionStream
+                .union(routedFeatureStream.getSideOutput(StreamFeatureRoutingProcessFunction.PREPARED_DECISION_BYPASS));
+
+        SingleOutputStreamOperator<DecisionResult> resultStream = preparedDecisionInputStream
+                .keyBy(PreparedDecisionInput::getSceneCode)
+                .process(new PreparedDecisionProcessFunction(buildLookupServiceFactory(options.lookupOptions())))
                 .returns(EngineTypeInfos.decisionResult())
-                .name("decision-main-chain");
+                .name("prepared-decision-main-chain");
 
         DataStream<DecisionLogRecord> decisionLogStream = resultStream.getSideOutput(EngineOutputTags.DECISION_LOG);
-        DataStream<EngineErrorRecord> engineErrorStream = resultStream.getSideOutput(EngineOutputTags.ENGINE_ERROR);
+        DataStream<EngineErrorRecord> engineErrorStream = resultStream.getSideOutput(EngineOutputTags.ENGINE_ERROR)
+                .union(routedFeatureStream.getSideOutput(EngineOutputTags.ENGINE_ERROR))
+                .union(preparedStreamFeatureStream.getSideOutput(EngineOutputTags.ENGINE_ERROR))
+                .union(aggregatedPreparedDecisionStream.getSideOutput(EngineOutputTags.ENGINE_ERROR));
         if (eventSourceStreams.inputErrorStream() != null) {
             engineErrorStream = eventSourceStreams.inputErrorStream().union(engineErrorStream);
         }
@@ -184,7 +208,7 @@ public class DecisionEngineJob {
                 .build();
     }
 
-    private static DecisionBroadcastProcessFunction.LookupServiceFactory buildLookupServiceFactory(
+    private static EngineLookupServiceFactory buildLookupServiceFactory(
             DecisionEngineJobOptions.LookupOptions lookupOptions) {
         if (lookupOptions == null || lookupOptions.sourceType() == DecisionEngineJobOptions.LookupSourceType.DEMO) {
             return InMemoryLookupService::demo;

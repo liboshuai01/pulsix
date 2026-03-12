@@ -21,10 +21,16 @@ public class PolicySpec implements Serializable {
 
     private List<String> ruleOrder;
 
+    private List<PolicyRuleRefSpec> ruleRefs;
+
     private List<ScoreBandSpec> scoreBands;
 
     public void setRuleOrder(List<String> ruleOrder) {
         this.ruleOrder = CollectionCopier.copyList(ruleOrder);
+    }
+
+    public void setRuleRefs(List<PolicyRuleRefSpec> ruleRefs) {
+        this.ruleRefs = CollectionCopier.copyList(ruleRefs);
     }
 
     public void setScoreBands(List<ScoreBandSpec> scoreBands) {

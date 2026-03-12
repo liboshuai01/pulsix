@@ -35,6 +35,46 @@ public final class DemoFixtures {
         return EngineJson.readList(demoEventsJson(), RiskEvent.class);
     }
 
+    public static SceneSnapshotEnvelope scoreCardEnvelope() {
+        SceneSnapshot snapshot = readValue(scoreCardSnapshotJson(), SceneSnapshot.class);
+        return SceneSnapshotEnvelopes.fromSnapshot(snapshot);
+    }
+
+    public static SceneSnapshot scoreCardSnapshot() {
+        return scoreCardEnvelope().getSnapshot();
+    }
+
+    public static String scoreCardEnvelopeJson() {
+        return EngineJson.write(scoreCardEnvelope());
+    }
+
+    public static List<RiskEvent> scoreCardEvents() {
+        return EngineJson.readList(scoreCardEventsJson(), RiskEvent.class);
+    }
+
+    public static RiskEvent scoreCardHitEvent() {
+        return scoreCardEvents().get(0);
+    }
+
+    public static RiskEvent scoreCardPassEvent() {
+        return readValue("""
+                {
+                  "eventId": "E202603120199",
+                  "traceId": "T202603120199",
+                  "sceneCode": "TRADE_SCORE_CARD",
+                  "eventType": "trade",
+                  "eventTime": "2026-03-12T09:11:00Z",
+                  "userId": "U8002",
+                  "deviceId": "D8002",
+                  "ip": "8.8.8.8",
+                  "amount": 88,
+                  "currency": "CNY",
+                  "result": "SUCCESS",
+                  "channel": "WEB"
+                }
+                """, RiskEvent.class);
+    }
+
     public static RiskEvent blacklistedEvent() {
         return readValue("""
                 {
@@ -334,6 +374,149 @@ public final class DemoFixtures {
                     "userId": "U1001",
                     "deviceId": "D9001",
                     "ip": "1.2.3.4",
+                    "amount": 6800,
+                    "currency": "CNY",
+                    "result": "SUCCESS",
+                    "channel": "APP"
+                  }
+                ]
+                """;
+    }
+
+    private static String scoreCardSnapshotJson() {
+        return """
+                {
+                  "snapshotId": "TRADE_SCORE_CARD_v1",
+                  "sceneCode": "TRADE_SCORE_CARD",
+                  "sceneName": "交易评分卡",
+                  "version": 1,
+                  "status": "ACTIVE",
+                  "checksum": "score-card-checksum-v1",
+                  "publishedAt": "2026-03-12T09:00:00Z",
+                  "effectiveFrom": "2026-03-12T09:00:10Z",
+                  "runtimeMode": "ASYNC_DECISION",
+                  "scene": {
+                    "defaultPolicyCode": "TRADE_SCORE_POLICY",
+                    "allowedEventTypes": ["trade"],
+                    "decisionTimeoutMs": 500,
+                    "logLevel": "FULL"
+                  },
+                  "eventSchema": {
+                    "eventCode": "TRADE_SCORE_EVENT",
+                    "eventType": "trade",
+                    "requiredFields": [
+                      "eventId",
+                      "sceneCode",
+                      "eventType",
+                      "eventTime",
+                      "userId",
+                      "deviceId",
+                      "amount",
+                      "channel",
+                      "result"
+                    ],
+                    "optionalFields": ["traceId", "ip", "currency", "merchantId", "province", "city", "ext"]
+                  },
+                  "variables": {
+                    "baseFields": ["eventId", "sceneCode", "eventType", "eventTime", "traceId", "userId", "deviceId", "ip", "amount", "result", "channel"]
+                  },
+                  "streamFeatures": [
+                    {
+                      "code": "score_trade_cnt_5m",
+                      "name": "评分卡用户5分钟交易次数",
+                      "type": "STREAM",
+                      "sourceEventTypes": ["trade"],
+                      "entityType": "USER",
+                      "entityKeyExpr": "userId",
+                      "aggType": "COUNT",
+                      "valueExpr": "1",
+                      "filterExpr": "result == 'SUCCESS'",
+                      "windowType": "SLIDING",
+                      "windowSize": "5m",
+                      "windowSlide": "1m",
+                      "includeCurrentEvent": true,
+                      "ttl": "10m",
+                      "valueType": "LONG"
+                    }
+                  ],
+                  "rules": [
+                    {
+                      "code": "SR001",
+                      "name": "大额交易基础分",
+                      "engineType": "AVIATOR",
+                      "priority": 100,
+                      "whenExpr": "amount >= 5000",
+                      "dependsOn": ["amount"],
+                      "hitAction": "TAG_ONLY",
+                      "riskScore": 40,
+                      "hitReasonTemplate": "大额交易 amount={amount}",
+                      "enabled": true
+                    },
+                    {
+                      "code": "SR002",
+                      "name": "APP 渠道补充分",
+                      "engineType": "AVIATOR",
+                      "priority": 90,
+                      "whenExpr": "channel == 'APP'",
+                      "dependsOn": ["channel"],
+                      "hitAction": "TAG_ONLY",
+                      "riskScore": 20,
+                      "hitReasonTemplate": "渠道命中 channel={channel}",
+                      "enabled": true
+                    },
+                    {
+                      "code": "SR003",
+                      "name": "设备补充分",
+                      "engineType": "AVIATOR",
+                      "priority": 80,
+                      "whenExpr": "deviceId == 'D9001'",
+                      "dependsOn": ["deviceId"],
+                      "hitAction": "TAG_ONLY",
+                      "riskScore": 50,
+                      "hitReasonTemplate": "设备命中 deviceId={deviceId}",
+                      "enabled": true
+                    }
+                  ],
+                  "policy": {
+                    "policyCode": "TRADE_SCORE_POLICY",
+                    "policyName": "交易评分卡主策略",
+                    "decisionMode": "SCORE_CARD",
+                    "defaultAction": "PASS",
+                    "ruleRefs": [
+                      {"ruleCode": "SR001", "orderNo": 10, "scoreWeight": 2, "stopOnHit": false},
+                      {"ruleCode": "SR002", "orderNo": 20, "scoreWeight": 1, "stopOnHit": true},
+                      {"ruleCode": "SR003", "orderNo": 30, "scoreWeight": 1, "stopOnHit": false}
+                    ],
+                    "scoreBands": [
+                      {"code": "BAND_PASS", "minScore": 0, "maxScore": 49, "action": "PASS", "reasonTemplate": "评分卡总分={totalScore}, 命中规则数={hitRuleCount}, 落入PASS段"},
+                      {"code": "BAND_REVIEW", "minScore": 50, "maxScore": 79, "action": "REVIEW", "reasonTemplate": "评分卡总分={totalScore}, 命中规则数={hitRuleCount}, 落入REVIEW段"},
+                      {"code": "BAND_REJECT", "minScore": 80, "maxScore": 999999, "action": "REJECT", "reasonTemplate": "评分卡总分={totalScore}, 命中规则数={hitRuleCount}, 落入REJECT段"}
+                    ]
+                  },
+                  "runtimeHints": {
+                    "requiredStreamFeatures": ["score_trade_cnt_5m"],
+                    "requiredLookupFeatures": [],
+                    "requiredDerivedFeatures": [],
+                    "maxRuleExecutionCount": 100,
+                    "allowGroovy": false,
+                    "needFullDecisionLog": true
+                  }
+                }
+                """;
+    }
+
+    private static String scoreCardEventsJson() {
+        return """
+                [
+                  {
+                    "eventId": "E202603120101",
+                    "traceId": "T202603120101",
+                    "sceneCode": "TRADE_SCORE_CARD",
+                    "eventType": "trade",
+                    "eventTime": "2026-03-12T09:10:00Z",
+                    "userId": "U8001",
+                    "deviceId": "D9001",
+                    "ip": "9.1.1.1",
                     "amount": 6800,
                     "currency": "CNY",
                     "result": "SUCCESS",

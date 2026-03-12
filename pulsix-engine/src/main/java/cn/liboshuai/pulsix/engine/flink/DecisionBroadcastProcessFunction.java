@@ -23,9 +23,14 @@ import cn.liboshuai.pulsix.engine.runtime.SceneRuntimeManager;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.api.common.state.ListState;
+import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeDomain;
@@ -36,23 +41,40 @@ import org.apache.flink.util.Collector;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DecisionBroadcastProcessFunction
+@Deprecated(forRemoval = true)
+class DecisionBroadcastProcessFunction
         extends KeyedBroadcastProcessFunction<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult>
         implements ResultTypeQueryable<DecisionResult> {
 
-    private static final long PENDING_RETRY_DELAY_MS = 1_000L;
+    static final long DEFAULT_PENDING_RETRY_DELAY_MS = PendingEventDefaults.DEFAULT_PENDING_RETRY_DELAY_MS;
+
+    static final int DEFAULT_MAX_PENDING_EVENTS_PER_KEY = PendingEventDefaults.DEFAULT_MAX_PENDING_EVENTS_PER_KEY;
+
+    static final long DEFAULT_MAX_PENDING_EVENT_AGE_MS = PendingEventDefaults.DEFAULT_MAX_PENDING_EVENT_AGE_MS;
+
+    private static final String PENDING_EVENTS_STATE_NAME = "pending-events";
+
+    private static final String PENDING_RETRY_AT_STATE_NAME = "pending-retry-at";
+
+    private static final String PENDING_EVENT_COUNT_STATE_NAME = "pending-event-count";
+
+    private static final String PENDING_OLDEST_BUFFERED_AT_STATE_NAME = "pending-oldest-buffered-at";
 
     private final MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor;
 
-    private final LookupServiceFactory lookupServiceFactory;
+    private final EngineLookupServiceFactory lookupServiceFactory;
 
-    private final StreamFeatureStateStoreFactory stateStoreFactory;
+    private final EngineStreamFeatureStateStoreFactory stateStoreFactory;
+
+    private final long pendingRetryDelayMs;
+
+    private final int maxPendingEventsPerKey;
+
+    private final long maxPendingEventAgeMs;
 
     private transient LookupService lookupService;
 
@@ -64,9 +86,13 @@ public class DecisionBroadcastProcessFunction
 
     private transient DecisionExecutor decisionExecutor;
 
-    private transient Map<String, List<RiskEvent>> pendingEvents;
+    private transient ListState<RiskEvent> pendingEventsState;
 
-    private transient Map<String, Long> pendingRetryTimers;
+    private transient ValueState<Long> pendingRetryAtState;
+
+    private transient ValueState<Integer> pendingEventCountState;
+
+    private transient ValueState<Long> pendingOldestBufferedAtState;
 
     private transient FlinkDecisionMetrics metrics;
 
@@ -75,28 +101,60 @@ public class DecisionBroadcastProcessFunction
     }
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
-                                            LookupServiceFactory lookupServiceFactory) {
+                                            EngineLookupServiceFactory lookupServiceFactory) {
         this(snapshotStateDescriptor, lookupServiceFactory, FlinkKeyedStateStreamFeatureStateStore::new);
     }
 
     public DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
-                                            LookupServiceFactory lookupServiceFactory,
-                                            StreamFeatureStateStoreFactory stateStoreFactory) {
+                                            EngineLookupServiceFactory lookupServiceFactory,
+                                            EngineStreamFeatureStateStoreFactory stateStoreFactory) {
+        this(snapshotStateDescriptor,
+                lookupServiceFactory,
+                stateStoreFactory,
+                DEFAULT_PENDING_RETRY_DELAY_MS,
+                DEFAULT_MAX_PENDING_EVENTS_PER_KEY,
+                DEFAULT_MAX_PENDING_EVENT_AGE_MS);
+    }
+
+    DecisionBroadcastProcessFunction(MapStateDescriptor<String, SceneReleaseTimeline> snapshotStateDescriptor,
+                                     EngineLookupServiceFactory lookupServiceFactory,
+                                     EngineStreamFeatureStateStoreFactory stateStoreFactory,
+                                     long pendingRetryDelayMs,
+                                     int maxPendingEventsPerKey,
+                                     long maxPendingEventAgeMs) {
         this.snapshotStateDescriptor = snapshotStateDescriptor;
         this.lookupServiceFactory = lookupServiceFactory;
         this.stateStoreFactory = stateStoreFactory;
+        this.pendingRetryDelayMs = pendingRetryDelayMs > 0L ? pendingRetryDelayMs : DEFAULT_PENDING_RETRY_DELAY_MS;
+        this.maxPendingEventsPerKey = maxPendingEventsPerKey > 0 ? maxPendingEventsPerKey : DEFAULT_MAX_PENDING_EVENTS_PER_KEY;
+        this.maxPendingEventAgeMs = maxPendingEventAgeMs > 0L ? maxPendingEventAgeMs : DEFAULT_MAX_PENDING_EVENT_AGE_MS;
     }
 
     @Override
     public void open(Configuration parameters) {
+        RuntimeContext runtimeContext = getRuntimeContext();
         this.runtimeManager = new SceneRuntimeManager(new RuntimeCompiler(new DefaultScriptCompiler()));
         this.runtimeCache = new SceneRuntimeCache();
-        this.stateStore = stateStoreFactory.create(getRuntimeContext());
+        this.stateStore = stateStoreFactory.create(runtimeContext);
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
-        this.pendingEvents = new LinkedHashMap<>();
-        this.pendingRetryTimers = new LinkedHashMap<>();
-        this.metrics = FlinkDecisionMetrics.create(getRuntimeContext().getMetricGroup());
+        this.pendingEventsState = runtimeContext.getListState(new ListStateDescriptor<>(
+                PENDING_EVENTS_STATE_NAME,
+                EngineTypeInfos.riskEvent()
+        ));
+        this.pendingRetryAtState = runtimeContext.getState(new ValueStateDescriptor<>(
+                PENDING_RETRY_AT_STATE_NAME,
+                Types.LONG
+        ));
+        this.pendingEventCountState = runtimeContext.getState(new ValueStateDescriptor<>(
+                PENDING_EVENT_COUNT_STATE_NAME,
+                Types.INT
+        ));
+        this.pendingOldestBufferedAtState = runtimeContext.getState(new ValueStateDescriptor<>(
+                PENDING_OLDEST_BUFFERED_AT_STATE_NAME,
+                Types.LONG
+        ));
+        this.metrics = FlinkDecisionMetrics.create(runtimeContext.getMetricGroup());
     }
 
     @Override
@@ -137,18 +195,22 @@ public class DecisionBroadcastProcessFunction
                                ReadOnlyContext context,
                                Collector<DecisionResult> collector) throws Exception {
         metrics.onInputEvent();
-        String routeKey = event.routeKey();
+        String sceneKey = event.getSceneCode();
+        long processingTimeMs = context.timerService().currentProcessingTime();
         CompiledSceneRuntime runtime = resolveRuntime(event.getSceneCode(),
-                Instant.ofEpochMilli(context.timerService().currentProcessingTime()),
+                Instant.ofEpochMilli(processingTimeMs),
                 context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
         if (runtime == null) {
-            bufferPendingEvent(routeKey, event);
-            metrics.onPendingBuffered();
             metrics.onNoSnapshot();
-            schedulePendingRetry(routeKey, context.timerService());
+            dropExpiredPendingEventsIfNeeded(processingTimeMs, context);
+            boolean buffered = bufferPendingEvent(event, processingTimeMs, context);
+            if (buffered || hasPendingEvents()) {
+                schedulePendingRetry(sceneKey, context.timerService());
+            }
             return;
         }
-        pendingRetryTimers.remove(routeKey);
+        dropExpiredPendingEventsIfNeeded(processingTimeMs, context);
+        clearPendingRetryTimer();
         OutputContext outputContext = new OutputContext() {
             @Override
             public void emitDecisionLog(DecisionLogRecord record) {
@@ -164,7 +226,7 @@ public class DecisionBroadcastProcessFunction
         };
         stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
         try {
-            flushPendingEvents(routeKey, runtime, collector, outputContext);
+            flushPendingEvents(sceneKey, runtime, collector, outputContext);
             emitDecision(event, runtime, collector, outputContext);
         } finally {
             stateStore.clearExecutionContext();
@@ -175,16 +237,18 @@ public class DecisionBroadcastProcessFunction
     public void onTimer(long timestamp,
                         OnTimerContext context,
                         Collector<DecisionResult> collector) throws Exception {
-        String routeKey = context.getCurrentKey();
-        if (isPendingRetryTimer(routeKey, timestamp, context)) {
-            pendingRetryTimers.remove(routeKey);
-            String sceneCode = pendingSceneCode(routeKey);
-            CompiledSceneRuntime runtime = resolveRuntime(sceneCode,
+        String sceneKey = context.getCurrentKey();
+        if (isPendingRetryTimer(timestamp, context)) {
+            clearPendingRetryTimer();
+            if (dropExpiredPendingEventsIfNeeded(timestamp, context)) {
+                return;
+            }
+            CompiledSceneRuntime runtime = resolveRuntime(sceneKey,
                     Instant.ofEpochMilli(timestamp),
                     context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
             if (runtime == null) {
-                if (hasPendingEvents(routeKey)) {
-                    schedulePendingRetry(routeKey, context.timerService());
+                if (hasPendingEvents()) {
+                    schedulePendingRetry(sceneKey, context.timerService());
                 }
                 return;
             }
@@ -203,10 +267,13 @@ public class DecisionBroadcastProcessFunction
             };
             stateStore.bindExecutionContext(new FlinkExecutionContext(context.timerService(), context.currentWatermark()));
             try {
-                flushPendingEvents(routeKey, runtime, collector, outputContext);
+                flushPendingEvents(sceneKey, runtime, collector, outputContext);
             } finally {
                 stateStore.clearExecutionContext();
             }
+            return;
+        }
+        if (context.timeDomain() != TimeDomain.EVENT_TIME) {
             return;
         }
         try {
@@ -257,42 +324,59 @@ public class DecisionBroadcastProcessFunction
         return EngineTypeInfos.decisionResult();
     }
 
-    private void bufferPendingEvent(String routeKey, RiskEvent event) {
-        pendingEvents.computeIfAbsent(routeKey, ignored -> new ArrayList<>()).add(event);
-    }
-
-    private boolean hasPendingEvents(String routeKey) {
-        List<RiskEvent> events = pendingEvents.get(routeKey);
-        return events != null && !events.isEmpty();
-    }
-
-    private String pendingSceneCode(String routeKey) {
-        List<RiskEvent> events = pendingEvents.get(routeKey);
-        if (events == null || events.isEmpty()) {
-            return null;
+    private boolean bufferPendingEvent(RiskEvent event,
+                                      long processingTimeMs,
+                                      ReadOnlyContext context) throws Exception {
+        int currentPendingCount = pendingEventCount();
+        if (currentPendingCount >= maxPendingEventsPerKey) {
+            metrics.onPendingDropped(1);
+            metrics.onPendingOldestAgeObserved(pendingOldestAgeMs(processingTimeMs));
+            emitEngineError(context, pendingError("pending-buffer-overflow",
+                    EngineErrorCodes.PENDING_BUFFER_OVERFLOW,
+                    event,
+                    new IllegalStateException("pending buffer overflow: sceneCode=" + event.getSceneCode()
+                            + ", limit=" + maxPendingEventsPerKey
+                            + ", currentCount=" + currentPendingCount)));
+            return false;
         }
-        return events.get(0).getSceneCode();
+        pendingEventsState.add(event);
+        pendingEventCountState.update(currentPendingCount + 1);
+        if (pendingOldestBufferedAtState.value() == null) {
+            pendingOldestBufferedAtState.update(processingTimeMs);
+        }
+        metrics.onPendingBuffered();
+        metrics.onPendingOldestAgeObserved(pendingOldestAgeMs(processingTimeMs));
+        return true;
     }
 
-    private void schedulePendingRetry(String routeKey, TimerService timerService) {
-        if (routeKey == null || timerService == null) {
+    private boolean hasPendingEvents() throws Exception {
+        return pendingEventCount() > 0;
+    }
+
+    private void schedulePendingRetry(String sceneKey, TimerService timerService) throws Exception {
+        if (sceneKey == null || timerService == null) {
             return;
         }
-        long nextRetryAt = timerService.currentProcessingTime() + PENDING_RETRY_DELAY_MS;
-        Long existingRetryAt = pendingRetryTimers.get(routeKey);
-        if (existingRetryAt != null && existingRetryAt >= nextRetryAt) {
+        if (pendingRetryAtState.value() != null) {
             return;
         }
-        pendingRetryTimers.put(routeKey, nextRetryAt);
+        long nextRetryAt = timerService.currentProcessingTime() + pendingRetryDelayMs;
+        pendingRetryAtState.update(nextRetryAt);
         timerService.registerProcessingTimeTimer(nextRetryAt);
     }
 
-    private void flushPendingEvents(String routeKey,
+    private void clearPendingRetryTimer() throws Exception {
+        pendingRetryAtState.clear();
+    }
+
+    private void flushPendingEvents(String sceneKey,
                                     CompiledSceneRuntime runtime,
                                     Collector<DecisionResult> collector,
-                                    OutputContext outputContext) {
-        List<RiskEvent> events = pendingEvents.remove(routeKey);
-        if (events == null || events.isEmpty()) {
+                                    OutputContext outputContext) throws Exception {
+        List<RiskEvent> events = pendingEventsSnapshot();
+        clearPendingEventState();
+        metrics.onPendingOldestAgeObserved(0L);
+        if (events.isEmpty()) {
             return;
         }
         metrics.onPendingFlushed(events.size());
@@ -301,14 +385,123 @@ public class DecisionBroadcastProcessFunction
         }
     }
 
+    private List<RiskEvent> pendingEventsSnapshot() throws Exception {
+        List<RiskEvent> events = new ArrayList<>();
+        Iterable<RiskEvent> bufferedEvents = pendingEventsState.get();
+        if (bufferedEvents == null) {
+            return events;
+        }
+        for (RiskEvent event : bufferedEvents) {
+            if (event != null) {
+                events.add(event);
+            }
+        }
+        return events;
+    }
+
+    private void clearPendingEventState() throws Exception {
+        pendingEventsState.clear();
+        pendingEventCountState.clear();
+        pendingOldestBufferedAtState.clear();
+    }
+
+    private int pendingEventCount() throws Exception {
+        Integer count = pendingEventCountState.value();
+        if (count != null) {
+            return count;
+        }
+        int derivedCount = pendingEventsSnapshot().size();
+        if (derivedCount > 0) {
+            pendingEventCountState.update(derivedCount);
+        }
+        return derivedCount;
+    }
+
+    private RiskEvent firstPendingEvent() throws Exception {
+        Iterable<RiskEvent> bufferedEvents = pendingEventsState.get();
+        if (bufferedEvents == null) {
+            return null;
+        }
+        for (RiskEvent event : bufferedEvents) {
+            if (event != null) {
+                return event;
+            }
+        }
+        return null;
+    }
+
+    private boolean dropExpiredPendingEventsIfNeeded(long processingTimeMs, ReadOnlyContext context) throws Exception {
+        if (!hasPendingEvents()) {
+            metrics.onPendingOldestAgeObserved(0L);
+            return false;
+        }
+        long oldestAgeMs = pendingOldestAgeMs(processingTimeMs);
+        metrics.onPendingOldestAgeObserved(oldestAgeMs);
+        if (oldestAgeMs <= maxPendingEventAgeMs) {
+            return false;
+        }
+        int droppedCount = pendingEventCount();
+        RiskEvent representativeEvent = firstPendingEvent();
+        clearPendingEventState();
+        clearPendingRetryTimer();
+        metrics.onPendingDropped(droppedCount);
+        metrics.onPendingOldestAgeObserved(0L);
+        emitEngineError(context, pendingError("pending-buffer-timeout",
+                EngineErrorCodes.PENDING_BUFFER_EXPIRED,
+                representativeEvent,
+                new IllegalStateException("pending buffer expired: sceneCode="
+                        + (representativeEvent == null ? null : representativeEvent.getSceneCode())
+                        + ", oldestAgeMs=" + oldestAgeMs
+                        + ", limitMs=" + maxPendingEventAgeMs
+                        + ", droppedCount=" + droppedCount)));
+        return true;
+    }
+
+    private boolean dropExpiredPendingEventsIfNeeded(long processingTimeMs, OnTimerContext context) throws Exception {
+        if (!hasPendingEvents()) {
+            metrics.onPendingOldestAgeObserved(0L);
+            return false;
+        }
+        long oldestAgeMs = pendingOldestAgeMs(processingTimeMs);
+        metrics.onPendingOldestAgeObserved(oldestAgeMs);
+        if (oldestAgeMs <= maxPendingEventAgeMs) {
+            return false;
+        }
+        int droppedCount = pendingEventCount();
+        RiskEvent representativeEvent = firstPendingEvent();
+        clearPendingEventState();
+        clearPendingRetryTimer();
+        metrics.onPendingDropped(droppedCount);
+        metrics.onPendingOldestAgeObserved(0L);
+        emitEngineError(context, pendingError("pending-buffer-timeout",
+                EngineErrorCodes.PENDING_BUFFER_EXPIRED,
+                representativeEvent,
+                new IllegalStateException("pending buffer expired: sceneCode="
+                        + (representativeEvent == null ? null : representativeEvent.getSceneCode())
+                        + ", oldestAgeMs=" + oldestAgeMs
+                        + ", limitMs=" + maxPendingEventAgeMs
+                        + ", droppedCount=" + droppedCount)));
+        return true;
+    }
+
+    private long pendingOldestAgeMs(long processingTimeMs) throws Exception {
+        Long oldestBufferedAt = pendingOldestBufferedAtState.value();
+        if (oldestBufferedAt == null || pendingEventCount() == 0) {
+            return 0L;
+        }
+        return Math.max(processingTimeMs - oldestBufferedAt, 0L);
+    }
+
     private void emitDecision(RiskEvent event,
                               CompiledSceneRuntime runtime,
                               Collector<DecisionResult> collector,
                               OutputContext outputContext) {
         try {
-            DecisionResult result = decisionExecutor.execute(runtime,
+            DecisionExecutor.PreparedDecisionContext preparedContext = decisionExecutor.prepare(runtime,
                     event,
-                    stateStore,
+                    stateStore);
+            DecisionResult result = decisionExecutor.executePrepared(runtime,
+                    preparedContext,
                     lookupService,
                     outputContext::emitEngineError);
             try {
@@ -367,15 +560,24 @@ public class DecisionBroadcastProcessFunction
         return createdTimeline;
     }
 
-    private boolean isPendingRetryTimer(String routeKey, long timestamp, OnTimerContext context) {
-        if (routeKey == null) {
-            return false;
-        }
-        Long expectedRetryAt = pendingRetryTimers.get(routeKey);
+    private boolean isPendingRetryTimer(long timestamp, OnTimerContext context) throws Exception {
+        Long expectedRetryAt = pendingRetryAtState.value();
         if (expectedRetryAt == null || expectedRetryAt != timestamp) {
             return false;
         }
         return context.timeDomain() == TimeDomain.PROCESSING_TIME;
+    }
+
+    private EngineErrorRecord pendingError(String stage,
+                                           String errorCode,
+                                           RiskEvent event,
+                                           Throwable throwable) {
+        return EngineErrorRecord.of(stage,
+                EngineErrorTypes.STATE,
+                errorCode,
+                event,
+                null,
+                throwable);
     }
 
     private EngineErrorRecord snapshotError(String stage,
@@ -460,20 +662,27 @@ public class DecisionBroadcastProcessFunction
         metrics.onEngineError(record);
     }
 
+    private void emitEngineError(ReadOnlyContext context, EngineErrorRecord record) {
+        context.output(EngineOutputTags.ENGINE_ERROR, record);
+        metrics.onEngineError(record);
+    }
+
     private void emitEngineError(OnTimerContext context, EngineErrorRecord record) {
         context.output(EngineOutputTags.ENGINE_ERROR, record);
         metrics.onEngineError(record);
     }
 
     @FunctionalInterface
-    public interface LookupServiceFactory extends Serializable {
+    @Deprecated(forRemoval = true)
+    public interface LookupServiceFactory extends EngineLookupServiceFactory {
 
         LookupService create();
 
     }
 
     @FunctionalInterface
-    public interface StreamFeatureStateStoreFactory extends Serializable {
+    @Deprecated(forRemoval = true)
+    public interface StreamFeatureStateStoreFactory extends EngineStreamFeatureStateStoreFactory {
 
         StreamFeatureStateStore create(RuntimeContext runtimeContext);
 

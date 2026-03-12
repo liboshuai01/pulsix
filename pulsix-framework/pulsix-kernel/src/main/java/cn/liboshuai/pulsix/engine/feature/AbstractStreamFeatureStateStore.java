@@ -65,7 +65,7 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
     private Object evaluateNumericFeature(CompiledSceneRuntime.CompiledStreamFeature feature,
                                           EvalContext context,
                                           String entityKey) {
-        String featureInstanceKey = featureInstanceKey(feature, entityKey);
+        String featureInstanceKey = featureInstanceKey(feature, context, entityKey);
         NumericWindowState state = getNumericState(featureInstanceKey);
         if (state == null) {
             state = new NumericWindowState();
@@ -96,7 +96,7 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
     private Object evaluateLatestFeature(CompiledSceneRuntime.CompiledStreamFeature feature,
                                          EvalContext context,
                                          String entityKey) {
-        String featureInstanceKey = featureInstanceKey(feature, entityKey);
+        String featureInstanceKey = featureInstanceKey(feature, context, entityKey);
         LatestValueState state = getLatestState(featureInstanceKey);
         if (state == null) {
             state = new LatestValueState();
@@ -125,7 +125,7 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
     private Object evaluateDistinctFeature(CompiledSceneRuntime.CompiledStreamFeature feature,
                                            EvalContext context,
                                            String entityKey) {
-        String featureInstanceKey = featureInstanceKey(feature, entityKey);
+        String featureInstanceKey = featureInstanceKey(feature, context, entityKey);
         DistinctWindowState state = getDistinctState(featureInstanceKey);
         if (state == null) {
             state = new DistinctWindowState();
@@ -317,8 +317,12 @@ public abstract class AbstractStreamFeatureStateStore implements StreamFeatureSt
         return acceptedEventType && acceptedFilter;
     }
 
-    protected String featureInstanceKey(CompiledSceneRuntime.CompiledStreamFeature feature, String entityKey) {
-        return feature.getSpec().getCode() + '|' + entityKey;
+    protected String featureInstanceKey(CompiledSceneRuntime.CompiledStreamFeature feature,
+                                        EvalContext context,
+                                        String entityKey) {
+        String sceneCode = context == null ? null : context.getSceneCode();
+        String normalizedSceneCode = sceneCode == null || sceneCode.isBlank() ? "scene:default" : sceneCode.trim();
+        return normalizedSceneCode + '|' + feature.getSpec().getCode() + '|' + entityKey;
     }
 
     protected Object defaultFeatureValue(AggType aggType) {

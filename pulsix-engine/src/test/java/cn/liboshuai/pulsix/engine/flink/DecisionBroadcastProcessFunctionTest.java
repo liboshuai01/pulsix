@@ -28,6 +28,7 @@ import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedBroadcastOperatorTestHarness;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -206,6 +207,81 @@ class DecisionBroadcastProcessFunctionTest {
                     simulationReport.getFinalResult().getHitRules().stream().map(LocalSimulationRunner.MatchedRule::getRuleCode).toList(),
                     flinkFinalResult.getRuleHits().stream().filter(hit -> Boolean.TRUE.equals(hit.getHit())).map(cn.liboshuai.pulsix.engine.model.RuleHit::getRuleCode).toList()
             );
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldKeepScoreCardConsistentAcrossSimulationReplayAndLegacyFlinkHarness() throws Exception {
+        SceneSnapshotEnvelope envelope = DemoFixtures.scoreCardEnvelope();
+        List<RiskEvent> events = DemoFixtures.scoreCardEvents().stream()
+                .map(event -> copy(event, RiskEvent.class))
+                .toList();
+
+        LocalSimulationRunner simulationRunner = new LocalSimulationRunner();
+        LocalSimulationRunner.SimulationReport simulationReport = simulationRunner.simulate(envelope, events);
+
+        LocalReplayRunner replayRunner = new LocalReplayRunner();
+        LocalReplayRunner.ReplayReport replayReport = replayRunner.replay(envelope, events);
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            for (RiskEvent event : events) {
+                harness.processElement(copy(event, RiskEvent.class), epochMillis(event.getEventTime()));
+            }
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(1, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            DecisionResult flinkFinalResult = results.get(0);
+            assertEquals(simulationReport.getFinalResult().getFinalAction(), replayReport.getFinalResult().getFinalAction());
+            assertEquals(simulationReport.getFinalResult().getFinalAction(), flinkFinalResult.getFinalAction());
+            assertEquals(simulationReport.getFinalResult().getFinalScore(), replayReport.getFinalResult().getFinalScore());
+            assertEquals(simulationReport.getFinalResult().getFinalScore(), flinkFinalResult.getFinalScore());
+            assertEquals(simulationReport.getFinalResult().getTotalScore(), replayReport.getFinalResult().getTotalScore());
+            assertEquals(simulationReport.getFinalResult().getTotalScore(), flinkFinalResult.getTotalScore());
+            assertEquals(simulationReport.getFinalResult().getReason(), replayReport.getFinalResult().getReason());
+            assertEquals(simulationReport.getFinalResult().getReason(), flinkFinalResult.getReason());
+            assertEquals(List.of("SR001", "SR002"), flinkFinalResult.getRuleHits().stream()
+                    .filter(hit -> Boolean.TRUE.equals(hit.getHit()))
+                    .map(cn.liboshuai.pulsix.engine.model.RuleHit::getRuleCode)
+                    .toList());
+            assertEquals("BAND_REJECT", flinkFinalResult.getMatchedScoreBand().getCode());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldKeepUserCounterConsistentAcrossDifferentDevices() throws Exception {
+        SceneSnapshotEnvelope envelope = DemoFixtures.demoEnvelope();
+        List<RiskEvent> events = List.of(
+                tradeEvent("E202603071101", "T202603071101", Instant.parse("2026-03-07T09:56:00Z"), "U1001", "D9101", "11.1.1.1", 6800),
+                tradeEvent("E202603071102", "T202603071102", Instant.parse("2026-03-07T09:57:00Z"), "U1001", "D9102", "11.1.1.2", 6800),
+                tradeEvent("E202603071103", "T202603071103", Instant.parse("2026-03-07T09:58:00Z"), "U1001", "D9103", "11.1.1.3", 6800)
+        );
+
+        LocalSimulationRunner simulationRunner = new LocalSimulationRunner();
+        LocalSimulationRunner.SimulationReport simulationReport = simulationRunner.simulate(envelope, events);
+        assertEquals(ActionType.REVIEW, simulationReport.getFinalResult().getFinalAction());
+        assertEquals("3", simulationReport.getFinalResult().getFeatureSnapshot().get("user_trade_cnt_5m"));
+        assertEquals("1", simulationReport.getFinalResult().getFeatureSnapshot().get("device_bind_user_cnt_1h"));
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            harness.setProcessingTime(epochMillis(envelope.getEffectiveFrom()) + 1L);
+            harness.processBroadcastElement(envelope, epochMillis(envelope.getPublishedAt()));
+            for (RiskEvent event : events) {
+                harness.processElement(copy(event, RiskEvent.class), epochMillis(event.getEventTime()));
+            }
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(3, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            DecisionResult flinkFinalResult = results.get(results.size() - 1);
+            assertEquals(simulationReport.getFinalResult().getFinalAction(), flinkFinalResult.getFinalAction());
+            assertEquals(simulationReport.getFinalResult().getFinalScore(), flinkFinalResult.getFinalScore());
+            assertEquals(simulationReport.getFinalResult().getFeatureSnapshot().get("user_trade_cnt_5m"),
+                    flinkFinalResult.getFeatureSnapshot().get("user_trade_cnt_5m"));
+            assertEquals(simulationReport.getFinalResult().getFeatureSnapshot().get("device_bind_user_cnt_1h"),
+                    flinkFinalResult.getFeatureSnapshot().get("device_bind_user_cnt_1h"));
             assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
         }
     }
@@ -442,6 +518,126 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     @Test
+    void shouldRestoreBufferedEventsWhenSnapshotArrivesAfterCheckpoint() throws Exception {
+        SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
+        RiskEvent firstEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+        RiskEvent secondEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+        secondEvent.setEventId("E202603070188");
+        secondEvent.setTraceId("T202603070188");
+        secondEvent.setEventTime(firstEvent.getEventTime().plusSeconds(30));
+        OperatorSubtaskState snapshot;
+
+        long runtimeReadyAt = epochMillis(baseline.getEffectiveFrom()) + 1L;
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
+            harness.setProcessingTime(runtimeReadyAt);
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+            assertEquals(1, harness.numProcessingTimeTimers());
+            snapshot = harness.snapshot(300L, runtimeReadyAt + 100L);
+        }
+
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = restoredHarness(snapshot)) {
+            harness.setProcessingTime(runtimeReadyAt + 100L);
+            harness.processBroadcastElement(baseline, epochMillis(baseline.getPublishedAt()));
+            harness.setProcessingTime(runtimeReadyAt + DecisionBroadcastProcessFunction.DEFAULT_PENDING_RETRY_DELAY_MS + 100L);
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(2, results.size(), "errors=" + sideOutput(harness, EngineOutputTags.ENGINE_ERROR));
+            assertEquals(firstEvent.getEventId(), results.get(0).getEventId());
+            assertEquals(secondEvent.getEventId(), results.get(1).getEventId());
+            assertEquals(ActionType.REJECT, results.get(0).getFinalAction());
+            assertEquals(ActionType.REJECT, results.get(1).getFinalAction());
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldRejectPendingEventWhenBufferExceedsLimit() throws Exception {
+        DecisionBroadcastProcessFunction processFunction = new DecisionBroadcastProcessFunction(
+                SNAPSHOT_STATE_DESCRIPTOR,
+                cn.liboshuai.pulsix.engine.feature.InMemoryLookupService::demo,
+                cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore::new,
+                DecisionBroadcastProcessFunction.DEFAULT_PENDING_RETRY_DELAY_MS,
+                2,
+                DecisionBroadcastProcessFunction.DEFAULT_MAX_PENDING_EVENT_AGE_MS);
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness(processFunction)) {
+            SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
+            RiskEvent firstEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent secondEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            RiskEvent thirdEvent = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+            secondEvent.setEventId("E202603070189");
+            secondEvent.setTraceId("T202603070189");
+            secondEvent.setEventTime(firstEvent.getEventTime().plusSeconds(10));
+            thirdEvent.setEventId("E202603070190");
+            thirdEvent.setTraceId("T202603070190");
+            thirdEvent.setEventTime(firstEvent.getEventTime().plusSeconds(20));
+
+            long runtimeReadyAt = epochMillis(baseline.getEffectiveFrom()) + 1L;
+            harness.setProcessingTime(runtimeReadyAt);
+            harness.processElement(firstEvent, epochMillis(firstEvent.getEventTime()));
+            harness.processElement(secondEvent, epochMillis(secondEvent.getEventTime()));
+            harness.processElement(thirdEvent, epochMillis(thirdEvent.getEventTime()));
+
+            assertEquals(1, harness.numProcessingTimeTimers());
+            assertTrue(harness.extractOutputValues().isEmpty());
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord errorRecord = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("pending-buffer-overflow", errorRecord.getStage());
+            assertEquals(EngineErrorTypes.STATE, errorRecord.getErrorType());
+            assertEquals(EngineErrorCodes.PENDING_BUFFER_OVERFLOW, errorRecord.getErrorCode());
+            assertEquals(thirdEvent.getEventId(), errorRecord.getEventId());
+
+            harness.processBroadcastElement(baseline, epochMillis(baseline.getPublishedAt()));
+            harness.setProcessingTime(runtimeReadyAt + DecisionBroadcastProcessFunction.DEFAULT_PENDING_RETRY_DELAY_MS + 100L);
+
+            List<DecisionResult> results = harness.extractOutputValues();
+            assertEquals(2, results.size());
+            assertEquals(firstEvent.getEventId(), results.get(0).getEventId());
+            assertEquals(secondEvent.getEventId(), results.get(1).getEventId());
+        }
+    }
+
+    @Test
+    void shouldDropBufferedEventsWhenPendingBufferExpires() throws Exception {
+        DecisionBroadcastProcessFunction processFunction = new DecisionBroadcastProcessFunction(
+                SNAPSHOT_STATE_DESCRIPTOR,
+                cn.liboshuai.pulsix.engine.feature.InMemoryLookupService::demo,
+                cn.liboshuai.pulsix.engine.feature.FlinkKeyedStateStreamFeatureStateStore::new,
+                DecisionBroadcastProcessFunction.DEFAULT_PENDING_RETRY_DELAY_MS,
+                8,
+                2_000L);
+        try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness(processFunction)) {
+            SceneSnapshotEnvelope baseline = baselineEnvelopeForBroadcastSwitch();
+            RiskEvent event = copy(DemoFixtures.blacklistedEvent(), RiskEvent.class);
+
+            long runtimeReadyAt = epochMillis(baseline.getEffectiveFrom()) + 1L;
+            harness.setProcessingTime(runtimeReadyAt);
+            harness.processElement(event, epochMillis(event.getEventTime()));
+            assertTrue(harness.extractOutputValues().isEmpty());
+
+            harness.setProcessingTime(runtimeReadyAt + 1_100L);
+            harness.setProcessingTime(runtimeReadyAt + 2_100L);
+            harness.setProcessingTime(runtimeReadyAt + 3_200L);
+            assertTrue(harness.extractOutputValues().isEmpty());
+
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord errorRecord = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("pending-buffer-timeout", errorRecord.getStage());
+            assertEquals(EngineErrorTypes.STATE, errorRecord.getErrorType());
+            assertEquals(EngineErrorCodes.PENDING_BUFFER_EXPIRED, errorRecord.getErrorCode());
+            assertEquals(event.getEventId(), errorRecord.getEventId());
+
+            harness.processBroadcastElement(baseline, epochMillis(baseline.getPublishedAt()));
+            harness.setProcessingTime(runtimeReadyAt + 6_000L);
+            assertTrue(harness.extractOutputValues().isEmpty());
+        }
+    }
+
+    @Test
     void shouldKeepFutureSnapshotPendingUntilEffectiveFrom() throws Exception {
         try (KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness = newHarness()) {
             SceneSnapshotEnvelope version12 = baselineEnvelopeForBroadcastSwitch();
@@ -620,7 +816,15 @@ class DecisionBroadcastProcessFunctionTest {
     }
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness() throws Exception {
-        return newHarness(null);
+        return newHarness(buildProcessFunction(null, null));
+    }
+
+    private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
+            DecisionBroadcastProcessFunction processFunction) throws Exception {
+        KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
+                createHarness(processFunction);
+        harness.open();
+        return harness;
     }
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
@@ -631,31 +835,27 @@ class DecisionBroadcastProcessFunctionTest {
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> newHarness(
             DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory,
             DecisionBroadcastProcessFunction.StreamFeatureStateStoreFactory stateStoreFactory) throws Exception {
-        KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
-                createHarness(lookupServiceFactory, stateStoreFactory);
-        harness.open();
-        return harness;
+        return newHarness(buildProcessFunction(lookupServiceFactory, stateStoreFactory));
     }
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> restoredHarness(
             OperatorSubtaskState snapshot) throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
-                createHarness(null, null);
+                createHarness(buildProcessFunction(null, null));
         harness.initializeState(snapshot);
         harness.open();
         return harness;
     }
 
     private KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> createHarness(
-            DecisionBroadcastProcessFunction.LookupServiceFactory lookupServiceFactory,
-            DecisionBroadcastProcessFunction.StreamFeatureStateStoreFactory stateStoreFactory) throws Exception {
+            DecisionBroadcastProcessFunction processFunction) throws Exception {
         KeyedBroadcastOperatorTestHarness<String, RiskEvent, SceneSnapshotEnvelope, DecisionResult> harness =
                 new KeyedBroadcastOperatorTestHarness<>(
                         new CoBroadcastWithKeyedOperator<>(
-                                buildProcessFunction(lookupServiceFactory, stateStoreFactory),
+                                processFunction,
                                 List.of(SNAPSHOT_STATE_DESCRIPTOR)
                         ),
-                        RiskEvent::routeKey,
+                        RiskEvent::getSceneCode,
                         Types.STRING,
                         1,
                         1,
@@ -791,6 +991,27 @@ class DecisionBroadcastProcessFunctionTest {
         event.setEventTime(eventTime);
         event.setUserId("U_TIMER_1");
         event.setDeviceId("D_TIMER_1");
+        return event;
+    }
+
+    private RiskEvent tradeEvent(String eventId,
+                                 String traceId,
+                                 Instant eventTime,
+                                 String userId,
+                                 String deviceId,
+                                 String ip,
+                                 long amount) {
+        RiskEvent event = copy(DemoFixtures.demoEvents().get(0), RiskEvent.class);
+        event.setSceneCode("TRADE_RISK");
+        event.setEventId(eventId);
+        event.setTraceId(traceId);
+        event.setEventTime(eventTime);
+        event.setUserId(userId);
+        event.setDeviceId(deviceId);
+        event.setIp(ip);
+        event.setAmount(BigDecimal.valueOf(amount));
+        event.setResult("SUCCESS");
+        event.setEventType("trade");
         return event;
     }
 

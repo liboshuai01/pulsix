@@ -13,7 +13,10 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -30,6 +33,8 @@ public class CompiledSceneRuntime implements Serializable {
     private List<CompiledRule> orderedRules = new ArrayList<>();
 
     private PolicySpec policy;
+
+    private StreamFeatureRoutingPlan streamFeatureRoutingPlan = new StreamFeatureRoutingPlan();
 
     public String sceneCode() {
         return snapshot.getSceneCode();
@@ -56,6 +61,10 @@ public class CompiledSceneRuntime implements Serializable {
     public boolean needFullDecisionLog() {
         RuntimeHints hints = runtimeHints();
         return hints == null || !Boolean.FALSE.equals(hints.getNeedFullDecisionLog());
+    }
+
+    public boolean hasMixedStreamFeatureRouting() {
+        return streamFeatureRoutingPlan != null && streamFeatureRoutingPlan.hasMultipleGroups();
     }
 
     public List<String> featureCodes() {
@@ -116,6 +125,85 @@ public class CompiledSceneRuntime implements Serializable {
 
         private CompiledScript condition;
 
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class StreamFeatureRoutingPlan implements Serializable {
+
+        private String sceneCode;
+
+        private List<StreamFeatureGroupPlan> groups = new ArrayList<>();
+
+        public boolean isEmpty() {
+            return groups == null || groups.isEmpty();
+        }
+
+        public boolean hasMultipleGroups() {
+            return groups != null && groups.size() > 1;
+        }
+
+        public List<String> featureCodes() {
+            List<String> codes = new ArrayList<>();
+            if (groups == null) {
+                return codes;
+            }
+            for (StreamFeatureGroupPlan group : groups) {
+                if (group == null || group.getFeatureCodes() == null) {
+                    continue;
+                }
+                codes.addAll(group.getFeatureCodes());
+            }
+            return codes;
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class StreamFeatureGroupPlan implements Serializable {
+
+        private String sceneCode;
+
+        private String entityType;
+
+        private String entityKeyExpr;
+
+        private List<String> sourceEventTypes = new ArrayList<>();
+
+        private List<String> featureCodes = new ArrayList<>();
+
+        public String groupKey() {
+            String normalizedSceneCode = sceneCode == null ? "scene:default" : sceneCode.trim();
+            String normalizedEntityType = entityType == null ? "entity:unknown" : entityType.trim();
+            String normalizedEntityKeyExpr = entityKeyExpr == null ? "expr:unknown" : entityKeyExpr.trim();
+            String normalizedSourceEventTypes = sourceEventTypes == null || sourceEventTypes.isEmpty()
+                    ? "event:*"
+                    : String.join(",", new LinkedHashSet<>(sourceEventTypes));
+            return normalizedSceneCode + '|' + normalizedEntityType + '|' + normalizedEntityKeyExpr + '|' + normalizedSourceEventTypes;
+        }
+
+        public boolean sameDimension(StreamFeatureGroupPlan other) {
+            if (other == null) {
+                return false;
+            }
+            return Objects.equals(entityType, other.entityType)
+                    && Objects.equals(entityKeyExpr, other.entityKeyExpr)
+                    && Objects.equals(normalizeSourceEventTypes(sourceEventTypes), normalizeSourceEventTypes(other.sourceEventTypes));
+        }
+
+        private Set<String> normalizeSourceEventTypes(List<String> rawSourceEventTypes) {
+            LinkedHashSet<String> normalized = new LinkedHashSet<>();
+            if (rawSourceEventTypes == null) {
+                return normalized;
+            }
+            for (String sourceEventType : rawSourceEventTypes) {
+                if (sourceEventType == null || sourceEventType.isBlank()) {
+                    continue;
+                }
+                normalized.add(sourceEventType.trim());
+            }
+            return normalized;
+        }
     }
 
 }

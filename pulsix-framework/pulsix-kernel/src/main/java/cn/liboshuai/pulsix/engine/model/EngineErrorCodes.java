@@ -20,6 +20,12 @@ public final class EngineErrorCodes {
 
     public static final String STATE_TIMER_CLEANUP_FAILED = "STATE_TIMER_CLEANUP_FAILED";
 
+    public static final String PENDING_BUFFER_OVERFLOW = "PENDING_BUFFER_OVERFLOW";
+
+    public static final String PENDING_BUFFER_EXPIRED = "PENDING_BUFFER_EXPIRED";
+
+    public static final String PREPARED_DECISION_AGGREGATE_TIMEOUT = "PREPARED_DECISION_AGGREGATE_TIMEOUT";
+
     public static final String DECISION_EXECUTION_FAILED = "DECISION_EXECUTION_FAILED";
 
     public static final String DERIVED_EXECUTION_FAILED = "DERIVED_EXECUTION_FAILED";

@@ -12,8 +12,13 @@ import cn.liboshuai.pulsix.engine.model.EngineType;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
 import cn.liboshuai.pulsix.engine.model.FeatureType;
 import cn.liboshuai.pulsix.engine.model.LookupFeatureSpec;
+import cn.liboshuai.pulsix.engine.model.MatchedScoreBand;
 import cn.liboshuai.pulsix.engine.model.LookupType;
+import cn.liboshuai.pulsix.engine.model.PolicyRuleRefSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
+import cn.liboshuai.pulsix.engine.flink.PreparedDecisionInput;
+import cn.liboshuai.pulsix.engine.flink.PreparedStreamFeatureChunk;
+import cn.liboshuai.pulsix.engine.flink.StreamFeatureRouteEvent;
 import cn.liboshuai.pulsix.engine.model.PublishType;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.RuleHit;
@@ -22,6 +27,7 @@ import cn.liboshuai.pulsix.engine.model.RuntimeHints;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshotEnvelope;
 import cn.liboshuai.pulsix.engine.model.SceneSpec;
+import cn.liboshuai.pulsix.engine.model.ScoreContribution;
 import cn.liboshuai.pulsix.engine.model.ScoreBandSpec;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.WindowType;
@@ -102,8 +108,74 @@ public final class EngineTypeInfoFactories {
             fields.put("decisionMode", Types.ENUM(DecisionMode.class));
             fields.put("defaultAction", Types.ENUM(ActionType.class));
             fields.put("ruleOrder", Types.LIST(Types.STRING));
-            fields.put("scoreBands", Types.LIST(TypeInformation.of(ScoreBandSpec.class)));
+            fields.put("ruleRefs", Types.LIST(EngineTypeInfos.policyRuleRefSpec()));
+            fields.put("scoreBands", Types.LIST(EngineTypeInfos.scoreBandSpec()));
             return EnginePojoTypeInfos.pojo(PolicySpec.class, fields);
+        }
+
+    }
+
+    public static final class PolicyRuleRefSpecTypeInfoFactory extends TypeInfoFactory<PolicyRuleRefSpec> {
+
+        @Override
+        public TypeInformation<PolicyRuleRefSpec> createTypeInfo(Type type, Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("ruleCode", Types.STRING);
+            fields.put("orderNo", Types.INT);
+            fields.put("enabled", Types.BOOLEAN);
+            fields.put("scoreWeight", Types.INT);
+            fields.put("stopOnHit", Types.BOOLEAN);
+            fields.put("branchExpr", Types.STRING);
+            return EnginePojoTypeInfos.pojo(PolicyRuleRefSpec.class, fields);
+        }
+
+    }
+
+    public static final class ScoreBandSpecTypeInfoFactory extends TypeInfoFactory<ScoreBandSpec> {
+
+        @Override
+        public TypeInformation<ScoreBandSpec> createTypeInfo(Type type, Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("code", Types.STRING);
+            fields.put("minScore", Types.INT);
+            fields.put("maxScore", Types.INT);
+            fields.put("action", Types.ENUM(ActionType.class));
+            fields.put("reason", Types.STRING);
+            fields.put("reasonTemplate", Types.STRING);
+            return EnginePojoTypeInfos.pojo(ScoreBandSpec.class, fields);
+        }
+
+    }
+
+    public static final class MatchedScoreBandTypeInfoFactory extends TypeInfoFactory<MatchedScoreBand> {
+
+        @Override
+        public TypeInformation<MatchedScoreBand> createTypeInfo(Type type, Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("code", Types.STRING);
+            fields.put("minScore", Types.INT);
+            fields.put("maxScore", Types.INT);
+            fields.put("action", Types.ENUM(ActionType.class));
+            fields.put("reason", Types.STRING);
+            return EnginePojoTypeInfos.pojo(MatchedScoreBand.class, fields);
+        }
+
+    }
+
+    public static final class ScoreContributionTypeInfoFactory extends TypeInfoFactory<ScoreContribution> {
+
+        @Override
+        public TypeInformation<ScoreContribution> createTypeInfo(Type type, Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("ruleCode", Types.STRING);
+            fields.put("ruleName", Types.STRING);
+            fields.put("action", Types.ENUM(ActionType.class));
+            fields.put("rawScore", Types.INT);
+            fields.put("scoreWeight", Types.INT);
+            fields.put("weightedScore", Types.INT);
+            fields.put("stopOnHit", Types.BOOLEAN);
+            fields.put("reason", Types.STRING);
+            return EnginePojoTypeInfos.pojo(ScoreContribution.class, fields);
         }
 
     }
@@ -283,6 +355,10 @@ public final class EngineTypeInfoFactories {
             fields.put("decisionMode", Types.ENUM(DecisionMode.class));
             fields.put("finalAction", Types.ENUM(ActionType.class));
             fields.put("finalScore", Types.INT);
+            fields.put("totalScore", Types.INT);
+            fields.put("reason", Types.STRING);
+            fields.put("matchedScoreBand", EngineTypeInfos.matchedScoreBand());
+            fields.put("scoreContributions", Types.LIST(EngineTypeInfos.scoreContribution()));
             fields.put("latencyMs", Types.LONG);
             fields.put("ruleHits", Types.LIST(EngineTypeInfos.ruleHit()));
             fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
@@ -311,6 +387,62 @@ public final class EngineTypeInfoFactories {
             fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
             fields.put("traceLogs", Types.LIST(Types.STRING));
             return EnginePojoTypeInfos.pojo(DecisionLogRecord.class, fields);
+        }
+
+    }
+
+
+    public static final class StreamFeatureRouteEventTypeInfoFactory extends TypeInfoFactory<StreamFeatureRouteEvent> {
+
+        @Override
+        public TypeInformation<StreamFeatureRouteEvent> createTypeInfo(Type type,
+                                                                       Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("sceneCode", Types.STRING);
+            fields.put("groupKey", Types.STRING);
+            fields.put("routeExecutionKey", Types.STRING);
+            fields.put("eventJoinKey", Types.STRING);
+            fields.put("expectedGroupCount", Types.INT);
+            fields.put("preparedAtEpochMs", Types.LONG);
+            fields.put("event", EngineTypeInfos.riskEvent());
+            fields.put("snapshot", EngineTypeInfos.sceneSnapshot());
+            fields.put("featureCodes", Types.LIST(Types.STRING));
+            return EnginePojoTypeInfos.pojo(StreamFeatureRouteEvent.class, fields);
+        }
+
+    }
+
+    public static final class PreparedStreamFeatureChunkTypeInfoFactory extends TypeInfoFactory<PreparedStreamFeatureChunk> {
+
+        @Override
+        public TypeInformation<PreparedStreamFeatureChunk> createTypeInfo(Type type,
+                                                                          Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("sceneCode", Types.STRING);
+            fields.put("eventJoinKey", Types.STRING);
+            fields.put("expectedGroupCount", Types.INT);
+            fields.put("preparedAtEpochMs", Types.LONG);
+            fields.put("event", EngineTypeInfos.riskEvent());
+            fields.put("snapshot", EngineTypeInfos.sceneSnapshot());
+            fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
+            return EnginePojoTypeInfos.pojo(PreparedStreamFeatureChunk.class, fields);
+        }
+
+    }
+
+    public static final class PreparedDecisionInputTypeInfoFactory extends TypeInfoFactory<PreparedDecisionInput> {
+
+        @Override
+        public TypeInformation<PreparedDecisionInput> createTypeInfo(Type type,
+                                                                     Map<String, TypeInformation<?>> genericParameters) {
+            Map<String, TypeInformation<?>> fields = new LinkedHashMap<>();
+            fields.put("sceneCode", Types.STRING);
+            fields.put("eventJoinKey", Types.STRING);
+            fields.put("preparedAtEpochMs", Types.LONG);
+            fields.put("event", EngineTypeInfos.riskEvent());
+            fields.put("snapshot", EngineTypeInfos.sceneSnapshot());
+            fields.put("featureSnapshot", Types.MAP(Types.STRING, Types.STRING));
+            return EnginePojoTypeInfos.pojo(PreparedDecisionInput.class, fields);
         }
 
     }

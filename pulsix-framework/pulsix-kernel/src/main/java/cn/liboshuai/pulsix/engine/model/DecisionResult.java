@@ -32,6 +32,14 @@ public class DecisionResult implements Serializable {
 
     private Integer finalScore;
 
+    private Integer totalScore;
+
+    private String reason;
+
+    private MatchedScoreBand matchedScoreBand;
+
+    private List<ScoreContribution> scoreContributions = new ArrayList<>();
+
     private Long latencyMs;
 
     private List<RuleHit> ruleHits = new ArrayList<>();
@@ -48,6 +56,10 @@ public class DecisionResult implements Serializable {
             return;
         }
         featureSnapshot.forEach((key, value) -> this.featureSnapshot.put(key, value == null ? null : String.valueOf(value)));
+    }
+
+    public void setScoreContributions(List<ScoreContribution> scoreContributions) {
+        this.scoreContributions = CollectionCopier.copyList(scoreContributions);
     }
 
     public void setRuleHits(List<RuleHit> ruleHits) {

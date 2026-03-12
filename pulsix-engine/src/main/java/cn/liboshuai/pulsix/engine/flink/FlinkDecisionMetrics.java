@@ -45,6 +45,18 @@ final class FlinkDecisionMetrics {
 
     private final Counter ruleHitCounter;
 
+    private final Counter pendingDroppedCounter;
+
+    private final Counter preparedRouteCounter;
+
+    private final Counter preparedBypassCounter;
+
+    private final Counter preparedChunkCounter;
+
+    private final Counter preparedAggregateCompleteCounter;
+
+    private final Counter preparedAggregateTimeoutCounter;
+
     private final AtomicLong inputEventCount = new AtomicLong();
 
     private final AtomicLong decisionOutputCount = new AtomicLong();
@@ -77,9 +89,25 @@ final class FlinkDecisionMetrics {
 
     private final AtomicLong ruleHitCount = new AtomicLong();
 
+    private final AtomicLong pendingDroppedCount = new AtomicLong();
+
+    private final AtomicLong preparedRouteCount = new AtomicLong();
+
+    private final AtomicLong preparedBypassCount = new AtomicLong();
+
+    private final AtomicLong preparedChunkCount = new AtomicLong();
+
+    private final AtomicLong preparedAggregateCompleteCount = new AtomicLong();
+
+    private final AtomicLong preparedAggregateTimeoutCount = new AtomicLong();
+
     private final AtomicLong lastDecisionLatencyMs = new AtomicLong();
 
     private final AtomicInteger pendingEventBufferSize = new AtomicInteger();
+
+    private final AtomicLong pendingOldestAgeMs = new AtomicLong();
+
+    private final AtomicInteger preparedAggregatePendingGroups = new AtomicInteger();
 
     private FlinkDecisionMetrics(Counter inputEventCounter,
                                  Counter decisionOutputCounter,
@@ -96,7 +124,13 @@ final class FlinkDecisionMetrics {
                                  Counter executionErrorCounter,
                                  Counter expressionErrorCounter,
                                  Counter groovyErrorCounter,
-                                 Counter ruleHitCounter) {
+                                 Counter ruleHitCounter,
+                                 Counter pendingDroppedCounter,
+                                 Counter preparedRouteCounter,
+                                 Counter preparedBypassCounter,
+                                 Counter preparedChunkCounter,
+                                 Counter preparedAggregateCompleteCounter,
+                                 Counter preparedAggregateTimeoutCounter) {
         this.inputEventCounter = inputEventCounter;
         this.decisionOutputCounter = decisionOutputCounter;
         this.decisionLogCounter = decisionLogCounter;
@@ -113,13 +147,22 @@ final class FlinkDecisionMetrics {
         this.expressionErrorCounter = expressionErrorCounter;
         this.groovyErrorCounter = groovyErrorCounter;
         this.ruleHitCounter = ruleHitCounter;
+        this.pendingDroppedCounter = pendingDroppedCounter;
+        this.preparedRouteCounter = preparedRouteCounter;
+        this.preparedBypassCounter = preparedBypassCounter;
+        this.preparedChunkCounter = preparedChunkCounter;
+        this.preparedAggregateCompleteCounter = preparedAggregateCompleteCounter;
+        this.preparedAggregateTimeoutCounter = preparedAggregateTimeoutCounter;
     }
 
     static FlinkDecisionMetrics create(MetricGroup metricGroup) {
         if (metricGroup == null) {
-            return new FlinkDecisionMetrics(noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(),
+            return new FlinkDecisionMetrics(
+                    noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(),
                     noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(),
-                    noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter());
+                    noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(),
+                    noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter(), noOpCounter()
+            );
         }
         MetricGroup group = metricGroup.addGroup("pulsix").addGroup("engine");
         FlinkDecisionMetrics metrics = new FlinkDecisionMetrics(
@@ -138,10 +181,18 @@ final class FlinkDecisionMetrics {
                 group.counter("executionErrorCount"),
                 group.counter("expressionErrorCount"),
                 group.counter("groovyErrorCount"),
-                group.counter("ruleHitCount")
+                group.counter("ruleHitCount"),
+                group.counter("pendingDroppedCount"),
+                group.counter("preparedRouteCount"),
+                group.counter("preparedBypassCount"),
+                group.counter("preparedChunkCount"),
+                group.counter("preparedAggregateCompleteCount"),
+                group.counter("preparedAggregateTimeoutCount")
         );
         group.gauge("lastDecisionLatencyMs", metrics.lastDecisionLatencyMs::get);
         group.gauge("pendingEventBufferSize", metrics.pendingEventBufferSize::get);
+        group.gauge("pendingOldestAgeMs", metrics.pendingOldestAgeMs::get);
+        group.gauge("preparedAggregatePendingGroups", metrics.preparedAggregatePendingGroups::get);
         return metrics;
     }
 
@@ -160,12 +211,51 @@ final class FlinkDecisionMetrics {
         pendingEventBufferSize.updateAndGet(current -> Math.max(current - count, 0));
     }
 
+    void onPendingDropped(int count) {
+        if (count <= 0) {
+            return;
+        }
+        increment(pendingDroppedCounter, pendingDroppedCount, count);
+        pendingEventBufferSize.updateAndGet(current -> Math.max(current - count, 0));
+    }
+
+    void onPendingOldestAgeObserved(long oldestAgeMs) {
+        pendingOldestAgeMs.set(Math.max(oldestAgeMs, 0L));
+    }
+
     void onNoSnapshot() {
         increment(noSnapshotCounter, noSnapshotCount, 1L);
     }
 
     void onSnapshotCompiled() {
         increment(snapshotCompileSuccessCounter, snapshotCompileSuccessCount, 1L);
+    }
+
+    void onPreparedRoute(int routeCount) {
+        increment(preparedRouteCounter, preparedRouteCount, routeCount);
+    }
+
+    void onPreparedBypass() {
+        increment(preparedBypassCounter, preparedBypassCount, 1L);
+    }
+
+    void onPreparedChunk() {
+        increment(preparedChunkCounter, preparedChunkCount, 1L);
+    }
+
+    void onPreparedAggregateCompleted() {
+        increment(preparedAggregateCompleteCounter, preparedAggregateCompleteCount, 1L);
+    }
+
+    void onPreparedAggregateTimeout() {
+        increment(preparedAggregateTimeoutCounter, preparedAggregateTimeoutCount, 1L);
+    }
+
+    void onPreparedAggregatePendingGroupsDelta(int delta) {
+        if (delta == 0) {
+            return;
+        }
+        preparedAggregatePendingGroups.updateAndGet(current -> Math.max(current + delta, 0));
     }
 
     void onDecisionResult(DecisionResult result) {
@@ -294,6 +384,38 @@ final class FlinkDecisionMetrics {
 
     int pendingEventBufferSize() {
         return pendingEventBufferSize.get();
+    }
+
+    long pendingDroppedCount() {
+        return pendingDroppedCount.get();
+    }
+
+    long pendingOldestAgeMs() {
+        return pendingOldestAgeMs.get();
+    }
+
+    long preparedRouteCount() {
+        return preparedRouteCount.get();
+    }
+
+    long preparedBypassCount() {
+        return preparedBypassCount.get();
+    }
+
+    long preparedChunkCount() {
+        return preparedChunkCount.get();
+    }
+
+    long preparedAggregateCompleteCount() {
+        return preparedAggregateCompleteCount.get();
+    }
+
+    long preparedAggregateTimeoutCount() {
+        return preparedAggregateTimeoutCount.get();
+    }
+
+    int preparedAggregatePendingGroups() {
+        return preparedAggregatePendingGroups.get();
     }
 
     private static void increment(Counter counter, AtomicLong value, long delta) {

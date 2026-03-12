@@ -197,6 +197,8 @@ public class LocalSimulationRunner {
         result.setUsedVersion(decisionResult.getVersion());
         result.setFinalAction(decisionResult.getFinalAction());
         result.setFinalScore(decisionResult.getFinalScore());
+        result.setTotalScore(decisionResult.getTotalScore());
+        result.setReason(decisionResult.getReason());
         result.setHitRules(decisionResult.getRuleHits().stream()
                 .filter(ruleHit -> Boolean.TRUE.equals(ruleHit.getHit()))
                 .map(this::toMatchedRule)
@@ -297,6 +299,10 @@ public class LocalSimulationRunner {
         private ActionType finalAction;
 
         private Integer finalScore;
+
+        private Integer totalScore;
+
+        private String reason;
 
         private List<MatchedRule> hitRules = new ArrayList<>();
 

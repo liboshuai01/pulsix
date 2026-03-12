@@ -2,7 +2,9 @@
 
 > 基于 `2026-03-12` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
 >
-> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 与 `bash scripts/decision-engine-job-demo-smoke.sh` 已通过；本轮补齐了 `routeKey` 分桶、完整时间线版本治理与 Redis `connectTimeoutMs` 生效，IDEA 仍可直接运行 `cn.liboshuai.pulsix.engine.flink.DecisionEngineJob`。
+> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 与 `bash scripts/decision-engine-job-demo-smoke.sh` 已通过；此前已补齐完整时间线版本治理与 Redis `connectTimeoutMs` 生效，本轮在 P0-A / P1 / P0-B 的基础上，又完成了 `P2 SCORE_CARD` 收口：`PolicySpec` 已补齐 `ruleRefs`，`DecisionExecutor` 已支持 `scoreWeight`、`stopOnHit`、score band reason 渲染与最小可解释结果字段（`totalScore`、`scoreContributions`、`matchedScoreBand`、`reason`），并新增最小 `SCORE_CARD` fixture 以及本地执行、仿真 / 回放、Flink harness 回归。
+>
+> 补充说明：后续 code review 原始结论中的 3 个问题，截至 `2026-03-12` 已全部完成首轮收口：P0-A、P1、P0-B 与 P2 均已落地。对应的修复顺序、设计取舍与验收口径已精简并入本文 `4.2` 节。
 
 ---
 
@@ -88,8 +90,8 @@ standard RiskEvent
 | Flink Keyed State 基础适配 | 已完成 | 已有 `FlinkKeyedStateStreamFeatureStateStore` 与事件时间定时清理 |
 | Lookup 抽象 | 已完成 | 已同时具备 `InMemoryLookupService` 与 `RedisLookupService`，并统一通过 `LookupResult` 承载错误码与降级语义 |
 | Derived Feature | 已完成 | Aviator / Groovy 两条分支均可编译执行 |
-| Rule / Policy 执行 | 已完成 | `FIRST_HIT` 主链路已稳定；`SCORE_CARD` 代码已实现 |
-| Flink 快照热切换 | 已完成 | `DecisionBroadcastProcessFunction` 已支持广播快照、版本切换、side output |
+| Rule / Policy 执行 | 已完成 | `FIRST_HIT` 与 `SCORE_CARD` 均已收口；`scoreWeight`、`stopOnHit`、band reason 与解释字段已落地 |
+| Flink 快照热切换 | 已完成 | 当前 prepared topology 已接管主作业；`DecisionBroadcastProcessFunction` 保留为 legacy harness，用于广播快照、版本切换与 side output 回归 |
 | Flink Job | 已完成 | `DecisionEngineJob` 已支持 `demo/kafka` 事件源、`print/kafka` 可配置输出，快照来源保持 `demo/file/jdbc/cdc` |
 | `scene_release` 运行时样例 | 已完成 | `docs/sql/pulsix-risk.sql` 已提供与 `DemoFixtures` 对齐的样例快照 |
 | 仿真 Runner | 已完成 | 已有 `LocalSimulationRunner` 作为独立本地仿真入口，提供 `main` CLI，并支持标准化 overrides 注入 |
@@ -109,18 +111,21 @@ standard RiskEvent
 - **Flink 适配骨架不是空的**：广播快照、Keyed State、事件时间 timer、side output、版本切换都已经有代码和测试。
 - **样例闭环已经存在**：`DemoFixtures` + `docs/sql/pulsix-risk.sql` 已对齐，适合做后续回归基座。
 
-### 4.2 已有但还没收口的内容
+### 4.2 本轮 3 个关键问题收口摘要
 
-- `SCORE_CARD` 已在 `DecisionExecutor` 中实现，但当前样例、回归、一期主链路仍以 `FIRST_HIT` 为主。
-- `Groovy` 已补上基础沙箱边界，可拦截 `classLoader / constructor / import / metaClass` 等危险能力；一期继续保持“少量补位，不做主路径扩张”。
-- `FlinkKeyedStateStreamFeatureStateStore` 已经存在；当前这一块已完成一期收口，后续只做增量优化。
-- `pulsix-engine` 侧已补上 `SceneRuntimeCache` 做按版本缓存，当前默认保留每个 scene 最近 `8` 个编译版本，已能支撑延迟生效与显式回滚场景。
+- **修复顺序**：本轮固定按“先 correctness、再 recovery、最后 completeness”推进，即 `P0 -> P1 -> P2`；这样可以先恢复 `kernel / replay / Flink` 一致性，再补恢复语义，最后收口 `SCORE_CARD` 能力完整性。
+- **问题一已收口**：`kernel` 流式特征状态主键已统一为 `sceneCode + featureCode + entityKey`；Flink 侧也不再把 `routeKey()` 当成 stream feature 状态主键，而是按 `sceneCode` 选中生效快照后，再通过 routing group fan-out 到 `groupKey + entityKey` keyed 子链，mixed-entity 场景已恢复正确语义。
+- **问题二已收口**：无快照时的 pending buffer 已从进程内内存结构迁入 keyed state，并补齐 checkpoint / restore、缓冲超限、缓冲超时清理与结构化错误输出，事件先到、快照后到场景具备恢复语义。
+- **问题三已收口**：`SCORE_CARD` 已补齐 `PolicySpec.ruleRefs`、`scoreWeight`、`stopOnHit`、`ScoreBandSpec.reasonTemplate`，并在 `DecisionResult` 中补齐 `totalScore`、`scoreContributions`、`matchedScoreBand`、`reason` 等解释字段；最小评分卡 fixture 与本地执行、仿真 / 回放、Flink harness 回归也已补齐。
+- **当前结论**：这 3 个 code review 问题到此已全部完成首轮收口；后续优先级自然转向控制面补齐、正式接入层和更多生产化增量治理。
 
 ### 4.3 当前必须正视的缺口
 
-- 当前一期主线已闭环；后续重点转向控制面、正式接入和增量优化。
-- `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源，并按 `RiskEvent.routeKey()` 做实体优先分桶。
-- Redis lookup 的 feature 超时、连接超时、默认值与缓存降级都已收口；当前更需要补的是生产化治理，而不是再回到基础接入。
+- 当前一期主线已闭环；截至 `2026-03-12`，P0-A、P1、P0-B 与 P2 均已完成，后续优先级自然转向控制面补齐、正式接入层以及更多生产化增量治理。
+- `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源；当前 `routeKey()` 不再被当成 stream feature entity key，作业拓扑已改为：按 `sceneCode` 先选定当前有效快照，再按 routing group fan-out 到 `groupKey + entityKey` keyed 的 stream feature 子链，随后按 `eventJoinKey` 汇聚 partial snapshot，最后进入 prepared decision 主链。
+- prepared decision 聚合段现已补齐 processing-time 超时清理与结构化错误输出（`PREPARED_DECISION_AGGREGATE_TIMEOUT`），避免 partial chunk 长时间滞留 keyed state。
+- 新子链已补齐最小必要观测项：`preparedRouteCount`、`preparedBypassCount`、`preparedChunkCount`、`preparedAggregateCompleteCount`、`preparedAggregateTimeoutCount` 与 `preparedAggregatePendingGroups` gauge，并恢复 prepared 主链的 result / log / error 指标上报。旧 `DecisionBroadcastProcessFunction` 已降为 package-private legacy harness，新主链不再复用它的嵌套接口与默认常量。
+- 无快照时的 pending buffer 已迁入 keyed state，并补齐 checkpoint / restore、缓冲超限与缓冲超时清理；Redis lookup 的 feature 超时、连接超时、默认值与缓存降级也已收口。
 
 ---
 
@@ -267,7 +272,7 @@ standard RiskEvent
 **本次落地结果**
 
 - `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
-- Flink 主链路 `keyBy` 已从 `sceneCode` 收口为 `RiskEvent.routeKey()`；当前按 `scene + device/user/ip/merchant/event/trace` 做实体优先分桶，避免同一 scene 单 key 堆积，并与 entity 级流式状态更一致。
+- Flink 主链路曾尝试从 `sceneCode` 收口到 `RiskEvent.routeKey()`，但 code review 已确认这会与 mixed-entity stream feature 语义冲突；截至 `2026-03-12` 的 P0-A 止血实现已临时回退为 `keyBy(RiskEvent::getSceneCode)`，以优先保证 `kernel / replay / Flink` 结果一致，`routeKey()` 留待 P0-B 的正式路由规划再使用。
 - 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`，Kafka 输出默认按 `traceId` 写 key，缺失时回退到 `eventId`。
 - Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
 - 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。

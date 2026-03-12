@@ -73,4 +73,33 @@ class FlinkDecisionMetricsTest {
         assertEquals(2L, metrics.groovyErrorCount());
     }
 
+    @Test
+    void shouldTrackPreparedTopologyMetrics() {
+        FlinkDecisionMetrics metrics = FlinkDecisionMetrics.create(null);
+
+        EngineErrorRecord aggregateTimeoutError = new EngineErrorRecord();
+        aggregateTimeoutError.setErrorType(EngineErrorTypes.STATE);
+        aggregateTimeoutError.setErrorCode(EngineErrorCodes.PREPARED_DECISION_AGGREGATE_TIMEOUT);
+
+        metrics.onPreparedRoute(2);
+        metrics.onPreparedBypass();
+        metrics.onPreparedChunk();
+        metrics.onPreparedChunk();
+        metrics.onPreparedAggregatePendingGroupsDelta(2);
+        metrics.onPreparedAggregatePendingGroupsDelta(-1);
+        metrics.onPreparedAggregateCompleted();
+        metrics.onPreparedAggregateTimeout();
+        metrics.onEngineError(aggregateTimeoutError);
+        metrics.onPreparedAggregatePendingGroupsDelta(-1);
+
+        assertEquals(2L, metrics.preparedRouteCount());
+        assertEquals(1L, metrics.preparedBypassCount());
+        assertEquals(2L, metrics.preparedChunkCount());
+        assertEquals(1L, metrics.preparedAggregateCompleteCount());
+        assertEquals(1L, metrics.preparedAggregateTimeoutCount());
+        assertEquals(0, metrics.preparedAggregatePendingGroups());
+        assertEquals(1L, metrics.engineErrorCount());
+        assertEquals(1L, metrics.stateErrorCount());
+    }
+
 }

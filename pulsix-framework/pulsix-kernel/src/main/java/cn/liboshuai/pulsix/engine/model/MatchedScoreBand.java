@@ -7,7 +7,7 @@ import java.io.Serializable;
 
 @Data
 @NoArgsConstructor
-public class ScoreBandSpec implements Serializable {
+public class MatchedScoreBand implements Serializable {
 
     private String code;
 
@@ -18,11 +18,5 @@ public class ScoreBandSpec implements Serializable {
     private ActionType action;
 
     private String reason;
-
-    private String reasonTemplate;
-
-    public String resolvedReasonTemplate() {
-        return reasonTemplate == null || reasonTemplate.isBlank() ? reason : reasonTemplate;
-    }
 
 }

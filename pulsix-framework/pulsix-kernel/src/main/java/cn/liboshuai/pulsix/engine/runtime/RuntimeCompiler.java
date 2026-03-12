@@ -4,6 +4,7 @@ import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineType;
 import cn.liboshuai.pulsix.engine.model.LookupFeatureSpec;
+import cn.liboshuai.pulsix.engine.model.PolicyRuleRefSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
 import cn.liboshuai.pulsix.engine.model.RuntimeHints;
@@ -21,6 +22,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -115,6 +117,7 @@ public class RuntimeCompiler {
             }
         }
         runtime.setOrderedRules(orderRules(ruleByCode.values(), snapshot.getPolicy()));
+        runtime.setStreamFeatureRoutingPlan(buildStreamFeatureRoutingPlan(snapshot, runtime.getStreamFeatures()));
         validateDependencies(derivedByCode.keySet(), defaultList(snapshot.getRules()));
         return runtime;
     }
@@ -230,6 +233,21 @@ public class RuntimeCompiler {
         Map<String, CompiledSceneRuntime.CompiledRule> byCode = compiledRules.stream()
                 .filter(item -> item.getSpec() != null)
                 .collect(Collectors.toMap(item -> item.getSpec().getCode(), item -> item, (left, right) -> left, LinkedHashMap::new));
+        if (policy != null && policy.getRuleRefs() != null && !policy.getRuleRefs().isEmpty()) {
+            List<CompiledSceneRuntime.CompiledRule> ordered = new ArrayList<>();
+            for (PolicyRuleRefSpec ruleRef : policy.getRuleRefs().stream()
+                    .filter(Objects::nonNull)
+                    .filter(item -> !Boolean.FALSE.equals(item.getEnabled()))
+                    .sorted(Comparator.comparing(PolicyRuleRefSpec::getOrderNo, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList()) {
+                CompiledSceneRuntime.CompiledRule compiledRule = byCode.get(ruleRef.getRuleCode());
+                if (compiledRule == null) {
+                    throw new IllegalArgumentException("policy rule ref references missing rule: " + ruleRef.getRuleCode());
+                }
+                ordered.add(compiledRule);
+            }
+            return ordered;
+        }
         List<CompiledSceneRuntime.CompiledRule> ordered = new ArrayList<>();
         Set<String> added = new HashSet<>();
         if (policy != null && policy.getRuleOrder() != null) {
@@ -248,6 +266,108 @@ public class RuntimeCompiler {
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .forEach(ordered::add);
         return ordered;
+    }
+
+    private CompiledSceneRuntime.StreamFeatureRoutingPlan buildStreamFeatureRoutingPlan(
+            SceneSnapshot snapshot,
+            List<CompiledSceneRuntime.CompiledStreamFeature> compiledStreamFeatures) {
+        CompiledSceneRuntime.StreamFeatureRoutingPlan routingPlan = new CompiledSceneRuntime.StreamFeatureRoutingPlan();
+        routingPlan.setSceneCode(snapshot == null ? null : snapshot.getSceneCode());
+        if (compiledStreamFeatures == null || compiledStreamFeatures.isEmpty()) {
+            return routingPlan;
+        }
+
+        Map<String, CompiledSceneRuntime.StreamFeatureGroupPlan> groupsByKey = new LinkedHashMap<>();
+        for (CompiledSceneRuntime.CompiledStreamFeature compiledStreamFeature : compiledStreamFeatures) {
+            StreamFeatureSpec spec = compiledStreamFeature == null ? null : compiledStreamFeature.getSpec();
+            if (spec == null) {
+                continue;
+            }
+            String featureCode = spec.getCode();
+            String entityKeyExpr = normalizeRequiredText(spec.getEntityKeyExpr(), "entityKeyExpr", featureCode);
+            String entityType = normalizeOptionalText(spec.getEntityType(), "ENTITY");
+            List<String> sourceEventTypes = normalizeSourceEventTypes(spec.getSourceEventTypes());
+            String groupKey = buildRoutingGroupKey(snapshot == null ? null : snapshot.getSceneCode(),
+                    entityType,
+                    entityKeyExpr,
+                    sourceEventTypes);
+            CompiledSceneRuntime.StreamFeatureGroupPlan groupPlan = groupsByKey.computeIfAbsent(groupKey, ignored -> {
+                CompiledSceneRuntime.StreamFeatureGroupPlan created = new CompiledSceneRuntime.StreamFeatureGroupPlan();
+                created.setSceneCode(snapshot == null ? null : snapshot.getSceneCode());
+                created.setEntityType(entityType);
+                created.setEntityKeyExpr(entityKeyExpr);
+                created.setSourceEventTypes(new ArrayList<>(sourceEventTypes));
+                return created;
+            });
+            groupPlan.getFeatureCodes().add(featureCode);
+        }
+
+        routingPlan.setGroups(new ArrayList<>(groupsByKey.values()));
+        validateRoutingPlanCoverage(compiledStreamFeatures, routingPlan);
+        return routingPlan;
+    }
+
+    private void validateRoutingPlanCoverage(List<CompiledSceneRuntime.CompiledStreamFeature> compiledStreamFeatures,
+                                             CompiledSceneRuntime.StreamFeatureRoutingPlan routingPlan) {
+        List<String> compiledFeatureCodes = compiledStreamFeatures.stream()
+                .map(CompiledSceneRuntime.CompiledStreamFeature::getSpec)
+                .filter(Objects::nonNull)
+                .map(StreamFeatureSpec::getCode)
+                .filter(Objects::nonNull)
+                .toList();
+        List<String> plannedFeatureCodes = routingPlan == null ? List.of() : routingPlan.featureCodes();
+        if (!compiledFeatureCodes.equals(plannedFeatureCodes)) {
+            throw new IllegalArgumentException("stream feature routing plan coverage mismatch");
+        }
+    }
+
+    private String buildRoutingGroupKey(String sceneCode,
+                                        String entityType,
+                                        String entityKeyExpr,
+                                        List<String> sourceEventTypes) {
+        String normalizedSceneCode = normalizeOptionalText(sceneCode, "scene:default");
+        String normalizedEntityType = normalizeOptionalText(entityType, "ENTITY");
+        String normalizedEntityKeyExpr = normalizeRequiredText(entityKeyExpr, "entityKeyExpr", null);
+        String normalizedSourceEventTypes = sourceEventTypes == null || sourceEventTypes.isEmpty()
+                ? "event:*"
+                : String.join(",", sourceEventTypes);
+        return normalizedSceneCode + '|' + normalizedEntityType + '|' + normalizedEntityKeyExpr + '|' + normalizedSourceEventTypes;
+    }
+
+    private List<String> normalizeSourceEventTypes(List<String> sourceEventTypes) {
+        if (sourceEventTypes == null || sourceEventTypes.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String sourceEventType : sourceEventTypes) {
+            if (sourceEventType == null || sourceEventType.isBlank()) {
+                continue;
+            }
+            normalized.add(sourceEventType.trim());
+        }
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+        List<String> ordered = new ArrayList<>(normalized);
+        Collections.sort(ordered);
+        return ordered;
+    }
+
+    private String normalizeRequiredText(String value, String fieldName, String featureCode) {
+        if (value == null || value.isBlank()) {
+            String prefix = featureCode == null || featureCode.isBlank()
+                    ? "stream feature " + fieldName + " must not be blank"
+                    : "stream feature " + fieldName + " must not be blank: " + featureCode;
+            throw new IllegalArgumentException(prefix);
+        }
+        return value.trim();
+    }
+
+    private String normalizeOptionalText(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return value.trim();
     }
 
     private void validateDependencies(Set<String> derivedCodes, List<RuleSpec> rules) {
