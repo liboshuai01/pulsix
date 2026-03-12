@@ -820,6 +820,34 @@ INSERT INTO `list_item` (`id`, `scene_code`, `list_code`, `match_key`, `match_va
 (2163, 'TRADE_RISK', 'DEVICE_BLACKLIST', 'deviceId', 'D0099', '2026-12-31 23:59:59', 0, 'MANUAL', NULL, '高风险设备临时拉黑', '{"reason":"temp_block","ticketNo":"WK-20260312-01"}', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of entity_type_def
+-- ----------------------------
+DELETE FROM `entity_type_def` WHERE `entity_type` IN ('USER', 'DEVICE', 'IP', 'MERCHANT');
+INSERT INTO `entity_type_def` (`id`, `entity_type`, `entity_name`, `key_field_name`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3101, 'USER', '用户', 'userId', 0, '按用户维度聚合，用于用户短时交易次数、交易金额累计等特征。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3102, 'DEVICE', '设备', 'deviceId', 0, '按设备维度聚合，用于设备关联账号数、设备命中率等特征。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3103, 'IP', 'IP 地址', 'ip', 0, '按 IP 维度聚合，用于同 IP 短时请求次数等特征。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3104, 'MERCHANT', '商户', 'merchantId', 0, '按商户维度聚合，用于商户风控指标统计。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
+-- Records of feature_def
+-- ----------------------------
+DELETE FROM `feature_stream_conf` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('user_trade_cnt_5m', 'user_trade_amt_sum_30m', 'device_bind_user_cnt_1h');
+DELETE FROM `feature_def` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('user_trade_cnt_5m', 'user_trade_amt_sum_30m', 'device_bind_user_cnt_1h');
+INSERT INTO `feature_def` (`id`, `scene_code`, `feature_code`, `feature_name`, `feature_type`, `entity_type`, `event_code`, `value_type`, `status`, `version`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3201, 'TRADE_RISK', 'user_trade_cnt_5m', '用户 5 分钟交易次数', 'STREAM', 'USER', 'TRADE_EVENT', 'LONG', 0, 1, '统计用户在最近 5 分钟内的成功交易次数，用于短时高频交易识别。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3202, 'TRADE_RISK', 'user_trade_amt_sum_30m', '用户 30 分钟交易金额和', 'STREAM', 'USER', 'TRADE_EVENT', 'DECIMAL', 0, 1, '统计用户在最近 30 分钟内的成功交易金额总和，用于大额集中交易识别。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3203, 'TRADE_RISK', 'device_bind_user_cnt_1h', '设备 1 小时关联用户数', 'STREAM', 'DEVICE', 'TRADE_EVENT', 'LONG', 0, 1, '统计设备在最近 1 小时内关联过的不同用户数，用于一机多号识别。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
+-- Records of feature_stream_conf
+-- ----------------------------
+INSERT INTO `feature_stream_conf` (`id`, `scene_code`, `feature_code`, `source_event_codes`, `entity_key_expr`, `agg_type`, `value_expr`, `filter_expr`, `window_type`, `window_size`, `window_slide`, `include_current_event`, `ttl_seconds`, `state_hint_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3301, 'TRADE_RISK', 'user_trade_cnt_5m', 'TRADE_EVENT', 'userId', 'COUNT', NULL, 'result == ''SUCCESS''', 'SLIDING', '5m', '1m', 1, 600, JSON_OBJECT('bucketHint', 1024, 'replicaTtl', '10m'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3302, 'TRADE_RISK', 'user_trade_amt_sum_30m', 'TRADE_EVENT', 'userId', 'SUM', 'amount', 'result == ''SUCCESS''', 'SLIDING', '30m', '1m', 1, 2400, JSON_OBJECT('bucketHint', 2048, 'replicaTtl', '40m'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3303, 'TRADE_RISK', 'device_bind_user_cnt_1h', 'TRADE_EVENT', 'deviceId', 'DISTINCT_COUNT', 'userId', 'deviceId != nil && userId != nil', 'SLIDING', '1h', '5m', 1, 7200, JSON_OBJECT('bucketHint', 4096, 'cardinalityHint', 10000, 'replicaTtl', '2h'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- S00 风控菜单骨架（可重复执行）
 -- 说明：
 -- 1. 仅插入 `system_menu` 数据，不改动 `pulsix-system-infra.sql` 的表结构。
@@ -873,7 +901,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7213, '名单修改', 'risk:list:update', 3, 3, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7214, '名单删除', 'risk:list:delete', 3, 4, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7215, '名单同步', 'risk:list:sync', 3, 5, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7220, '流式特征', 'risk:feature-stream:query', 2, 20, 7200, 'feature-stream', 'ep:trend-charts', 'risk/placeholder/index?code=feature-stream', 'RiskFeatureStream', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7220, '流式特征', 'risk:feature-stream:query', 2, 20, 7200, 'feature-stream', 'ep:trend-charts', 'risk/feature-stream/index', 'RiskFeatureStream', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7221, '流式特征查询', 'risk:feature-stream:query', 3, 1, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7222, '流式特征新增', 'risk:feature-stream:create', 3, 2, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7223, '流式特征修改', 'risk:feature-stream:update', 3, 3, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),

@@ -40,4 +40,9 @@ public interface ErrorCodeConstants {
     ErrorCode LIST_ITEM_VALUE_DUPLICATE = new ErrorCode(1_005_007_003, "当前名单下匹配值已存在");
     ErrorCode LIST_SYNC_FAILED = new ErrorCode(1_005_007_004, "同步 Redis 失败");
 
+    // ========== 流式特征 1-005-008-000 ==========
+    ErrorCode ENTITY_TYPE_NOT_EXISTS = new ErrorCode(1_005_008_000, "实体类型不存在");
+    ErrorCode FEATURE_STREAM_NOT_EXISTS = new ErrorCode(1_005_008_001, "流式特征不存在");
+    ErrorCode FEATURE_STREAM_CODE_DUPLICATE = new ErrorCode(1_005_008_002, "当前场景下特征编码已存在");
+
 }
