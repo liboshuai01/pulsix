@@ -33,4 +33,11 @@ public interface ErrorCodeConstants {
     ErrorCode INGEST_MAPPING_NOT_EXISTS = new ErrorCode(1_005_006_000, "接入字段映射不存在");
     ErrorCode INGEST_MAPPING_KEY_DUPLICATE = new ErrorCode(1_005_006_001, "当前接入源与事件下目标字段映射已存在");
 
+    // ========== 名单中心 1-005-007-000 ==========
+    ErrorCode LIST_SET_NOT_EXISTS = new ErrorCode(1_005_007_000, "名单集合不存在");
+    ErrorCode LIST_SET_CODE_DUPLICATE = new ErrorCode(1_005_007_001, "当前场景下名单编码已存在");
+    ErrorCode LIST_ITEM_NOT_EXISTS = new ErrorCode(1_005_007_002, "名单条目不存在");
+    ErrorCode LIST_ITEM_VALUE_DUPLICATE = new ErrorCode(1_005_007_003, "当前名单下匹配值已存在");
+    ErrorCode LIST_SYNC_FAILED = new ErrorCode(1_005_007_004, "同步 Redis 失败");
+
 }
