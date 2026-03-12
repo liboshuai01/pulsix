@@ -13,5 +13,8 @@ public interface ErrorCodeConstants {
     ErrorCode SCENE_NOT_EXISTS = new ErrorCode(1_005_001_000, "场景不存在");
     ErrorCode SCENE_CODE_DUPLICATE = new ErrorCode(1_005_001_001, "场景编码已存在");
 
-}
+    // ========== 事件 Schema 管理 1-005-002-000 ==========
+    ErrorCode EVENT_SCHEMA_NOT_EXISTS = new ErrorCode(1_005_002_000, "事件 Schema 不存在");
+    ErrorCode EVENT_SCHEMA_CODE_DUPLICATE = new ErrorCode(1_005_002_001, "当前场景下事件编码已存在");
 
+}

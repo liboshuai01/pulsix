@@ -25,6 +25,11 @@
 
         <dependency>
             <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-spring-boot-starter-biz-tenant</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
             <artifactId>pulsix-spring-boot-starter-mybatis</artifactId>
         </dependency>
 

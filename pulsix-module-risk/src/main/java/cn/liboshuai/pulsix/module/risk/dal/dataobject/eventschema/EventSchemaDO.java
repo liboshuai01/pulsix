@@ -1,4 +1,4 @@
-package cn.liboshuai.pulsix.module.risk.dal.dataobject.scene;
+package cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema;
 
 import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
@@ -6,29 +6,29 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@TableName("scene_def")
+@TableName("event_schema")
 @TenantIgnore
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SceneDO extends BaseDO {
+public class EventSchemaDO extends BaseDO {
 
     private Long id;
 
     private String sceneCode;
 
-    private String sceneName;
+    private String eventCode;
 
-    private String sceneType;
+    private String eventName;
 
-    private String accessMode;
+    private String eventType;
 
-    private String defaultEventCode;
+    private String sourceType;
 
-    private String defaultPolicyCode;
+    private String rawTopicName;
 
     private String standardTopicName;
 
-    private String decisionTopicName;
+    private Integer version;
 
     private Integer status;
 
