@@ -67,4 +67,7 @@ public interface ErrorCodeConstants {
     ErrorCode POLICY_CODE_DUPLICATE = new ErrorCode(1_005_012_001, "当前场景下策略编码已存在");
     ErrorCode POLICY_RULE_INVALID = new ErrorCode(1_005_012_002, "策略引用的规则不存在：{}");
 
+    // ========== 发布预检 1-005-013-000 ==========
+    ErrorCode SCENE_RELEASE_NOT_EXISTS = new ErrorCode(1_005_013_000, "发布记录不存在");
+
 }
