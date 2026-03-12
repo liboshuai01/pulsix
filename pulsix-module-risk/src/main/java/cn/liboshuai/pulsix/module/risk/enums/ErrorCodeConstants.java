@@ -81,4 +81,7 @@ public interface ErrorCodeConstants {
     ErrorCode SIMULATION_RELEASE_NOT_AVAILABLE = new ErrorCode(1_005_015_003, "未找到可用于仿真的场景版本");
     ErrorCode SIMULATION_REPORT_NOT_EXISTS = new ErrorCode(1_005_015_004, "仿真报告不存在");
 
+    // ========== 决策日志 1-005-016-000 ==========
+    ErrorCode DECISION_LOG_NOT_EXISTS = new ErrorCode(1_005_016_000, "决策日志不存在");
+
 }
