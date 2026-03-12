@@ -752,6 +752,22 @@ INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `eve
 (2111, 'TRADE_RISK', 'TRADE_EVENT', '交易标准事件', 'BUSINESS', 'MIXED', 'pulsix.event.raw.trade', 'pulsix.event.standard', 1, 1, 'S02 初始化样例事件 Schema，对齐 TRADE_RISK -> TRADE_EVENT 演示链路。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of event_field_def
+-- ----------------------------
+DELETE FROM `event_field_def` WHERE `scene_code` = 'TRADE_RISK' AND `event_code` = 'TRADE_EVENT';
+INSERT INTO `event_field_def` (`id`, `scene_code`, `event_code`, `field_code`, `field_name`, `field_type`, `field_path`, `standard_field_flag`, `required_flag`, `nullable_flag`, `default_value`, `sample_value`, `validation_rule_json`, `description`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2121, 'TRADE_RISK', 'TRADE_EVENT', 'eventId', '事件编号', 'STRING', '$.eventId', 1, 1, 0, NULL, 'E_TRADE_9001', NULL, '交易事件唯一编号', 10, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2122, 'TRADE_RISK', 'TRADE_EVENT', 'sceneCode', '场景编码', 'STRING', '$.sceneCode', 1, 1, 0, 'TRADE_RISK', 'TRADE_RISK', NULL, '所属风控场景编码', 20, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2123, 'TRADE_RISK', 'TRADE_EVENT', 'eventType', '事件类型', 'STRING', '$.eventType', 1, 1, 0, 'trade', 'trade', NULL, '标准事件类型标识', 30, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2124, 'TRADE_RISK', 'TRADE_EVENT', 'eventTime', '事件时间', 'DATETIME', '$.eventTime', 1, 1, 0, NULL, '2026-03-07T11:00:00', NULL, '事件发生时间', 40, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2125, 'TRADE_RISK', 'TRADE_EVENT', 'traceId', '链路编号', 'STRING', '$.traceId', 1, 0, 1, NULL, 'T_TRADE_9001', NULL, '用于串联接入到决策的全链路编号', 50, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2126, 'TRADE_RISK', 'TRADE_EVENT', 'userId', '用户编号', 'STRING', '$.userId', 1, 1, 0, NULL, 'U5001', NULL, '交易归属的用户编号', 60, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2127, 'TRADE_RISK', 'TRADE_EVENT', 'deviceId', '设备编号', 'STRING', '$.deviceId', 1, 1, 0, NULL, 'D5001', NULL, '发起交易的设备编号', 70, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2128, 'TRADE_RISK', 'TRADE_EVENT', 'ip', 'IP 地址', 'STRING', '$.ip', 1, 1, 0, NULL, '66.77.88.99', NULL, '发起交易时的网络 IP', 80, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2129, 'TRADE_RISK', 'TRADE_EVENT', 'amount', '交易金额', 'DECIMAL', '$.amount', 0, 1, 0, NULL, '6800', NULL, '本次交易金额', 90, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2130, 'TRADE_RISK', 'TRADE_EVENT', 'result', '交易结果', 'STRING', '$.result', 0, 1, 0, NULL, 'SUCCESS', NULL, '交易处理结果，例如 SUCCESS / FAIL', 100, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- Records of scene_release
 -- ----------------------------
 INSERT INTO `scene_release` (`id`, `scene_code`, `version_no`, `snapshot_json`, `checksum`, `publish_status`, `validation_status`, `validation_report_json`, `dependency_digest_json`, `compile_duration_ms`, `compiled_feature_count`, `compiled_rule_count`, `compiled_policy_count`, `published_by`, `published_at`, `effective_from`, `rollback_from_version`, `remark`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
@@ -780,7 +796,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7123, '事件 Schema 修改', 'risk:event-schema:update', 3, 3, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7124, '事件 Schema 删除', 'risk:event-schema:delete', 3, 4, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7125, '事件 Schema 详情', 'risk:event-schema:get', 3, 5, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7130, '事件字段', 'risk:event-field:query', 2, 30, 7100, 'event-field', 'ep:list', 'risk/placeholder/index?code=event-field', 'RiskEventField', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7130, '事件字段', 'risk:event-field:query', 2, 30, 7100, 'event-field', 'ep:list', 'risk/event-field/index', 'RiskEventField', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7131, '事件字段查询', 'risk:event-field:query', 3, 1, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7132, '事件字段新增', 'risk:event-field:create', 3, 2, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7133, '事件字段修改', 'risk:event-field:update', 3, 3, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
