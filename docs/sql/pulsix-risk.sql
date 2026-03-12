@@ -733,13 +733,136 @@ CREATE TABLE `scene_def`  (
 -- ============================================================
 -- Seed data
 -- 说明：
--- 1. 当前阶段仅保留 `scene_release` 的运行时快照样例，用于 `pulsix-kernel + pulsix-engine` 的最小闭环联调。
--- 2. 其他控制面、审计、回放、结果类表暂不提供示例数据，待 `pulsix-module-risk` 开发时再补齐。
+-- 1. 当前阶段保留 `scene_release` 的运行时快照样例，用于 `pulsix-kernel + pulsix-engine` 的最小闭环联调。
+-- 2. `S00` 额外补齐风控菜单骨架、子菜单入口与按钮权限样例，支撑管理端页面占位接入。
+-- 3. 其他控制面、审计、回放、结果类表暂不提供示例数据，待 `pulsix-module-risk` 开发时再补齐。
 -- ============================================================
 -- ----------------------------
 -- Records of scene_release
 -- ----------------------------
 INSERT INTO `scene_release` (`id`, `scene_code`, `version_no`, `snapshot_json`, `checksum`, `publish_status`, `validation_status`, `validation_report_json`, `dependency_digest_json`, `compile_duration_ms`, `compiled_feature_count`, `compiled_rule_count`, `compiled_policy_count`, `published_by`, `published_at`, `effective_from`, `rollback_from_version`, `remark`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (2201, 'TRADE_RISK', 12, '{"snapshotId":"TRADE_RISK_v12","sceneCode":"TRADE_RISK","sceneName":"交易风控","version":12,"status":"ACTIVE","checksum":"8d2041a7cf8f47b4b6b0f91d2ab8d9d0","publishedAt":"2026-03-07T20:00:00Z","effectiveFrom":"2026-03-07T20:00:10Z","runtimeMode":"ASYNC_DECISION","scene":{"defaultPolicyCode":"TRADE_RISK_POLICY","allowedEventTypes":["trade"],"decisionTimeoutMs":500,"logLevel":"FULL"},"eventSchema":{"eventCode":"TRADE_EVENT","eventType":"trade","requiredFields":["eventId","sceneCode","eventType","eventTime","userId","deviceId","ip","amount","result"],"optionalFields":["merchantId","channel","province","city","ext"]},"variables":{"baseFields":["eventId","sceneCode","eventType","eventTime","traceId","userId","deviceId","ip","amount","result","merchantId","channel","province","city"]},"streamFeatures":[{"code":"user_trade_cnt_5m","name":"用户5分钟交易次数","type":"STREAM","sourceEventTypes":["trade"],"entityType":"USER","entityKeyExpr":"userId","aggType":"COUNT","valueExpr":"1","filterExpr":"result == ''SUCCESS''","windowType":"SLIDING","windowSize":"5m","windowSlide":"1m","includeCurrentEvent":true,"ttl":"10m","valueType":"LONG"},{"code":"user_trade_amt_sum_30m","name":"用户30分钟交易金额和","type":"STREAM","sourceEventTypes":["trade"],"entityType":"USER","entityKeyExpr":"userId","aggType":"SUM","valueExpr":"amount","filterExpr":"result == ''SUCCESS''","windowType":"SLIDING","windowSize":"30m","windowSlide":"1m","includeCurrentEvent":true,"ttl":"40m","valueType":"DECIMAL"},{"code":"device_bind_user_cnt_1h","name":"设备1小时关联用户数","type":"STREAM","sourceEventTypes":["trade"],"entityType":"DEVICE","entityKeyExpr":"deviceId","aggType":"DISTINCT_COUNT","valueExpr":"userId","filterExpr":"deviceId != nil && userId != nil","windowType":"SLIDING","windowSize":"1h","windowSlide":"5m","includeCurrentEvent":true,"ttl":"2h","valueType":"LONG"}],"lookupFeatures":[{"code":"device_in_blacklist","name":"设备是否命中黑名单","type":"LOOKUP","lookupType":"REDIS_SET","keyExpr":"deviceId","sourceRef":"pulsix:list:black:device","defaultValue":false,"valueType":"BOOLEAN","timeoutMs":20,"cacheTtlSeconds":30},{"code":"user_risk_level","name":"用户风险等级","type":"LOOKUP","lookupType":"REDIS_HASH","keyExpr":"userId","sourceRef":"pulsix:profile:user:risk","defaultValue":"L","valueType":"STRING","timeoutMs":20,"cacheTtlSeconds":30}],"derivedFeatures":[{"code":"high_amt_flag","name":"高金额标记","type":"DERIVED","engineType":"AVIATOR","expr":"amount >= 5000","dependsOn":["amount"],"valueType":"BOOLEAN"},{"code":"trade_burst_flag","name":"短时高频交易标记","type":"DERIVED","engineType":"AVIATOR","expr":"user_trade_cnt_5m >= 3 && amount >= 5000","dependsOn":["user_trade_cnt_5m","amount"],"valueType":"BOOLEAN"}],"rules":[{"code":"R001","name":"黑名单设备直接拒绝","engineType":"AVIATOR","priority":100,"whenExpr":"device_in_blacklist == true","dependsOn":["device_in_blacklist"],"hitAction":"REJECT","riskScore":100,"hitReasonTemplate":"设备命中黑名单","enabled":true},{"code":"R002","name":"大额且短时高频交易","engineType":"AVIATOR","priority":90,"whenExpr":"trade_burst_flag == true","dependsOn":["trade_burst_flag"],"hitAction":"REVIEW","riskScore":60,"hitReasonTemplate":"用户5分钟交易次数={user_trade_cnt_5m}, 当前金额={amount}","enabled":true},{"code":"R003","name":"高风险用户多账号设备","engineType":"GROOVY","priority":80,"whenExpr":"return device_bind_user_cnt_1h >= 4 && [''M'',''H''].contains(user_risk_level)","dependsOn":["device_bind_user_cnt_1h","user_risk_level"],"hitAction":"REJECT","riskScore":80,"hitReasonTemplate":"设备1小时关联用户数={device_bind_user_cnt_1h}, 用户风险等级={user_risk_level}","enabled":true}],"policy":{"policyCode":"TRADE_RISK_POLICY","policyName":"交易风控主策略","decisionMode":"FIRST_HIT","defaultAction":"PASS","ruleOrder":["R001","R003","R002"]},"runtimeHints":{"requiredStreamFeatures":["user_trade_cnt_5m","user_trade_amt_sum_30m","device_bind_user_cnt_1h"],"requiredLookupFeatures":["device_in_blacklist","user_risk_level"],"requiredDerivedFeatures":["high_amt_flag","trade_burst_flag"],"maxRuleExecutionCount":100,"allowGroovy":true,"needFullDecisionLog":true}}', '8d2041a7cf8f47b4b6b0f91d2ab8d9d0', 'ACTIVE', 'PASSED', '{"checks":[{"type":"SNAPSHOT","result":"PASS","message":"快照结构自包含，并与 DemoFixtures.demoSnapshotJson() 对齐"}],"warnings":[]}', '{"streamFeatures":["user_trade_cnt_5m","user_trade_amt_sum_30m","device_bind_user_cnt_1h"],"lookupFeatures":["device_in_blacklist","user_risk_level"],"derivedFeatures":["high_amt_flag","trade_burst_flag"],"rules":["R001","R002","R003"]}', NULL, 7, 3, 1, 'admin', '2026-03-07 20:00:00', '2026-03-07 20:00:10', NULL, '当前阶段唯一保留的运行时快照样例，来源于 DemoFixtures.demoSnapshotJson()', 'admin', '2026-03-07 20:00:00', 'admin', '2026-03-07 20:00:00', b'0');
+
+-- ----------------------------
+-- S00 风控菜单骨架（可重复执行）
+-- 说明：
+-- 1. 仅插入 `system_menu` 数据，不改动 `pulsix-system-infra.sql` 的表结构。
+-- 2. 管理员角色具备全菜单能力，因此这里优先保证菜单与按钮权限样例完整可见。
+-- ----------------------------
+DELETE FROM `system_menu` WHERE `id` BETWEEN 7000 AND 7499;
+
+INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_id`, `path`, `icon`, `component`, `component_name`, `status`, `visible`, `keep_alive`, `always_show`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(7000, '风控平台', '', 1, 300, 0, '/risk', 'ep:warning-filled', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7100, '设计建模', '', 1, 10, 7000, 'model', 'ep:document', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7110, '场景管理', 'risk:scene:query', 2, 10, 7100, 'scene', 'ep:management', 'risk/placeholder/index?code=scene', 'RiskScene', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7111, '场景查询', 'risk:scene:query', 3, 1, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7112, '场景新增', 'risk:scene:create', 3, 2, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7113, '场景修改', 'risk:scene:update', 3, 3, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7114, '场景启停', 'risk:scene:update-status', 3, 4, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7115, '场景详情', 'risk:scene:get', 3, 5, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7120, '事件 Schema', 'risk:event-schema:query', 2, 20, 7100, 'event-schema', 'ep:files', 'risk/placeholder/index?code=event-schema', 'RiskEventSchema', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7121, '事件 Schema 查询', 'risk:event-schema:query', 3, 1, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7122, '事件 Schema 新增', 'risk:event-schema:create', 3, 2, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7123, '事件 Schema 修改', 'risk:event-schema:update', 3, 3, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7124, '事件 Schema 删除', 'risk:event-schema:delete', 3, 4, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7125, '事件 Schema 详情', 'risk:event-schema:get', 3, 5, 7120, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7130, '事件字段', 'risk:event-field:query', 2, 30, 7100, 'event-field', 'ep:list', 'risk/placeholder/index?code=event-field', 'RiskEventField', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7131, '事件字段查询', 'risk:event-field:query', 3, 1, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7132, '事件字段新增', 'risk:event-field:create', 3, 2, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7133, '事件字段修改', 'risk:event-field:update', 3, 3, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7134, '事件字段删除', 'risk:event-field:delete', 3, 4, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7135, '事件字段排序', 'risk:event-field:sort', 3, 5, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7140, '事件样例', 'risk:event-sample:query', 2, 40, 7100, 'event-sample', 'ep:document-copy', 'risk/placeholder/index?code=event-sample', 'RiskEventSample', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7141, '事件样例查询', 'risk:event-sample:query', 3, 1, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7142, '事件样例新增', 'risk:event-sample:create', 3, 2, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7143, '事件样例修改', 'risk:event-sample:update', 3, 3, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7144, '事件样例删除', 'risk:event-sample:delete', 3, 4, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7145, '事件样例预览', 'risk:event-sample:preview', 3, 5, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7150, '接入源', 'risk:ingest-source:query', 2, 50, 7100, 'ingest-source', 'ep:link', 'risk/placeholder/index?code=ingest-source', 'RiskIngestSource', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7151, '接入源查询', 'risk:ingest-source:query', 3, 1, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7152, '接入源新增', 'risk:ingest-source:create', 3, 2, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7153, '接入源修改', 'risk:ingest-source:update', 3, 3, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7154, '接入源启停', 'risk:ingest-source:update-status', 3, 4, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7155, '接入源详情', 'risk:ingest-source:get', 3, 5, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7160, '字段映射', 'risk:ingest-mapping:query', 2, 60, 7100, 'ingest-mapping', 'ep:sort', 'risk/placeholder/index?code=ingest-mapping', 'RiskIngestMapping', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7161, '字段映射查询', 'risk:ingest-mapping:query', 3, 1, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7162, '字段映射新增', 'risk:ingest-mapping:create', 3, 2, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7163, '字段映射修改', 'risk:ingest-mapping:update', 3, 3, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7164, '字段映射删除', 'risk:ingest-mapping:delete', 3, 4, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7165, '字段映射预览', 'risk:ingest-mapping:preview', 3, 5, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7200, '特征规则', '', 1, 20, 7000, 'feature', 'ep:data-analysis', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7210, '名单中心', 'risk:list:query', 2, 10, 7200, 'list', 'ep:collection-tag', 'risk/placeholder/index?code=list', 'RiskList', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7211, '名单查询', 'risk:list:query', 3, 1, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7212, '名单新增', 'risk:list:create', 3, 2, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7213, '名单修改', 'risk:list:update', 3, 3, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7214, '名单删除', 'risk:list:delete', 3, 4, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7215, '名单同步', 'risk:list:sync', 3, 5, 7210, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7220, '流式特征', 'risk:feature-stream:query', 2, 20, 7200, 'feature-stream', 'ep:trend-charts', 'risk/placeholder/index?code=feature-stream', 'RiskFeatureStream', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7221, '流式特征查询', 'risk:feature-stream:query', 3, 1, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7222, '流式特征新增', 'risk:feature-stream:create', 3, 2, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7223, '流式特征修改', 'risk:feature-stream:update', 3, 3, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7224, '流式特征删除', 'risk:feature-stream:delete', 3, 4, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7225, '流式特征详情', 'risk:feature-stream:get', 3, 5, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7230, '查询特征', 'risk:feature-lookup:query', 2, 30, 7200, 'feature-lookup', 'ep:search', 'risk/placeholder/index?code=feature-lookup', 'RiskFeatureLookup', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7231, '查询特征查询', 'risk:feature-lookup:query', 3, 1, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7232, '查询特征新增', 'risk:feature-lookup:create', 3, 2, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7233, '查询特征修改', 'risk:feature-lookup:update', 3, 3, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7234, '查询特征删除', 'risk:feature-lookup:delete', 3, 4, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7235, '查询特征详情', 'risk:feature-lookup:get', 3, 5, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7240, '派生特征', 'risk:feature-derived:query', 2, 40, 7200, 'feature-derived', 'ep:cpu', 'risk/placeholder/index?code=feature-derived', 'RiskFeatureDerived', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7241, '派生特征查询', 'risk:feature-derived:query', 3, 1, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7242, '派生特征新增', 'risk:feature-derived:create', 3, 2, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7243, '派生特征修改', 'risk:feature-derived:update', 3, 3, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7244, '派生特征删除', 'risk:feature-derived:delete', 3, 4, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7245, '派生特征校验', 'risk:feature-derived:validate', 3, 5, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7250, '规则中心', 'risk:rule:query', 2, 50, 7200, 'rule', 'ep:operation', 'risk/placeholder/index?code=rule', 'RiskRule', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7251, '规则查询', 'risk:rule:query', 3, 1, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7252, '规则新增', 'risk:rule:create', 3, 2, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7253, '规则修改', 'risk:rule:update', 3, 3, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7254, '规则删除', 'risk:rule:delete', 3, 4, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7255, '规则校验', 'risk:rule:validate', 3, 5, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7260, '策略中心', 'risk:policy:query', 2, 60, 7200, 'policy', 'ep:set-up', 'risk/placeholder/index?code=policy', 'RiskPolicy', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7261, '策略查询', 'risk:policy:query', 3, 1, 7260, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7262, '策略新增', 'risk:policy:create', 3, 2, 7260, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7263, '策略修改', 'risk:policy:update', 3, 3, 7260, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7264, '策略删除', 'risk:policy:delete', 3, 4, 7260, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7265, '策略排序', 'risk:policy:sort', 3, 5, 7260, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7300, '发布验证', '', 1, 30, 7000, 'release', 'ep:promotion', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7310, '发布中心', 'risk:release:query', 2, 10, 7300, 'center', 'ep:upload-filled', 'risk/placeholder/index?code=release', 'RiskRelease', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7311, '发布查询', 'risk:release:query', 3, 1, 7310, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7312, '发布预检', 'risk:release:compile', 3, 2, 7310, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7313, '发布预览', 'risk:release:preview', 3, 3, 7310, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7314, '正式发布', 'risk:release:publish', 3, 4, 7310, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7315, '发布回滚', 'risk:release:rollback', 3, 5, 7310, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7320, '仿真测试', 'risk:simulation:query', 2, 20, 7300, 'simulation', 'ep:video-play', 'risk/placeholder/index?code=simulation', 'RiskSimulation', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7321, '仿真查询', 'risk:simulation:query', 3, 1, 7320, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7322, '仿真新增', 'risk:simulation:create', 3, 2, 7320, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7323, '仿真修改', 'risk:simulation:update', 3, 3, 7320, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7324, '仿真删除', 'risk:simulation:delete', 3, 4, 7320, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7325, '仿真执行', 'risk:simulation:execute', 3, 5, 7320, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7400, '运行治理', '', 1, 40, 7000, 'ops', 'ep:histogram', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7410, '决策日志', 'risk:decision-log:query', 2, 10, 7400, 'decision-log', 'ep:tickets', 'risk/placeholder/index?code=decision-log', 'RiskDecisionLog', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7411, '决策日志查询', 'risk:decision-log:query', 3, 1, 7410, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7412, '决策日志详情', 'risk:decision-log:get', 3, 2, 7410, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7413, '决策日志导出', 'risk:decision-log:export', 3, 3, 7410, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7414, '命中明细查看', 'risk:decision-log:detail', 3, 4, 7410, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7420, '接入异常', 'risk:ingest-error:query', 2, 20, 7400, 'ingest-error', 'ep:warning', 'risk/placeholder/index?code=ingest-error', 'RiskIngestError', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7421, '接入异常查询', 'risk:ingest-error:query', 3, 1, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7422, '接入异常详情', 'risk:ingest-error:get', 3, 2, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7423, '接入异常导出', 'risk:ingest-error:export', 3, 3, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7430, '监控大盘', 'risk:dashboard:query', 2, 30, 7400, 'dashboard', 'ep:data-line', 'risk/placeholder/index?code=dashboard', 'RiskDashboard', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7431, '监控大盘查询', 'risk:dashboard:query', 3, 1, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7432, '监控大盘导出', 'risk:dashboard:export', 3, 2, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7433, '监控大盘刷新', 'risk:dashboard:refresh', 3, 3, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7440, '审计日志', 'risk:audit-log:query', 2, 40, 7400, 'audit-log', 'ep:document-checked', 'risk/placeholder/index?code=audit-log', 'RiskAuditLog', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7441, '审计日志查询', 'risk:audit-log:query', 3, 1, 7440, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7442, '审计日志详情', 'risk:audit-log:get', 3, 2, 7440, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7443, '审计日志导出', 'risk:audit-log:export', 3, 3, 7440, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7450, '回放对比', 'risk:replay:query', 2, 50, 7400, 'replay', 'ep:refresh-right', 'risk/placeholder/index?code=replay', 'RiskReplay', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7451, '回放查询', 'risk:replay:query', 3, 1, 7450, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7452, '回放新增', 'risk:replay:create', 3, 2, 7450, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7453, '回放执行', 'risk:replay:execute', 3, 3, 7450, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7454, '回放详情', 'risk:replay:get', 3, 4, 7450, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7455, '回放导出', 'risk:replay:export', 3, 5, 7450, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 SET FOREIGN_KEY_CHECKS = 1;
