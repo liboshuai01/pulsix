@@ -21,4 +21,8 @@ public interface ErrorCodeConstants {
     ErrorCode EVENT_FIELD_NOT_EXISTS = new ErrorCode(1_005_003_000, "事件字段不存在");
     ErrorCode EVENT_FIELD_CODE_DUPLICATE = new ErrorCode(1_005_003_001, "当前事件下字段编码已存在");
 
+    // ========== 事件样例管理 1-005-004-000 ==========
+    ErrorCode EVENT_SAMPLE_NOT_EXISTS = new ErrorCode(1_005_004_000, "事件样例不存在");
+    ErrorCode EVENT_SAMPLE_CODE_DUPLICATE = new ErrorCode(1_005_004_001, "当前事件下样例编码已存在");
+
 }

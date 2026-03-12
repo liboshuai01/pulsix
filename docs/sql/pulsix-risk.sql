@@ -768,6 +768,14 @@ INSERT INTO `event_field_def` (`id`, `scene_code`, `event_code`, `field_code`, `
 (2130, 'TRADE_RISK', 'TRADE_EVENT', 'result', '交易结果', 'STRING', '$.result', 0, 1, 0, NULL, 'SUCCESS', NULL, '交易处理结果，例如 SUCCESS / FAIL', 100, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of event_sample
+-- ----------------------------
+DELETE FROM `event_sample` WHERE `scene_code` = 'TRADE_RISK' AND `event_code` = 'TRADE_EVENT';
+INSERT INTO `event_sample` (`id`, `scene_code`, `event_code`, `sample_code`, `sample_name`, `sample_type`, `source_code`, `sample_json`, `description`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2131, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_STD_SUCCESS', '交易成功标准样例', 'STANDARD', NULL, '{"eventId":"E_TRADE_9101","sceneCode":"TRADE_RISK","eventType":"trade","eventTime":"2026-03-12T09:00:00","traceId":"T_TRADE_9101","userId":"U9001","deviceId":"D9001","ip":"66.77.88.99","amount":6800,"result":"SUCCESS"}', 'S04 成功标准样例，可直接用于标准事件预览与后续仿真输入基线。', 10, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2132, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_SIM_EXCEPTION', '交易异常仿真样例', 'SIMULATION', NULL, '{"eventId":"E_TRADE_9102","eventTime":"2026-03-12T09:05:00","userId":"U9002","deviceId":"D9002","ip":"10.20.30.40","amount":12800,"result":"FAIL"}', 'S04 异常仿真样例，故意省略 sceneCode/eventType 以验证默认值补齐预览。', 20, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- Records of scene_release
 -- ----------------------------
 INSERT INTO `scene_release` (`id`, `scene_code`, `version_no`, `snapshot_json`, `checksum`, `publish_status`, `validation_status`, `validation_report_json`, `dependency_digest_json`, `compile_duration_ms`, `compiled_feature_count`, `compiled_rule_count`, `compiled_policy_count`, `published_by`, `published_at`, `effective_from`, `rollback_from_version`, `remark`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
@@ -802,7 +810,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7133, '事件字段修改', 'risk:event-field:update', 3, 3, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7134, '事件字段删除', 'risk:event-field:delete', 3, 4, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7135, '事件字段排序', 'risk:event-field:sort', 3, 5, 7130, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7140, '事件样例', 'risk:event-sample:query', 2, 40, 7100, 'event-sample', 'ep:document-copy', 'risk/placeholder/index?code=event-sample', 'RiskEventSample', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7140, '事件样例', 'risk:event-sample:query', 2, 40, 7100, 'event-sample', 'ep:document-copy', 'risk/event-sample/index', 'RiskEventSample', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7141, '事件样例查询', 'risk:event-sample:query', 3, 1, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7142, '事件样例新增', 'risk:event-sample:create', 3, 2, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7143, '事件样例修改', 'risk:event-sample:update', 3, 3, 7140, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
