@@ -34,4 +34,7 @@ public class EventSamplePreviewRespVO {
     @Schema(description = "通过默认值补齐的字段编码")
     private List<String> defaultedFields;
 
+    @Schema(description = "通过接入映射命中的字段编码")
+    private List<String> mappedFields;
+
 }

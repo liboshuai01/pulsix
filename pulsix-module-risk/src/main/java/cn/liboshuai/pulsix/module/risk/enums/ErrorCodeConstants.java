@@ -29,4 +29,8 @@ public interface ErrorCodeConstants {
     ErrorCode INGEST_SOURCE_NOT_EXISTS = new ErrorCode(1_005_005_000, "接入源不存在");
     ErrorCode INGEST_SOURCE_CODE_DUPLICATE = new ErrorCode(1_005_005_001, "接入源编码已存在");
 
+    // ========== 接入字段映射管理 1-005-006-000 ==========
+    ErrorCode INGEST_MAPPING_NOT_EXISTS = new ErrorCode(1_005_006_000, "接入字段映射不存在");
+    ErrorCode INGEST_MAPPING_KEY_DUPLICATE = new ErrorCode(1_005_006_001, "当前接入源与事件下目标字段映射已存在");
+
 }

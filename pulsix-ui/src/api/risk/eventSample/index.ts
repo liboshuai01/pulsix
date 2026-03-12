@@ -36,6 +36,7 @@ export interface EventSamplePreviewVO {
   standardEventJson: Record<string, any>
   missingRequiredFields: string[]
   defaultedFields: string[]
+  mappedFields: string[]
 }
 
 export const getEventSamplePage = (params: EventSamplePageReqVO) => {

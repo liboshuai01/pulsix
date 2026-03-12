@@ -776,12 +776,27 @@ INSERT INTO `ingest_source` (`id`, `source_code`, `source_name`, `source_type`, 
 (2142, 'trade_sdk_demo', '交易 SDK Demo', 'SDK', 'TOKEN', '{"tokenHeader":"Authorization","tokenPrefix":"Bearer ","expireToleranceSeconds":60}', '["TRADE_RISK"]', 'pulsix.event.standard', 'pulsix.event.dlq', 1000, 0, 'S05 SDK 接入源样例，演示 Token 鉴权与更高 QPS 限额。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of ingest_mapping_def
+-- ----------------------------
+DELETE FROM `ingest_mapping_def` WHERE `source_code` = 'trade_http_demo' AND `scene_code` = 'TRADE_RISK' AND `event_code` = 'TRADE_EVENT';
+INSERT INTO `ingest_mapping_def` (`id`, `source_code`, `scene_code`, `event_code`, `source_field_path`, `target_field_code`, `target_field_name`, `transform_type`, `transform_expr`, `default_value`, `required_flag`, `clean_rule_json`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2151, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.event_id', 'eventId', '事件编号', 'DIRECT', NULL, NULL, 1, '{"trim":true,"blankToNull":true}', 10, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2152, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.occur_time_ms', 'eventTime', '事件时间', 'TIME_MILLIS_TO_DATETIME', NULL, NULL, 1, NULL, 20, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2153, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.req.traceId', 'traceId', '链路编号', 'DIRECT', NULL, NULL, 0, '{"trim":true,"blankToNull":true}', 30, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2154, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.uid', 'userId', '用户编号', 'DIRECT', NULL, NULL, 1, '{"trim":true,"blankToNull":true}', 40, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2155, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.dev_id', 'deviceId', '设备编号', 'DIRECT', NULL, NULL, 1, '{"trim":true,"blankToNull":true}', 50, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2156, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.client_ip', 'ip', 'IP 地址', 'DIRECT', NULL, NULL, 1, '{"trim":true,"blankToNull":true}', 60, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2157, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.pay_amt', 'amount', '交易金额', 'DIVIDE_100', NULL, NULL, 1, NULL, 70, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2158, 'trade_http_demo', 'TRADE_RISK', 'TRADE_EVENT', '$.trade_result', 'result', '交易结果', 'ENUM_MAP', '{"ok":"SUCCESS","fail":"FAIL"}', NULL, 1, '{"trim":true,"lowerCase":true}', 80, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- Records of event_sample
 -- ----------------------------
 DELETE FROM `event_sample` WHERE `scene_code` = 'TRADE_RISK' AND `event_code` = 'TRADE_EVENT';
 INSERT INTO `event_sample` (`id`, `scene_code`, `event_code`, `sample_code`, `sample_name`, `sample_type`, `source_code`, `sample_json`, `description`, `sort_no`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (2131, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_STD_SUCCESS', '交易成功标准样例', 'STANDARD', NULL, '{"eventId":"E_TRADE_9101","sceneCode":"TRADE_RISK","eventType":"trade","eventTime":"2026-03-12T09:00:00","traceId":"T_TRADE_9101","userId":"U9001","deviceId":"D9001","ip":"66.77.88.99","amount":6800,"result":"SUCCESS"}', 'S04 成功标准样例，可直接用于标准事件预览与后续仿真输入基线。', 10, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(2132, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_SIM_EXCEPTION', '交易异常仿真样例', 'SIMULATION', NULL, '{"eventId":"E_TRADE_9102","eventTime":"2026-03-12T09:05:00","userId":"U9002","deviceId":"D9002","ip":"10.20.30.40","amount":12800,"result":"FAIL"}', 'S04 异常仿真样例，故意省略 sceneCode/eventType 以验证默认值补齐预览。', 20, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+(2132, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_SIM_EXCEPTION', '交易异常仿真样例', 'SIMULATION', NULL, '{"eventId":"E_TRADE_9102","eventTime":"2026-03-12T09:05:00","userId":"U9002","deviceId":"D9002","ip":"10.20.30.40","amount":12800,"result":"FAIL"}', 'S04 异常仿真样例，故意省略 sceneCode/eventType 以验证默认值补齐预览。', 20, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(2133, 'TRADE_RISK', 'TRADE_EVENT', 'TRADE_RAW_HTTP', '交易 HTTP 原始样例', 'RAW', 'trade_http_demo', '{"event_id":"E_RAW_9103","occur_time_ms":1773287100000,"req":{"traceId":"T_RAW_9103"},"uid":" U9003 ","dev_id":"D9003","client_ip":"88.66.55.44","pay_amt":256800,"trade_result":"ok"}', 'S06 原始报文样例，可直接验证 trade_http_demo -> TRADE_EVENT 的字段映射与标准事件预览。', 30, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
 -- Records of scene_release
@@ -830,7 +845,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7153, '接入源修改', 'risk:ingest-source:update', 3, 3, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7154, '接入源启停', 'risk:ingest-source:update-status', 3, 4, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7155, '接入源详情', 'risk:ingest-source:get', 3, 5, 7150, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7160, '字段映射', 'risk:ingest-mapping:query', 2, 60, 7100, 'ingest-mapping', 'ep:sort', 'risk/placeholder/index?code=ingest-mapping', 'RiskIngestMapping', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7160, '字段映射', 'risk:ingest-mapping:query', 2, 60, 7100, 'ingest-mapping', 'ep:sort', 'risk/ingest-mapping/index', 'RiskIngestMapping', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7161, '字段映射查询', 'risk:ingest-mapping:query', 3, 1, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7162, '字段映射新增', 'risk:ingest-mapping:create', 3, 2, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7163, '字段映射修改', 'risk:ingest-mapping:update', 3, 3, 7160, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),

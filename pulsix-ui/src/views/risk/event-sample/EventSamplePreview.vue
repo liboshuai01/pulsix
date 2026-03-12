@@ -1,7 +1,7 @@
 <template>
   <Dialog v-model="dialogVisible" title="标准事件预览" width="1100px">
     <el-alert
-      title="当前阶段预览仅基于事件字段定义、同名字段/fieldPath/defaultValue 生成；原始字段映射将在 S06 实现。"
+      title="预览会优先应用接入字段映射；未命中映射时，再回退到同名字段、fieldPath 和字段默认值。"
       type="info"
       show-icon
       class="mb-12px"
@@ -13,6 +13,13 @@
       <el-tag type="warning" effect="plain">样例类型：{{ getRiskEventSampleTypeLabel(previewData?.sampleType) }}</el-tag>
     </div>
 
+    <el-alert
+      v-if="previewData?.mappedFields?.length"
+      :title="`已命中接入映射字段：${previewData.mappedFields.join('、')}`"
+      type="info"
+      show-icon
+      class="mb-12px"
+    />
     <el-alert
       v-if="previewData?.missingRequiredFields?.length"
       :title="`缺失必填字段：${previewData.missingRequiredFields.join('、')}`"
