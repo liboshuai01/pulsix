@@ -1,8 +1,8 @@
 <template>
-  <Dialog v-model="dialogVisible" title="发布预览" width="1180px">
+  <Dialog v-model="dialogVisible" title="发布详情" width="1180px">
     <el-descriptions v-loading="detailLoading" :column="3" border>
-      <el-descriptions-item label="所属场景">{{ detailData.sceneCode }}</el-descriptions-item>
-      <el-descriptions-item label="候选版本">v{{ detailData.versionNo || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="所属场景">{{ detailData.sceneCode || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="场景版本">v{{ detailData.versionNo || '-' }}</el-descriptions-item>
       <el-descriptions-item label="快照摘要">{{ detailData.checksum || '-' }}</el-descriptions-item>
       <el-descriptions-item label="发布状态">
         <el-tag :type="getReleasePublishStatusTag(detailData.publishStatus)" effect="plain">
@@ -15,8 +15,16 @@
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="编译统计">{{ formatReleaseCompileSummary(detailData) }}</el-descriptions-item>
+      <el-descriptions-item label="发布人">{{ detailData.publishedBy || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="发布时间">
+        {{ detailData.publishedAt ? formatDate(detailData.publishedAt) : '-' }}
+      </el-descriptions-item>
+      <el-descriptions-item label="生效时间">
+        {{ detailData.effectiveFrom ? formatDate(detailData.effectiveFrom) : '-' }}
+      </el-descriptions-item>
+      <el-descriptions-item label="回滚来源版本">{{ formatRollbackVersion(detailData.rollbackFromVersion) }}</el-descriptions-item>
       <el-descriptions-item label="编译耗时">{{ detailData.compileDurationMs ?? '-' }} ms</el-descriptions-item>
-      <el-descriptions-item label="版本说明" :span="2">
+      <el-descriptions-item label="版本说明">
         <div class="whitespace-pre-wrap leading-22px">{{ detailData.remark || '-' }}</div>
       </el-descriptions-item>
       <el-descriptions-item label="创建者">{{ detailData.creator || '-' }}</el-descriptions-item>
@@ -71,6 +79,10 @@ const detailData = ref<ReleaseApi.SceneReleaseVO>({
 const validationReportJson = computed(() => detailData.value.validationReportJson ?? {})
 const dependencyDigestJson = computed(() => detailData.value.dependencyDigestJson ?? {})
 const snapshotJson = computed(() => detailData.value.snapshotJson ?? {})
+
+const formatRollbackVersion = (version?: number) => {
+  return version ? `v${version}` : '-'
+}
 
 const open = async (id: number) => {
   dialogVisible.value = true

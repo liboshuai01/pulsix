@@ -4,7 +4,9 @@ import cn.liboshuai.pulsix.framework.common.pojo.CommonResult;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseCompileReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleasePageReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleasePublishReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseRespVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseRollbackReqVO;
 import cn.liboshuai.pulsix.module.risk.service.release.SceneReleaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,6 +53,20 @@ public class SceneReleaseController {
     @PreAuthorize("@ss.hasPermission('risk:release:compile')")
     public CommonResult<SceneReleaseRespVO> compileSceneRelease(@Valid @RequestBody SceneReleaseCompileReqVO reqVO) {
         return success(sceneReleaseService.compileSceneRelease(reqVO));
+    }
+
+    @PostMapping("/publish")
+    @Operation(summary = "正式发布候选版本")
+    @PreAuthorize("@ss.hasPermission('risk:release:publish')")
+    public CommonResult<SceneReleaseRespVO> publishSceneRelease(@Valid @RequestBody SceneReleasePublishReqVO reqVO) {
+        return success(sceneReleaseService.publishSceneRelease(reqVO));
+    }
+
+    @PostMapping("/rollback")
+    @Operation(summary = "回滚到指定历史版本")
+    @PreAuthorize("@ss.hasPermission('risk:release:rollback')")
+    public CommonResult<SceneReleaseRespVO> rollbackSceneRelease(@Valid @RequestBody SceneReleaseRollbackReqVO reqVO) {
+        return success(sceneReleaseService.rollbackSceneRelease(reqVO));
     }
 
 }

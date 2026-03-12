@@ -36,6 +36,18 @@ export interface SceneReleaseCompileReqVO {
   remark?: string
 }
 
+export interface SceneReleasePublishReqVO {
+  id: number
+  effectiveFrom?: string
+  remark?: string
+}
+
+export interface SceneReleaseRollbackReqVO {
+  id: number
+  effectiveFrom?: string
+  remark?: string
+}
+
 export const getSceneReleasePage = (params: SceneReleasePageReqVO) => {
   return request.get({ url: '/risk/release/page', params })
 }
@@ -46,4 +58,12 @@ export const getSceneRelease = (id: number) => {
 
 export const compileSceneRelease = (data: SceneReleaseCompileReqVO) => {
   return request.post({ url: '/risk/release/compile', data })
+}
+
+export const publishSceneRelease = (data: SceneReleasePublishReqVO) => {
+  return request.post({ url: '/risk/release/publish', data })
+}
+
+export const rollbackSceneRelease = (data: SceneReleaseRollbackReqVO) => {
+  return request.post({ url: '/risk/release/rollback', data })
 }

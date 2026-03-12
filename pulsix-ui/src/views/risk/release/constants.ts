@@ -52,3 +52,11 @@ export const getReleaseValidationStatusTag = (value?: string) => {
 export const formatReleaseCompileSummary = (row: SceneReleaseVO) => {
   return `${row.compiledFeatureCount ?? 0} 特征 / ${row.compiledRuleCount ?? 0} 规则 / ${row.compiledPolicyCount ?? 0} 策略`
 }
+
+export const isReleasePublishable = (row: SceneReleaseVO) => {
+  return row.validationStatus === 'PASSED' && row.publishStatus === 'DRAFT'
+}
+
+export const isReleaseRollbackAvailable = (row: SceneReleaseVO) => {
+  return row.validationStatus === 'PASSED' && ['PUBLISHED', 'ROLLED_BACK'].includes(row.publishStatus)
+}

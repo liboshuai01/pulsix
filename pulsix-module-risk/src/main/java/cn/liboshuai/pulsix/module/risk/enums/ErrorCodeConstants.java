@@ -69,5 +69,9 @@ public interface ErrorCodeConstants {
 
     // ========== 发布预检 1-005-013-000 ==========
     ErrorCode SCENE_RELEASE_NOT_EXISTS = new ErrorCode(1_005_013_000, "发布记录不存在");
+    ErrorCode SCENE_RELEASE_VALIDATION_FAILED = new ErrorCode(1_005_013_001, "发布记录未通过预检，不能执行发布操作");
+    ErrorCode SCENE_RELEASE_STATUS_INVALID = new ErrorCode(1_005_013_002, "发布记录当前状态不允许执行{}");
+    ErrorCode SCENE_RELEASE_ROLLBACK_SOURCE_INVALID = new ErrorCode(1_005_013_003, "仅正式发布历史版本支持作为回滚来源");
+    ErrorCode SCENE_RELEASE_ALREADY_ACTIVE = new ErrorCode(1_005_013_004, "所选版本已是当前生效版本，无需回滚");
 
 }

@@ -24,6 +24,8 @@ import cn.liboshuai.pulsix.engine.model.WindowType;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
+import cn.liboshuai.pulsix.framework.common.util.monitor.TracerUtils;
+import cn.liboshuai.pulsix.framework.security.core.util.SecurityFrameworkUtils;
 import cn.liboshuai.pulsix.framework.common.exception.util.ServiceExceptionUtil;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.framework.common.util.json.JsonUtils;
@@ -32,9 +34,12 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.featurederived.vo.Featur
 import cn.liboshuai.pulsix.module.risk.controller.admin.featurederived.vo.FeatureDerivedValidateRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseCompileReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleasePageReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleasePublishReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseRespVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseRollbackReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.rule.vo.RuleValidateReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.rule.vo.RuleValidateRespVO;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.auditlog.RiskAuditLogDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventfield.EventFieldDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.feature.FeatureDefDO;
@@ -47,6 +52,7 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.policy.PolicyRuleRefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.release.SceneReleaseDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.rule.RuleDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
+import cn.liboshuai.pulsix.module.risk.dal.mysql.auditlog.RiskAuditLogMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDefMapper;
@@ -71,6 +77,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,17 +91,29 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_ALREADY_ACTIVE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_ROLLBACK_SOURCE_INVALID;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_STATUS_INVALID;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_VALIDATION_FAILED;
 
 @Service
 public class SceneReleaseServiceImpl implements SceneReleaseService {
 
     private static final String PUBLISH_STATUS_DRAFT = "DRAFT";
+    private static final String PUBLISH_STATUS_PUBLISHED = "PUBLISHED";
+    private static final String PUBLISH_STATUS_ACTIVE = "ACTIVE";
+    private static final String PUBLISH_STATUS_ROLLED_BACK = "ROLLED_BACK";
+    private static final String PUBLISH_STATUS_FAILED = "FAILED";
+    private static final String AUDIT_BIZ_TYPE_RELEASE = "RELEASE";
+    private static final String AUDIT_ACTION_PUBLISH = "PUBLISH";
+    private static final String AUDIT_ACTION_ROLLBACK = "ROLLBACK";
     private static final String VALIDATION_STATUS_PASSED = "PASSED";
     private static final String VALIDATION_STATUS_FAILED = "FAILED";
     private static final String SNAPSHOT_STATUS_DRAFT = "DRAFT";
@@ -106,6 +127,9 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
 
     @Resource
     private SceneMapper sceneMapper;
+
+    @Resource
+    private RiskAuditLogMapper riskAuditLogMapper;
 
     @Resource
     private EventSchemaMapper eventSchemaMapper;
@@ -194,6 +218,233 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         release.setRemark(trimToNull(reqVO.getRemark()));
         sceneReleaseMapper.insert(release);
         return buildRespVO(release);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SceneReleaseRespVO publishSceneRelease(SceneReleasePublishReqVO reqVO) {
+        SceneReleaseDO release = validateSceneReleaseExists(reqVO.getId());
+        validateReleaseReadyForPublish(release);
+
+        LocalDateTime publishedAt = LocalDateTime.now();
+        LocalDateTime effectiveFrom = ObjectUtil.defaultIfNull(reqVO.getEffectiveFrom(), publishedAt);
+        boolean effectiveNow = !effectiveFrom.isAfter(publishedAt);
+        Map<String, Object> beforePayload = buildReleaseAuditPayload(release);
+
+        if (effectiveNow) {
+            updateCurrentActiveStatuses(release.getSceneCode(), release.getId(), PUBLISH_STATUS_PUBLISHED);
+        }
+
+        applyPublishMetadata(release, effectiveNow ? PUBLISH_STATUS_ACTIVE : PUBLISH_STATUS_PUBLISHED,
+                publishedAt, effectiveFrom, resolveUpdatedRemark(reqVO.getRemark(), release.getRemark()));
+        sceneReleaseMapper.updateById(release);
+        writeReleaseAuditLog(release.getSceneCode(), buildReleaseBizCode(release), AUDIT_ACTION_PUBLISH,
+                beforePayload, buildReleaseAuditPayload(release), buildPublishAuditRemark(release, effectiveNow));
+        return buildRespVO(release);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SceneReleaseRespVO rollbackSceneRelease(SceneReleaseRollbackReqVO reqVO) {
+        SceneReleaseDO sourceRelease = validateSceneReleaseExists(reqVO.getId());
+        validateReleaseAvailableForRollback(sourceRelease);
+
+        LocalDateTime publishedAt = LocalDateTime.now();
+        LocalDateTime effectiveFrom = ObjectUtil.defaultIfNull(reqVO.getEffectiveFrom(), publishedAt);
+        boolean effectiveNow = !effectiveFrom.isAfter(publishedAt);
+        SceneReleaseDO currentActiveRelease = getCurrentActiveRelease(sourceRelease.getSceneCode());
+        if (currentActiveRelease != null && Objects.equals(currentActiveRelease.getId(), sourceRelease.getId())) {
+            throw ServiceExceptionUtil.exception(SCENE_RELEASE_ALREADY_ACTIVE);
+        }
+        if (effectiveNow) {
+            updateCurrentActiveStatuses(sourceRelease.getSceneCode(), null, PUBLISH_STATUS_ROLLED_BACK);
+        }
+
+        int nextVersionNo = ObjectUtil.defaultIfNull(sceneReleaseMapper.selectMaxVersionNo(sourceRelease.getSceneCode()), 0) + 1;
+        SceneReleaseDO rollbackRelease = buildRollbackRelease(sourceRelease, nextVersionNo, publishedAt, effectiveFrom,
+                effectiveNow ? PUBLISH_STATUS_ACTIVE : PUBLISH_STATUS_PUBLISHED, reqVO.getRemark());
+        sceneReleaseMapper.insert(rollbackRelease);
+        writeReleaseAuditLog(sourceRelease.getSceneCode(), buildReleaseBizCode(rollbackRelease), AUDIT_ACTION_ROLLBACK,
+                buildReleaseAuditPayload(sourceRelease), buildReleaseAuditPayload(rollbackRelease),
+                buildRollbackAuditRemark(sourceRelease, rollbackRelease, currentActiveRelease, effectiveNow));
+        return buildRespVO(rollbackRelease);
+    }
+
+    private void validateReleaseReadyForPublish(SceneReleaseDO release) {
+        if (!VALIDATION_STATUS_PASSED.equals(release.getValidationStatus())) {
+            throw ServiceExceptionUtil.exception(SCENE_RELEASE_VALIDATION_FAILED);
+        }
+        if (!PUBLISH_STATUS_DRAFT.equals(release.getPublishStatus())) {
+            throw ServiceExceptionUtil.exception(SCENE_RELEASE_STATUS_INVALID, "正式发布");
+        }
+    }
+
+    private void validateReleaseAvailableForRollback(SceneReleaseDO release) {
+        if (!VALIDATION_STATUS_PASSED.equals(release.getValidationStatus())) {
+            throw ServiceExceptionUtil.exception(SCENE_RELEASE_VALIDATION_FAILED);
+        }
+        if (PUBLISH_STATUS_DRAFT.equals(release.getPublishStatus()) || PUBLISH_STATUS_FAILED.equals(release.getPublishStatus())) {
+            throw ServiceExceptionUtil.exception(SCENE_RELEASE_ROLLBACK_SOURCE_INVALID);
+        }
+    }
+
+    private SceneReleaseDO buildRollbackRelease(SceneReleaseDO sourceRelease, int nextVersionNo, LocalDateTime publishedAt,
+                                                LocalDateTime effectiveFrom, String publishStatus, String remark) {
+        SceneReleaseDO release = new SceneReleaseDO();
+        release.setSceneCode(sourceRelease.getSceneCode());
+        release.setVersionNo(nextVersionNo);
+        release.setValidationStatus(sourceRelease.getValidationStatus());
+        release.setValidationReportJson(sourceRelease.getValidationReportJson());
+        release.setDependencyDigestJson(sourceRelease.getDependencyDigestJson());
+        release.setCompileDurationMs(sourceRelease.getCompileDurationMs());
+        release.setCompiledFeatureCount(sourceRelease.getCompiledFeatureCount());
+        release.setCompiledRuleCount(sourceRelease.getCompiledRuleCount());
+        release.setCompiledPolicyCount(sourceRelease.getCompiledPolicyCount());
+        release.setRollbackFromVersion(sourceRelease.getVersionNo());
+        applyPublishMetadata(release, publishStatus, publishedAt, effectiveFrom,
+                resolveUpdatedRemark(remark, "回滚到 v" + sourceRelease.getVersionNo()), sourceRelease.getSnapshotJson());
+        return release;
+    }
+
+    private void applyPublishMetadata(SceneReleaseDO release, String publishStatus, LocalDateTime publishedAt,
+                                      LocalDateTime effectiveFrom, String remark) {
+        applyPublishMetadata(release, publishStatus, publishedAt, effectiveFrom, remark, release.getSnapshotJson());
+    }
+
+    private void applyPublishMetadata(SceneReleaseDO release, String publishStatus, LocalDateTime publishedAt,
+                                      LocalDateTime effectiveFrom, String remark, Map<String, Object> sourceSnapshotJson) {
+        release.setPublishStatus(publishStatus);
+        release.setPublishedBy(resolveOperatorName());
+        release.setPublishedAt(publishedAt);
+        release.setEffectiveFrom(effectiveFrom);
+        release.setRemark(remark);
+
+        SceneSnapshot snapshot = buildReleaseSnapshot(sourceSnapshotJson);
+        snapshot.setSnapshotId(release.getSceneCode() + "_v" + release.getVersionNo());
+        snapshot.setSceneCode(release.getSceneCode());
+        snapshot.setVersion(release.getVersionNo());
+        snapshot.setStatus(publishStatus);
+        snapshot.setPublishedAt(toInstant(publishedAt));
+        snapshot.setEffectiveFrom(toInstant(effectiveFrom));
+        snapshot.setChecksum(null);
+        String checksum = md5Hex(EngineJson.write(snapshot));
+        snapshot.setChecksum(checksum);
+        release.setChecksum(checksum);
+        release.setSnapshotJson(JsonUtils.parseObject(EngineJson.write(snapshot), new TypeReference<Map<String, Object>>() {
+        }));
+    }
+
+    private SceneSnapshot buildReleaseSnapshot(Map<String, Object> snapshotJson) {
+        if (snapshotJson == null || snapshotJson.isEmpty()) {
+            throw new IllegalStateException("scene release snapshot_json must not be empty");
+        }
+        return EngineJson.read(EngineJson.write(snapshotJson), SceneSnapshot.class);
+    }
+
+    private SceneReleaseDO getCurrentActiveRelease(String sceneCode) {
+        List<SceneReleaseDO> releases = sceneReleaseMapper.selectList(new LambdaQueryWrapperX<SceneReleaseDO>()
+                .eq(SceneReleaseDO::getSceneCode, sceneCode)
+                .eq(SceneReleaseDO::getPublishStatus, PUBLISH_STATUS_ACTIVE)
+                .orderByDesc(SceneReleaseDO::getEffectiveFrom)
+                .orderByDesc(SceneReleaseDO::getPublishedAt)
+                .orderByDesc(SceneReleaseDO::getVersionNo)
+                .orderByDesc(SceneReleaseDO::getId));
+        return CollUtil.isEmpty(releases) ? null : releases.get(0);
+    }
+
+    private void updateCurrentActiveStatuses(String sceneCode, Long excludeId, String targetStatus) {
+        List<SceneReleaseDO> activeReleases = sceneReleaseMapper.selectList(new LambdaQueryWrapperX<SceneReleaseDO>()
+                .eq(SceneReleaseDO::getSceneCode, sceneCode)
+                .eq(SceneReleaseDO::getPublishStatus, PUBLISH_STATUS_ACTIVE));
+        for (SceneReleaseDO activeRelease : defaultList(activeReleases)) {
+            if (excludeId != null && Objects.equals(excludeId, activeRelease.getId())) {
+                continue;
+            }
+            SceneReleaseDO updateObj = new SceneReleaseDO();
+            updateObj.setId(activeRelease.getId());
+            updateObj.setPublishStatus(targetStatus);
+            sceneReleaseMapper.updateById(updateObj);
+        }
+    }
+
+    private Map<String, Object> buildReleaseAuditPayload(SceneReleaseDO release) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", release.getId());
+        payload.put("sceneCode", release.getSceneCode());
+        payload.put("versionNo", release.getVersionNo());
+        payload.put("publishStatus", release.getPublishStatus());
+        payload.put("validationStatus", release.getValidationStatus());
+        payload.put("checksum", release.getChecksum());
+        payload.put("publishedBy", release.getPublishedBy());
+        payload.put("publishedAt", release.getPublishedAt());
+        payload.put("effectiveFrom", release.getEffectiveFrom());
+        payload.put("rollbackFromVersion", release.getRollbackFromVersion());
+        payload.put("compiledFeatureCount", release.getCompiledFeatureCount());
+        payload.put("compiledRuleCount", release.getCompiledRuleCount());
+        payload.put("compiledPolicyCount", release.getCompiledPolicyCount());
+        payload.put("remark", release.getRemark());
+        return payload;
+    }
+
+    private void writeReleaseAuditLog(String sceneCode, String bizCode, String actionType, Map<String, Object> beforeJson,
+                                      Map<String, Object> afterJson, String remark) {
+        RiskAuditLogDO auditLog = new RiskAuditLogDO();
+        auditLog.setTraceId(StrUtil.blankToDefault(TracerUtils.getTraceId(), UUID.randomUUID().toString()));
+        auditLog.setSceneCode(sceneCode);
+        auditLog.setOperatorId(ObjectUtil.defaultIfNull(SecurityFrameworkUtils.getLoginUserId(), 0L));
+        auditLog.setOperatorName(resolveOperatorName());
+        auditLog.setBizType(AUDIT_BIZ_TYPE_RELEASE);
+        auditLog.setBizCode(bizCode);
+        auditLog.setActionType(actionType);
+        auditLog.setBeforeJson(beforeJson);
+        auditLog.setAfterJson(afterJson);
+        auditLog.setRemark(trimToNull(remark));
+        auditLog.setOperateTime(LocalDateTime.now());
+        riskAuditLogMapper.insert(auditLog);
+    }
+
+    private String buildReleaseBizCode(SceneReleaseDO release) {
+        return release.getSceneCode() + "_v" + release.getVersionNo();
+    }
+
+    private String buildPublishAuditRemark(SceneReleaseDO release, boolean effectiveNow) {
+        return effectiveNow
+                ? "正式发布版本 v" + release.getVersionNo() + " 并立即生效"
+                : "正式发布版本 v" + release.getVersionNo() + "，计划于 " + release.getEffectiveFrom() + " 生效";
+    }
+
+    private String buildRollbackAuditRemark(SceneReleaseDO sourceRelease, SceneReleaseDO rollbackRelease,
+                                            SceneReleaseDO currentActiveRelease, boolean effectiveNow) {
+        StringBuilder remark = new StringBuilder();
+        remark.append("基于历史版本 v").append(sourceRelease.getVersionNo())
+                .append(" 生成回滚版本 v").append(rollbackRelease.getVersionNo());
+        if (currentActiveRelease != null) {
+            remark.append("，当前生效版本为 v").append(currentActiveRelease.getVersionNo());
+        }
+        if (effectiveNow) {
+            remark.append("，已立即生效");
+        } else {
+            remark.append("，计划于 ").append(rollbackRelease.getEffectiveFrom()).append(" 生效");
+        }
+        return remark.toString();
+    }
+
+    private String resolveUpdatedRemark(String preferredRemark, String fallbackRemark) {
+        String remark = trimToNull(preferredRemark);
+        return remark != null ? remark : trimToNull(fallbackRemark);
+    }
+
+    private String resolveOperatorName() {
+        String nickname = trimToNull(SecurityFrameworkUtils.getLoginUserNickname());
+        if (nickname != null) {
+            return nickname;
+        }
+        Long userId = SecurityFrameworkUtils.getLoginUserId();
+        return userId != null ? String.valueOf(userId) : "system";
+    }
+
+    private Instant toInstant(LocalDateTime value) {
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 
     private CompileContext loadCompileContext(SceneDO scene) {
