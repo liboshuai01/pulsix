@@ -49,4 +49,11 @@ public interface ErrorCodeConstants {
     ErrorCode FEATURE_LOOKUP_NOT_EXISTS = new ErrorCode(1_005_009_000, "查询特征不存在");
     ErrorCode FEATURE_LOOKUP_CODE_DUPLICATE = new ErrorCode(1_005_009_001, "当前场景下特征编码已存在");
 
+    // ========== 派生特征 1-005-010-000 ==========
+    ErrorCode FEATURE_DERIVED_NOT_EXISTS = new ErrorCode(1_005_010_000, "派生特征不存在");
+    ErrorCode FEATURE_DERIVED_CODE_DUPLICATE = new ErrorCode(1_005_010_001, "当前场景下特征编码已存在");
+    ErrorCode FEATURE_DERIVED_DEPENDENCY_INVALID = new ErrorCode(1_005_010_002, "派生特征依赖无效：{}");
+    ErrorCode FEATURE_DERIVED_DEPENDENCY_CYCLE = new ErrorCode(1_005_010_003, "派生特征依赖存在循环：{}");
+    ErrorCode FEATURE_DERIVED_EXPR_INVALID = new ErrorCode(1_005_010_004, "派生特征表达式校验失败：{}");
+
 }

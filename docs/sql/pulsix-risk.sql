@@ -860,6 +860,18 @@ INSERT INTO `feature_lookup_conf` (`id`, `scene_code`, `feature_code`, `lookup_t
 (3502, 'TRADE_RISK', 'user_risk_level', 'REDIS_HASH', 'userId', 'pulsix:profile:user:risk', 'L', 30, 20, JSON_OBJECT('redisOp', 'HGET', 'fieldType', 'STRING'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of feature_derived_conf
+-- ----------------------------
+DELETE FROM `feature_derived_conf` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('high_amt_flag', 'trade_burst_flag');
+DELETE FROM `feature_def` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('high_amt_flag', 'trade_burst_flag');
+INSERT INTO `feature_def` (`id`, `scene_code`, `feature_code`, `feature_name`, `feature_type`, `entity_type`, `event_code`, `value_type`, `status`, `version`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3601, 'TRADE_RISK', 'high_amt_flag', '高金额标记', 'DERIVED', NULL, NULL, 'BOOLEAN', 0, 1, '基于事件字段 amount 判断当前交易是否达到高金额阈值。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3602, 'TRADE_RISK', 'trade_burst_flag', '短时高频交易标记', 'DERIVED', NULL, NULL, 'BOOLEAN', 0, 1, '基于流式特征 user_trade_cnt_5m 和当前 amount 组合判断短时高频大额交易。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+INSERT INTO `feature_derived_conf` (`id`, `scene_code`, `feature_code`, `engine_type`, `expr_content`, `depends_on_json`, `value_type`, `sandbox_flag`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3701, 'TRADE_RISK', 'high_amt_flag', 'AVIATOR', 'amount >= 5000', JSON_ARRAY('amount'), 'BOOLEAN', 1, 50, JSON_OBJECT('resultAlias', 'highAmtFlag', 'compiled', true), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3702, 'TRADE_RISK', 'trade_burst_flag', 'AVIATOR', 'user_trade_cnt_5m >= 3 && amount >= 5000', JSON_ARRAY('user_trade_cnt_5m', 'amount'), 'BOOLEAN', 1, 50, JSON_OBJECT('resultAlias', 'tradeBurstFlag', 'compiled', true), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- S00 风控菜单骨架（可重复执行）
 -- 说明：
 -- 1. 仅插入 `system_menu` 数据，不改动 `pulsix-system-infra.sql` 的表结构。
@@ -925,7 +937,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7233, '查询特征修改', 'risk:feature-lookup:update', 3, 3, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7234, '查询特征删除', 'risk:feature-lookup:delete', 3, 4, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7235, '查询特征详情', 'risk:feature-lookup:get', 3, 5, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7240, '派生特征', 'risk:feature-derived:query', 2, 40, 7200, 'feature-derived', 'ep:cpu', 'risk/placeholder/index?code=feature-derived', 'RiskFeatureDerived', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7240, '派生特征', 'risk:feature-derived:query', 2, 40, 7200, 'feature-derived', 'ep:cpu', 'risk/feature-derived/index', 'RiskFeatureDerived', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7241, '派生特征查询', 'risk:feature-derived:query', 3, 1, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7242, '派生特征新增', 'risk:feature-derived:create', 3, 2, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7243, '派生特征修改', 'risk:feature-derived:update', 3, 3, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),

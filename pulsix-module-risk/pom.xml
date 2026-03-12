@@ -20,6 +20,11 @@
     <dependencies>
         <dependency>
             <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-kernel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
             <artifactId>pulsix-spring-boot-starter-security</artifactId>
         </dependency>
 
