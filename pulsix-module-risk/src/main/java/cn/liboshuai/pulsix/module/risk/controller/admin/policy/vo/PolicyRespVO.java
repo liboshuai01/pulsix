@@ -28,6 +28,9 @@ public class PolicyRespVO {
     @Schema(description = "默认动作", example = "PASS")
     private String defaultAction;
 
+    @Schema(description = "分值计算模式", example = "SUM_HIT_SCORE")
+    private String scoreCalcMode;
+
     @Schema(description = "状态", example = "0")
     private Integer status;
 
@@ -42,6 +45,9 @@ public class PolicyRespVO {
 
     @Schema(description = "规则引用列表")
     private List<PolicyRuleRefRespVO> ruleRefs;
+
+    @Schema(description = "评分段列表")
+    private List<PolicyScoreBandRespVO> scoreBands;
 
     @Schema(description = "创建者")
     private String creator;

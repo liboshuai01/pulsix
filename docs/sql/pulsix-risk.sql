@@ -916,16 +916,25 @@ INSERT INTO `rule_def` (`id`, `scene_code`, `rule_code`, `rule_name`, `rule_type
 (3803, 'TRADE_RISK', 'R003', '高风险用户多账号设备', 'NORMAL', 'GROOVY', 'return device_bind_user_cnt_1h >= 4 && [''M'',''H''].contains(user_risk_level)', 80, 'REJECT', 80, '设备1小时关联用户数={device_bind_user_cnt_1h}, 用户风险等级={user_risk_level}', 0, 1, '使用 Groovy 表达式识别一机多号且用户画像风险等级较高的交易。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
--- Records of policy_def / policy_rule_ref
+-- Records of policy_def / policy_rule_ref / policy_score_band
 -- ----------------------------
-DELETE FROM `policy_rule_ref` WHERE `scene_code` = 'TRADE_RISK' AND `policy_code` IN ('TRADE_RISK_POLICY');
-DELETE FROM `policy_def` WHERE `scene_code` = 'TRADE_RISK' AND `policy_code` IN ('TRADE_RISK_POLICY');
+DELETE FROM `policy_score_band` WHERE `scene_code` = 'TRADE_RISK' AND `policy_code` IN ('TRADE_RISK_POLICY', 'TRADE_RISK_SCORE_CARD');
+DELETE FROM `policy_rule_ref` WHERE `scene_code` = 'TRADE_RISK' AND `policy_code` IN ('TRADE_RISK_POLICY', 'TRADE_RISK_SCORE_CARD');
+DELETE FROM `policy_def` WHERE `scene_code` = 'TRADE_RISK' AND `policy_code` IN ('TRADE_RISK_POLICY', 'TRADE_RISK_SCORE_CARD');
 INSERT INTO `policy_def` (`id`, `scene_code`, `policy_code`, `policy_name`, `decision_mode`, `default_action`, `score_calc_mode`, `status`, `version`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(3901, 'TRADE_RISK', 'TRADE_RISK_POLICY', '交易风控主策略', 'FIRST_HIT', 'PASS', 'NONE', 0, 1, 'S12 策略中心初始化样例；当前阶段只做 FIRST_HIT 与规则顺序维护。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+(3901, 'TRADE_RISK', 'TRADE_RISK_POLICY', '交易风控主策略', 'FIRST_HIT', 'PASS', 'NONE', 0, 1, 'S17 保留的 FIRST_HIT 样例；用于按规则顺序快速收敛 REJECT/REVIEW/PASS。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3902, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', '交易风控评分卡策略', 'SCORE_CARD', 'PASS', 'SUM_HIT_SCORE', 0, 1, 'S17 SCORE_CARD 样例；累计命中规则分值后，根据评分段映射最终动作。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 INSERT INTO `policy_rule_ref` (`id`, `scene_code`, `policy_code`, `rule_code`, `order_no`, `enabled_flag`, `branch_expr`, `score_weight`, `stop_on_hit`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (3961, 'TRADE_RISK', 'TRADE_RISK_POLICY', 'R001', 10, 1, NULL, NULL, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (3962, 'TRADE_RISK', 'TRADE_RISK_POLICY', 'R003', 20, 1, NULL, NULL, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(3963, 'TRADE_RISK', 'TRADE_RISK_POLICY', 'R002', 30, 1, NULL, NULL, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+(3963, 'TRADE_RISK', 'TRADE_RISK_POLICY', 'R002', 30, 1, NULL, NULL, 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3971, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 'R001', 10, 1, NULL, NULL, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3972, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 'R003', 20, 1, NULL, NULL, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3973, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 'R002', 30, 1, NULL, NULL, 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+INSERT INTO `policy_score_band` (`id`, `scene_code`, `policy_code`, `band_no`, `min_score`, `max_score`, `hit_action`, `hit_reason_template`, `enabled_flag`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3951, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 10, 0, 59, 'PASS', '累计分值 {totalScore}，低风险放行', 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3952, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 20, 60, 119, 'REVIEW', '累计分值 {totalScore}，进入人工复核', 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3953, 'TRADE_RISK', 'TRADE_RISK_SCORE_CARD', 30, 120, 999999, 'REJECT', '累计分值 {totalScore}，触发拒绝', 1, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
 -- S00 风控菜单骨架（可重复执行）

@@ -5,6 +5,8 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyPageReqV
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyRuleOptionRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicySaveReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyScorePreviewReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyScorePreviewRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicySortReqVO;
 
 import java.util.List;
@@ -24,5 +26,7 @@ public interface PolicyService {
     List<PolicyRuleOptionRespVO> getRuleOptions(String sceneCode);
 
     void sortPolicyRules(PolicySortReqVO reqVO);
+
+    PolicyScorePreviewRespVO previewScoreCard(PolicyScorePreviewReqVO reqVO);
 
 }

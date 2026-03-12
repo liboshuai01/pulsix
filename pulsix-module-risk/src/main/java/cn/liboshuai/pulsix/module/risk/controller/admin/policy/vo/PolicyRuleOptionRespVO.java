@@ -19,6 +19,9 @@ public class PolicyRuleOptionRespVO {
     @Schema(description = "规则优先级", example = "100")
     private Integer priority;
 
+    @Schema(description = "规则分值", example = "60")
+    private Integer riskScore;
+
     @Schema(description = "规则状态", example = "0")
     private Integer status;
 

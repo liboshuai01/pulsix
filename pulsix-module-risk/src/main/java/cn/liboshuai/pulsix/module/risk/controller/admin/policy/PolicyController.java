@@ -6,6 +6,8 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyPageReqV
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyRuleOptionRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicySaveReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyScorePreviewReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicyScorePreviewRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo.PolicySortReqVO;
 import cn.liboshuai.pulsix.module.risk.service.policy.PolicyService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,6 +91,13 @@ public class PolicyController {
     public CommonResult<Boolean> sortPolicyRules(@Valid @RequestBody PolicySortReqVO reqVO) {
         policyService.sortPolicyRules(reqVO);
         return success(true);
+    }
+
+    @PostMapping("/preview-score-card")
+    @Operation(summary = "预览 SCORE_CARD 总分命中结果")
+    @PreAuthorize("@ss.hasPermission('risk:policy:query')")
+    public CommonResult<PolicyScorePreviewRespVO> previewScoreCard(@Valid @RequestBody PolicyScorePreviewReqVO reqVO) {
+        return success(policyService.previewScoreCard(reqVO));
     }
 
 }

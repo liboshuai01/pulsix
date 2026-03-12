@@ -2,8 +2,10 @@ package cn.liboshuai.pulsix.module.risk.controller.admin.policy.vo;
 
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.validation.InEnum;
+import cn.liboshuai.pulsix.module.risk.enums.policy.RiskPolicyDecisionModeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.rule.RiskRuleHitActionEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -36,6 +38,11 @@ public class PolicySaveReqVO {
     @Size(max = 128, message = "策略名称长度不能超过 128 个字符")
     private String policyName;
 
+    @Schema(description = "决策模式", requiredMode = Schema.RequiredMode.REQUIRED, example = "FIRST_HIT")
+    @NotBlank(message = "决策模式不能为空")
+    @InEnum(value = RiskPolicyDecisionModeEnum.class, message = "决策模式必须是 {value}")
+    private String decisionMode;
+
     @Schema(description = "默认动作", requiredMode = Schema.RequiredMode.REQUIRED, example = "PASS")
     @NotBlank(message = "默认动作不能为空")
     @InEnum(value = RiskRuleHitActionEnum.class, message = "默认动作必须是 {value}")
@@ -44,6 +51,10 @@ public class PolicySaveReqVO {
     @Schema(description = "规则编码顺序列表", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "规则顺序不能为空")
     private List<String> ruleCodes;
+
+    @Schema(description = "评分段列表；decisionMode=SCORE_CARD 时生效")
+    @Valid
+    private List<PolicyScoreBandSaveReqVO> scoreBands;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "状态不能为空")

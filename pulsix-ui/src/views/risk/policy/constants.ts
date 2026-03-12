@@ -1,6 +1,14 @@
 import type { PolicyRuleRefVO, PolicyVO } from '@/api/risk/policy'
 
-export const riskPolicyDecisionModeOptions = [{ label: 'FIRST_HIT / 首条命中即返回', value: 'FIRST_HIT' }]
+export const riskPolicyDecisionModeOptions = [
+  { label: 'FIRST_HIT / 首条命中即返回', value: 'FIRST_HIT' },
+  { label: 'SCORE_CARD / 命中分值累计后按区间决策', value: 'SCORE_CARD' }
+]
+
+export const riskPolicyScoreCalcModeOptions = [
+  { label: 'NONE / 不累计分值', value: 'NONE' },
+  { label: 'SUM_HIT_SCORE / 命中分值累计', value: 'SUM_HIT_SCORE' }
+]
 
 export const riskPolicyDefaultActionOptions = [
   { label: 'PASS / 放行', value: 'PASS' },
@@ -12,6 +20,10 @@ export const riskPolicyDefaultActionOptions = [
 
 export const getRiskPolicyDecisionModeLabel = (value?: string) => {
   return riskPolicyDecisionModeOptions.find((item) => item.value === value)?.label || value || '-'
+}
+
+export const getRiskPolicyScoreCalcModeLabel = (value?: string) => {
+  return riskPolicyScoreCalcModeOptions.find((item) => item.value === value)?.label || value || '-'
 }
 
 export const getRiskPolicyDefaultActionLabel = (value?: string) => {

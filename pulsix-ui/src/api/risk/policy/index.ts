@@ -6,6 +6,9 @@ export interface PolicyRuleRefVO {
   orderNo?: number
   hitAction?: string
   priority?: number
+  riskScore?: number
+  scoreWeight?: number
+  stopOnHit?: number
   status?: number
 }
 
@@ -14,7 +17,35 @@ export interface PolicyRuleOptionVO {
   ruleName: string
   hitAction: string
   priority: number
+  riskScore?: number
   status: number
+}
+
+export interface PolicyScoreBandVO {
+  bandNo?: number
+  minScore?: number
+  maxScore?: number
+  hitAction: string
+  hitReasonTemplate?: string
+}
+
+export interface PolicyScorePreviewReqVO {
+  decisionMode: string
+  defaultAction: string
+  totalScore: number
+  scoreBands?: PolicyScoreBandVO[]
+}
+
+export interface PolicyScorePreviewRespVO {
+  decisionMode: string
+  totalScore: number
+  defaultAction: string
+  finalAction: string
+  matched: boolean
+  matchedBandNo?: number
+  matchedMinScore?: number
+  matchedMaxScore?: number
+  reason?: string
 }
 
 export interface PolicyVO {
@@ -24,8 +55,10 @@ export interface PolicyVO {
   policyName: string
   decisionMode?: string
   defaultAction: string
+  scoreCalcMode?: string
   ruleCodes: string[]
   ruleRefs?: PolicyRuleRefVO[]
+  scoreBands?: PolicyScoreBandVO[]
   status: number
   version?: number
   description?: string
@@ -73,4 +106,8 @@ export const getRuleOptions = (sceneCode: string) => {
 
 export const sortPolicyRules = (data: PolicySortReqVO) => {
   return request.post({ url: '/risk/policy/sort-rules', data })
+}
+
+export const previewScoreCard = (data: PolicyScorePreviewReqVO) => {
+  return request.post({ url: '/risk/policy/preview-score-card', data })
 }

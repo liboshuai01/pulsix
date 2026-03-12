@@ -10,7 +10,8 @@ import java.util.Arrays;
 @AllArgsConstructor
 public enum RiskPolicyScoreCalcModeEnum implements ArrayValuable<String> {
 
-    NONE("NONE", "不累计分值");
+    NONE("NONE", "不累计分值"),
+    SUM_HIT_SCORE("SUM_HIT_SCORE", "累计命中规则分值");
 
     public static final String[] ARRAYS = Arrays.stream(values())
             .map(RiskPolicyScoreCalcModeEnum::getType).toArray(String[]::new);

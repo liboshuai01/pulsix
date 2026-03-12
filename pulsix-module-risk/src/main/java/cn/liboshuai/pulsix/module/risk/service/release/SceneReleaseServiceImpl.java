@@ -16,6 +16,7 @@ import cn.liboshuai.pulsix.engine.model.LookupType;
 import cn.liboshuai.pulsix.engine.model.PolicyRuleRefSpec;
 import cn.liboshuai.pulsix.engine.model.PolicySpec;
 import cn.liboshuai.pulsix.engine.model.RuleSpec;
+import cn.liboshuai.pulsix.engine.model.ScoreBandSpec;
 import cn.liboshuai.pulsix.engine.model.RuntimeHints;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSpec;
@@ -49,6 +50,7 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.feature.FeatureStreamConfD
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.list.ListSetDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.policy.PolicyDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.policy.PolicyRuleRefDO;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.policy.PolicyScoreBandDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.release.SceneReleaseDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.rule.RuleDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
@@ -62,6 +64,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureStreamConfMapper
 import cn.liboshuai.pulsix.module.risk.dal.mysql.list.ListSetMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.policy.PolicyDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.policy.PolicyRuleRefMapper;
+import cn.liboshuai.pulsix.module.risk.dal.mysql.policy.PolicyScoreBandMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.rule.RuleDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
@@ -157,6 +160,9 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
 
     @Resource
     private PolicyRuleRefMapper policyRuleRefMapper;
+
+    @Resource
+    private PolicyScoreBandMapper policyScoreBandMapper;
 
     @Resource
     private ListSetMapper listSetMapper;
@@ -490,6 +496,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
                 : policyDefMapper.selectBySceneAndPolicyCode(scene.getSceneCode(), scene.getDefaultPolicyCode());
         context.policyRuleRefs = context.policy == null ? Collections.emptyList()
                 : policyRuleRefMapper.selectListBySceneAndPolicyCode(scene.getSceneCode(), context.policy.getPolicyCode());
+        context.policyScoreBands = context.policy == null ? Collections.emptyList()
+                : policyScoreBandMapper.selectListBySceneAndPolicyCode(scene.getSceneCode(), context.policy.getPolicyCode());
         context.listSets = listSetMapper.selectList(new LambdaQueryWrapperX<ListSetDO>()
                 .eq(ListSetDO::getSceneCode, scene.getSceneCode())
                 .orderByAsc(ListSetDO::getListCode)
@@ -690,6 +698,13 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
             checks.add(check("POLICY", context.policy.getPolicyCode(), CHECK_FAIL, "策略未绑定规则"));
             return;
         }
+        if (DecisionMode.SCORE_CARD == parseEnum(context.policy.getDecisionMode(), DecisionMode.class)) {
+            if (CollUtil.isEmpty(context.policyScoreBands)) {
+                checks.add(check("POLICY_SCORE_BAND", context.policy.getPolicyCode(), CHECK_FAIL, "SCORE_CARD 策略未配置评分段"));
+            } else {
+                checks.add(check("POLICY_SCORE_BAND", context.policy.getPolicyCode(), CHECK_PASS, "已加载评分段数量=" + context.policyScoreBands.size()));
+            }
+        }
         for (PolicyRuleRefDO ref : context.policyRuleRefs) {
             RuleDefDO referencedRule = context.allRuleMap.get(ref.getRuleCode());
             if (referencedRule == null) {
@@ -769,6 +784,18 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         policy.put("policyName", context.policy == null ? null : context.policy.getPolicyName());
         policy.put("decisionMode", context.policy == null ? null : context.policy.getDecisionMode());
         policy.put("defaultAction", context.policy == null ? null : context.policy.getDefaultAction());
+        policy.put("scoreCalcMode", context.policy == null ? null : context.policy.getScoreCalcMode());
+        policy.put("scoreBands", context.policyScoreBands.stream()
+                .sorted(Comparator.comparing(PolicyScoreBandDO::getBandNo, Comparator.nullsLast(Integer::compareTo)))
+                .map(scoreBand -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("bandNo", scoreBand.getBandNo());
+                    item.put("minScore", scoreBand.getMinScore());
+                    item.put("maxScore", scoreBand.getMaxScore());
+                    item.put("hitAction", scoreBand.getHitAction());
+                    item.put("hitReasonTemplate", scoreBand.getHitReasonTemplate());
+                    return item;
+                }).toList());
         policy.put("ruleOrder", context.policyRuleRefs.stream()
                 .sorted(Comparator.comparing(PolicyRuleRefDO::getOrderNo, Comparator.nullsLast(Integer::compareTo)))
                 .map(PolicyRuleRefDO::getRuleCode)
@@ -791,6 +818,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         counts.put("derivedFeatureCount", context.derivedFeatureDefs.size());
         counts.put("ruleCount", context.enabledRules.size());
         counts.put("policyRuleRefCount", context.policyRuleRefs.size());
+        counts.put("policyScoreBandCount", context.policyScoreBands.size());
         digest.put("counts", counts);
         return digest;
     }
@@ -942,6 +970,18 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
             ruleRefSpec.setBranchExpr(ref.getBranchExpr());
             return ruleRefSpec;
         }).toList());
+        spec.setScoreBands(context.policyScoreBands.stream()
+                .sorted(Comparator.comparing(PolicyScoreBandDO::getBandNo, Comparator.nullsLast(Integer::compareTo))
+                        .thenComparing(PolicyScoreBandDO::getId, Comparator.nullsLast(Long::compareTo)))
+                .map(item -> {
+                    ScoreBandSpec scoreBandSpec = new ScoreBandSpec();
+                    scoreBandSpec.setCode(item.getBandNo() == null ? null : "BAND_" + item.getBandNo());
+                    scoreBandSpec.setMinScore(item.getMinScore());
+                    scoreBandSpec.setMaxScore(item.getMaxScore());
+                    scoreBandSpec.setAction(parseEnum(item.getHitAction(), ActionType.class));
+                    scoreBandSpec.setReasonTemplate(item.getHitReasonTemplate());
+                    return scoreBandSpec;
+                }).toList());
         return spec;
     }
 
@@ -1173,6 +1213,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         private PolicyDefDO policy;
 
         private List<PolicyRuleRefDO> policyRuleRefs = Collections.emptyList();
+
+        private List<PolicyScoreBandDO> policyScoreBands = Collections.emptyList();
 
         private List<ListSetDO> listSets = Collections.emptyList();
 
