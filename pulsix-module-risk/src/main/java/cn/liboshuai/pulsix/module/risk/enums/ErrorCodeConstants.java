@@ -45,4 +45,8 @@ public interface ErrorCodeConstants {
     ErrorCode FEATURE_STREAM_NOT_EXISTS = new ErrorCode(1_005_008_001, "流式特征不存在");
     ErrorCode FEATURE_STREAM_CODE_DUPLICATE = new ErrorCode(1_005_008_002, "当前场景下特征编码已存在");
 
+    // ========== 查询特征 1-005-009-000 ==========
+    ErrorCode FEATURE_LOOKUP_NOT_EXISTS = new ErrorCode(1_005_009_000, "查询特征不存在");
+    ErrorCode FEATURE_LOOKUP_CODE_DUPLICATE = new ErrorCode(1_005_009_001, "当前场景下特征编码已存在");
+
 }

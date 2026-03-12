@@ -848,6 +848,18 @@ INSERT INTO `feature_stream_conf` (`id`, `scene_code`, `feature_code`, `source_e
 (3303, 'TRADE_RISK', 'device_bind_user_cnt_1h', 'TRADE_EVENT', 'deviceId', 'DISTINCT_COUNT', 'userId', 'deviceId != nil && userId != nil', 'SLIDING', '1h', '5m', 1, 7200, JSON_OBJECT('bucketHint', 4096, 'cardinalityHint', 10000, 'replicaTtl', '2h'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of feature_lookup_conf
+-- ----------------------------
+DELETE FROM `feature_lookup_conf` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('device_in_blacklist', 'user_risk_level');
+DELETE FROM `feature_def` WHERE `scene_code` = 'TRADE_RISK' AND `feature_code` IN ('device_in_blacklist', 'user_risk_level');
+INSERT INTO `feature_def` (`id`, `scene_code`, `feature_code`, `feature_name`, `feature_type`, `entity_type`, `event_code`, `value_type`, `status`, `version`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3401, 'TRADE_RISK', 'device_in_blacklist', '设备是否命中黑名单', 'LOOKUP', NULL, NULL, 'BOOLEAN', 0, 1, '通过 Redis Set / 前缀 Key 判断设备是否命中黑名单；查不到默认返回 false。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3402, 'TRADE_RISK', 'user_risk_level', '用户风险等级', 'LOOKUP', NULL, NULL, 'STRING', 0, 1, '通过 Redis Hash 查询用户风险等级画像；查不到默认返回 L。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+INSERT INTO `feature_lookup_conf` (`id`, `scene_code`, `feature_code`, `lookup_type`, `key_expr`, `source_ref`, `default_value`, `cache_ttl_seconds`, `timeout_ms`, `extra_json`, `status`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3501, 'TRADE_RISK', 'device_in_blacklist', 'REDIS_SET', 'deviceId', 'pulsix:list:black:device', 'false', 30, 20, JSON_OBJECT('keyMode', 'PREFIX_KEY', 'matchTarget', 'deviceId'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3502, 'TRADE_RISK', 'user_risk_level', 'REDIS_HASH', 'userId', 'pulsix:profile:user:risk', 'L', 30, 20, JSON_OBJECT('redisOp', 'HGET', 'fieldType', 'STRING'), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- S00 风控菜单骨架（可重复执行）
 -- 说明：
 -- 1. 仅插入 `system_menu` 数据，不改动 `pulsix-system-infra.sql` 的表结构。
@@ -907,7 +919,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7223, '流式特征修改', 'risk:feature-stream:update', 3, 3, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7224, '流式特征删除', 'risk:feature-stream:delete', 3, 4, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7225, '流式特征详情', 'risk:feature-stream:get', 3, 5, 7220, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7230, '查询特征', 'risk:feature-lookup:query', 2, 30, 7200, 'feature-lookup', 'ep:search', 'risk/placeholder/index?code=feature-lookup', 'RiskFeatureLookup', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7230, '查询特征', 'risk:feature-lookup:query', 2, 30, 7200, 'feature-lookup', 'ep:search', 'risk/feature-lookup/index', 'RiskFeatureLookup', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7231, '查询特征查询', 'risk:feature-lookup:query', 3, 1, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7232, '查询特征新增', 'risk:feature-lookup:create', 3, 2, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7233, '查询特征修改', 'risk:feature-lookup:update', 3, 3, 7230, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
