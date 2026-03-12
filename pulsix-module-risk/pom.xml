@@ -17,4 +17,21 @@
         风控控制面核心业务
     </description>
 
+    <dependencies>
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-spring-boot-starter-mybatis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>

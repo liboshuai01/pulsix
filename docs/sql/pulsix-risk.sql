@@ -718,7 +718,7 @@ CREATE TABLE `scene_def`  (
   `default_policy_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '默认策略编码，一期直接挂场景主策略',
   `standard_topic_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '标准事件 Topic',
   `decision_topic_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '决策结果 Topic',
-  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：1-启用，0-停用',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0-启用，1-停用',
   `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '场景说明',
   `creator` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建者',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -738,6 +738,13 @@ CREATE TABLE `scene_def`  (
 -- 3. 其他控制面、审计、回放、结果类表暂不提供示例数据，待 `pulsix-module-risk` 开发时再补齐。
 -- ============================================================
 -- ----------------------------
+-- Records of scene_def
+-- ----------------------------
+DELETE FROM `scene_def` WHERE `scene_code` = 'TRADE_RISK';
+INSERT INTO `scene_def` (`id`, `scene_code`, `scene_name`, `scene_type`, `access_mode`, `default_event_code`, `default_policy_code`, `standard_topic_name`, `decision_topic_name`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(2101, 'TRADE_RISK', '交易风控', 'TRADE_SECURITY', 'MIXED', 'TRADE_EVENT', 'TRADE_RISK_POLICY', 'pulsix.event.standard', 'pulsix.decision.result', 0, 'S01 初始化样例场景，对齐 TRADE_RISK 主演示链路。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- Records of scene_release
 -- ----------------------------
 INSERT INTO `scene_release` (`id`, `scene_code`, `version_no`, `snapshot_json`, `checksum`, `publish_status`, `validation_status`, `validation_report_json`, `dependency_digest_json`, `compile_duration_ms`, `compiled_feature_count`, `compiled_rule_count`, `compiled_policy_count`, `published_by`, `published_at`, `effective_from`, `rollback_from_version`, `remark`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
@@ -754,7 +761,7 @@ DELETE FROM `system_menu` WHERE `id` BETWEEN 7000 AND 7499;
 INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_id`, `path`, `icon`, `component`, `component_name`, `status`, `visible`, `keep_alive`, `always_show`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (7000, '风控平台', '', 1, 300, 0, '/risk', 'ep:warning-filled', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7100, '设计建模', '', 1, 10, 7000, 'model', 'ep:document', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7110, '场景管理', 'risk:scene:query', 2, 10, 7100, 'scene', 'ep:management', 'risk/placeholder/index?code=scene', 'RiskScene', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7110, '场景管理', 'risk:scene:query', 2, 10, 7100, 'scene', 'ep:management', 'risk/scene/index', 'RiskScene', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7111, '场景查询', 'risk:scene:query', 3, 1, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7112, '场景新增', 'risk:scene:create', 3, 2, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7113, '场景修改', 'risk:scene:update', 3, 3, 7110, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
