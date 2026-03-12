@@ -135,7 +135,6 @@ public class StreamFeatureRoutingProcessFunction
                                ReadOnlyContext context,
                                Collector<StreamFeatureRouteEvent> collector) throws Exception {
         metrics.onInputEvent();
-        String sceneKey = event.getSceneCode();
         long processingTimeMs = context.timerService().currentProcessingTime();
         CompiledSceneRuntime runtime = resolveRuntime(event.getSceneCode(),
                 Instant.ofEpochMilli(processingTimeMs),
@@ -158,7 +157,7 @@ public class StreamFeatureRoutingProcessFunction
             dropExpiredPendingEventsIfNeeded(processingTimeMs, outputContext);
             boolean buffered = bufferPendingEvent(event, processingTimeMs, outputContext);
             if (buffered || hasPendingEvents()) {
-                schedulePendingRetry(sceneKey, context.timerService());
+                schedulePendingRetry(context.timerService());
             }
             return;
         }
@@ -192,13 +191,13 @@ public class StreamFeatureRoutingProcessFunction
         if (dropExpiredPendingEventsIfNeeded(timestamp, outputContext)) {
             return;
         }
-        String sceneKey = context.getCurrentKey();
-        CompiledSceneRuntime runtime = resolveRuntime(sceneKey,
+        String sceneCode = pendingSceneCode();
+        CompiledSceneRuntime runtime = resolveRuntime(sceneCode,
                 Instant.ofEpochMilli(timestamp),
                 context.getBroadcastState(snapshotStateDescriptor)).orElse(null);
         if (runtime == null) {
             if (hasPendingEvents()) {
-                schedulePendingRetry(sceneKey, context.timerService());
+                schedulePendingRetry(context.timerService());
             }
             return;
         }
@@ -440,8 +439,8 @@ public class StreamFeatureRoutingProcessFunction
         return pendingEventCount() > 0;
     }
 
-    private void schedulePendingRetry(String sceneKey, TimerService timerService) throws Exception {
-        if (sceneKey == null || timerService == null) {
+    private void schedulePendingRetry(TimerService timerService) throws Exception {
+        if (timerService == null) {
             return;
         }
         if (pendingRetryAtState.value() != null) {
@@ -486,6 +485,11 @@ public class StreamFeatureRoutingProcessFunction
             pendingEventCountState.update(derivedCount);
         }
         return derivedCount;
+    }
+
+    private String pendingSceneCode() throws Exception {
+        RiskEvent event = firstPendingEvent();
+        return event == null ? null : event.getSceneCode();
     }
 
     private RiskEvent firstPendingEvent() throws Exception {

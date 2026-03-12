@@ -1,16 +1,19 @@
 package cn.liboshuai.pulsix.engine.flink;
 
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.EngineErrorTypes;
 import cn.liboshuai.pulsix.engine.model.RiskEvent;
 import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
+import org.apache.flink.api.common.serialization.SerializerConfigImpl;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
+import org.apache.flink.streaming.api.operators.KeyedProcessOperator;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedOneInputStreamOperatorTestHarness;
-import org.apache.flink.streaming.util.ProcessFunctionTestHarnesses;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -72,13 +75,80 @@ class PreparedDecisionAggregateProcessFunctionTest {
         }
     }
 
+    @Test
+    void shouldRestorePartialAggregateAndCompleteAfterCheckpoint() throws Exception {
+        OperatorSubtaskState snapshot;
+        try (KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness = newHarness(5_000L)) {
+            harness.setProcessingTime(0L);
+            harness.processElement(chunk("JOIN-RESTORE", 2, mapOf("user_trade_cnt_5m", "3")), 0L);
+            snapshot = harness.snapshot(11L, 1L);
+        }
+
+        try (KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness = restoredHarness(snapshot, 5_000L)) {
+            harness.setProcessingTime(100L);
+            harness.processElement(chunk("JOIN-RESTORE", 2, mapOf("device_bind_user_cnt_1h", "4")), 100L);
+
+            List<PreparedDecisionInput> outputs = harness.extractOutputValues();
+            assertEquals(1, outputs.size());
+            assertEquals("TRADE_RISK", outputs.get(0).getSceneCode());
+            assertEquals("3", outputs.get(0).getFeatureSnapshot().get("user_trade_cnt_5m"));
+            assertEquals("4", outputs.get(0).getFeatureSnapshot().get("device_bind_user_cnt_1h"));
+            assertTrue(sideOutput(harness, EngineOutputTags.ENGINE_ERROR).isEmpty());
+        }
+    }
+
+    @Test
+    void shouldRestoreAggregateTimeoutTimerAfterCheckpoint() throws Exception {
+        OperatorSubtaskState snapshot;
+        try (KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness = newHarness(1_000L)) {
+            harness.setProcessingTime(0L);
+            harness.processElement(chunk("JOIN-RESTORE-TIMEOUT", 2, mapOf("user_trade_cnt_5m", "1")), 0L);
+            snapshot = harness.snapshot(12L, 1L);
+        }
+
+        try (KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness = restoredHarness(snapshot, 1_000L)) {
+            harness.setProcessingTime(1_001L);
+
+            Queue<?> errors = sideOutput(harness, EngineOutputTags.ENGINE_ERROR);
+            assertEquals(1, errors.size());
+            @SuppressWarnings("unchecked")
+            EngineErrorRecord record = ((StreamRecord<EngineErrorRecord>) errors.peek()).getValue();
+            assertEquals("prepared-decision-aggregate-timeout", record.getStage());
+            assertEquals(EngineErrorTypes.STATE, record.getErrorType());
+            assertEquals(EngineErrorCodes.PREPARED_DECISION_AGGREGATE_TIMEOUT, record.getErrorCode());
+            assertTrue(record.getErrorMessage().contains("JOIN-RESTORE-TIMEOUT"));
+            assertTrue(harness.extractOutputValues().isEmpty());
+        }
+    }
+
     private KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> newHarness(
             long aggregationTimeoutMs) throws Exception {
-        return ProcessFunctionTestHarnesses.forKeyedProcessFunction(
-                new PreparedDecisionAggregateProcessFunction(aggregationTimeoutMs),
+        KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness =
+                createHarness(aggregationTimeoutMs);
+        harness.open();
+        return harness;
+    }
+
+    private KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> restoredHarness(
+            OperatorSubtaskState snapshot,
+            long aggregationTimeoutMs) throws Exception {
+        KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness =
+                createHarness(aggregationTimeoutMs);
+        harness.initializeState(snapshot);
+        harness.open();
+        return harness;
+    }
+
+    private KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> createHarness(
+            long aggregationTimeoutMs) throws Exception {
+        KeyedOneInputStreamOperatorTestHarness<String, PreparedStreamFeatureChunk, PreparedDecisionInput> harness =
+                new KeyedOneInputStreamOperatorTestHarness<>(
+                new KeyedProcessOperator<>(new PreparedDecisionAggregateProcessFunction(aggregationTimeoutMs)),
                 PreparedStreamFeatureChunk::getEventJoinKey,
                 Types.STRING
         );
+        harness.setup(EngineTypeInfos.preparedDecisionInput().createSerializer(new SerializerConfigImpl()));
+        return harness;
     }
 
     private PreparedStreamFeatureChunk chunk(String eventJoinKey,

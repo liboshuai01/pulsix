@@ -114,7 +114,7 @@ standard RiskEvent
 ### 4.2 本轮 3 个关键问题收口摘要
 
 - **修复顺序**：本轮固定按“先 correctness、再 recovery、最后 completeness”推进，即 `P0 -> P1 -> P2`；这样可以先恢复 `kernel / replay / Flink` 一致性，再补恢复语义，最后收口 `SCORE_CARD` 能力完整性。
-- **问题一已收口**：`kernel` 流式特征状态主键已统一为 `sceneCode + featureCode + entityKey`；Flink 侧也不再把 `routeKey()` 当成 stream feature 状态主键，而是按 `sceneCode` 选中生效快照后，再通过 routing group fan-out 到 `groupKey + entityKey` keyed 子链，mixed-entity 场景已恢复正确语义。
+- **问题一已收口**：`kernel` 流式特征状态主键已统一为 `sceneCode + featureCode + entityKey`；Flink 侧也不再把 `routeKey()` 当成 stream feature 状态主键或首段拓扑分流键，而是新增 `RiskEvent.processingRouteKey()` 仅用于首段负载打散 / pending buffer 分片，随后仍按 `event.sceneCode` 选中生效快照，再通过 routing group fan-out 到 `groupKey + entityKey` keyed 子链，mixed-entity 场景已恢复正确语义。
 - **问题二已收口**：无快照时的 pending buffer 已从进程内内存结构迁入 keyed state，并补齐 checkpoint / restore、缓冲超限、缓冲超时清理与结构化错误输出，事件先到、快照后到场景具备恢复语义。
 - **问题三已收口**：`SCORE_CARD` 已补齐 `PolicySpec.ruleRefs`、`scoreWeight`、`stopOnHit`、`ScoreBandSpec.reasonTemplate`，并在 `DecisionResult` 中补齐 `totalScore`、`scoreContributions`、`matchedScoreBand`、`reason` 等解释字段；最小评分卡 fixture 与本地执行、仿真 / 回放、Flink harness 回归也已补齐。
 - **当前结论**：这 3 个 code review 问题到此已全部完成首轮收口；后续优先级自然转向控制面补齐、正式接入层和更多生产化增量治理。
@@ -122,10 +122,10 @@ standard RiskEvent
 ### 4.3 当前必须正视的缺口
 
 - 当前一期主线已闭环；截至 `2026-03-12`，P0-A、P1、P0-B 与 P2 均已完成，后续优先级自然转向控制面补齐、正式接入层以及更多生产化增量治理。
-- `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源；当前 `routeKey()` 不再被当成 stream feature entity key，作业拓扑已改为：按 `sceneCode` 先选定当前有效快照，再按 routing group fan-out 到 `groupKey + entityKey` keyed 的 stream feature 子链，随后按 `eventJoinKey` 汇聚 partial snapshot，最后进入 prepared decision 主链。
+- `DecisionEngineJob` 主链路已支持 `demo/kafka` 事件源、`print/kafka` 输出和 `demo/file/jdbc/cdc` 快照来源；当前 `routeKey()` 不再被当成 stream feature entity key，作业拓扑已收口为：先按 `RiskEvent.processingRouteKey()` 做首段负载打散，再按 `event.sceneCode` 选定当前有效快照，通过 routing group fan-out 到 `groupKey + entityKey` keyed 的 stream feature 子链，随后按 `eventJoinKey` 汇聚 partial snapshot，最后以非 keyed 的 prepared decision 主链完成执行。
 - prepared decision 聚合段现已补齐 processing-time 超时清理与结构化错误输出（`PREPARED_DECISION_AGGREGATE_TIMEOUT`），避免 partial chunk 长时间滞留 keyed state。
 - 新子链已补齐最小必要观测项：`preparedRouteCount`、`preparedBypassCount`、`preparedChunkCount`、`preparedAggregateCompleteCount`、`preparedAggregateTimeoutCount` 与 `preparedAggregatePendingGroups` gauge，并恢复 prepared 主链的 result / log / error 指标上报。旧 `DecisionBroadcastProcessFunction` 已降为 package-private legacy harness，新主链不再复用它的嵌套接口与默认常量。
-- 无快照时的 pending buffer 已迁入 keyed state，并补齐 checkpoint / restore、缓冲超限与缓冲超时清理；Redis lookup 的 feature 超时、连接超时、默认值与缓存降级也已收口。
+- 无快照时的 pending buffer 已迁入 keyed state，并补齐 checkpoint / restore、缓冲超限与缓冲超时清理；`StreamFeatureRoutingProcessFunctionTest` 与 `PreparedDecisionAggregateProcessFunctionTest` 已补齐 prepared 新主链的恢复回归，Redis lookup 的 feature 超时、连接超时、默认值与缓存降级也已收口。
 
 ---
 
@@ -272,7 +272,7 @@ standard RiskEvent
 **本次落地结果**
 
 - `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
-- Flink 主链路曾尝试从 `sceneCode` 收口到 `RiskEvent.routeKey()`，但 code review 已确认这会与 mixed-entity stream feature 语义冲突；截至 `2026-03-12` 的 P0-A 止血实现已临时回退为 `keyBy(RiskEvent::getSceneCode)`，以优先保证 `kernel / replay / Flink` 结果一致，`routeKey()` 留待 P0-B 的正式路由规划再使用。
+- Flink 主链路的正式路由规划已在 `2026-03-12` 收口：首段输入不再使用 `sceneCode` 单热点，也不复用会误导语义的 `RiskEvent.routeKey()`；当前改为 `keyBy(RiskEvent::processingRouteKey)` 做负载打散，`StreamFeatureRoutingProcessFunction` 在运行时仍按事件自带的 `sceneCode` 解析有效快照并生成 `groupKey + entityKey` 子链路由，prepared decision 主链也已移除 `keyBy(PreparedDecisionInput::getSceneCode)` 的无意义热点。
 - 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`，Kafka 输出默认按 `traceId` 写 key，缺失时回退到 `eventId`。
 - Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
 - 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。
@@ -330,10 +330,10 @@ standard RiskEvent
 - `DecisionBroadcastProcessFunction` 已从“active + 单 pending”收口为按 scene 维护 `SceneReleaseTimeline`；运行时按 `effectiveFrom / publishedAt / publishType / version` 解析当前有效版本，支持多 future 版本、乱序到达与显式回滚。
 - 快照编译仍保持 `compile-before-activate`：同版本不同 `checksum` 会被识别为冲突并拒绝激活；编译失败继续保留旧 runtime，并通过 `ENGINE_ERROR` 输出失败原因。
 - timeline 已与 JDBC bootstrap / polling 选择逻辑对齐；不再只保留一个 pending 版本，也不再默认裁剪时间线，避免大量 future 版本场景下丢版本。
-- `SceneRuntimeCache` 默认缓存窗口已从“最近两个版本”扩到“每个场景最近 8 个编译版本”，用于承接回滚与历史版本切换。
+- `SceneRuntimeCache` 默认缓存窗口已从“最近两个版本”扩到“每个场景最近 8 个编译版本”，用于承接回滚与历史版本切换；`StreamFeaturePrepareProcessFunction` 与 `PreparedDecisionProcessFunction` 现已共享有界 `CompiledSceneRuntimeResolver`，prepared 主链不再额外保留无界编译缓存。
 - `RuntimeHints.maxRuleExecutionCount` 已在 `DecisionExecutor` 中生效：超过上限后会停止继续执行后续规则；`LocalDecisionEngineTest` 已覆盖“只允许执行首条规则时最终回落为 PASS”的场景。
 - `RuntimeHints.allowGroovy` 已在 `RuntimeCompiler` 中生效：当 hint 显式关闭时，任何 Groovy 派生特征 / 规则都会在编译期失败，而不是带着风险进入运行态。
-- `RuntimeHints.needFullDecisionLog` 已在 Flink 日志 side output 中生效：关闭后仍保留最终动作与命中规则，但不再下沉 `featureSnapshot / traceLogs` 全量细节；已补齐 `DecisionLogRecord` 精简输出回归。
+- `RuntimeHints.needFullDecisionLog` 已在 Flink 日志 side output 中生效：关闭后仍保留最终动作与命中规则，但不再下沉 `featureSnapshot / traceLogs` 全量细节；legacy harness 与 prepared 主链的 `DecisionLogRecord` 精简输出回归均已补齐。
 - 顺手让 `SceneSpec.allowedEventTypes` 也真正参与运行时校验：事件类型不在场景白名单时，内核会直接拒绝执行，避免 scene 层约束继续只停留在快照契约上。
 
 ### 阶段 8：生产化收口（已完成，`2026-03-12`）
@@ -360,7 +360,7 @@ standard RiskEvent
 - 已补齐 Groovy 沙箱，禁止危险能力进入运行态。
 - 已补齐结构化错误分级与日志字段，可区分编译 / 执行 / lookup / 状态 / 快照冲突错误。
 - 已补齐 Flink 关键指标与 `DecisionEngineJob` 本地 smoke 入口。
-- 已补齐 checkpoint 恢复、状态清理与仿真 / 回放 / Flink 一致性回归。
+- 已补齐 checkpoint 恢复、状态清理与仿真 / 回放 / Flink 一致性回归；其中 prepared 新主链已覆盖 routing pending buffer 恢复、prepared aggregate 恢复与 aggregate timeout timer 恢复。
 
 ---
 

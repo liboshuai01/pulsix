@@ -63,7 +63,7 @@ public class DecisionEngineJob {
                 EngineTypeInfos.sceneReleaseTimeline()
         );
 
-        KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::getSceneCode);
+        KeyedStream<RiskEvent, String> keyedEventStream = eventSourceStreams.eventStream().keyBy(RiskEvent::processingRouteKey);
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
 
         SingleOutputStreamOperator<StreamFeatureRouteEvent> routedFeatureStream = keyedEventStream
@@ -88,7 +88,6 @@ public class DecisionEngineJob {
                 .union(routedFeatureStream.getSideOutput(StreamFeatureRoutingProcessFunction.PREPARED_DECISION_BYPASS));
 
         SingleOutputStreamOperator<DecisionResult> resultStream = preparedDecisionInputStream
-                .keyBy(PreparedDecisionInput::getSceneCode)
                 .process(new PreparedDecisionProcessFunction(buildLookupServiceFactory(options.lookupOptions())))
                 .returns(EngineTypeInfos.decisionResult())
                 .name("prepared-decision-main-chain");

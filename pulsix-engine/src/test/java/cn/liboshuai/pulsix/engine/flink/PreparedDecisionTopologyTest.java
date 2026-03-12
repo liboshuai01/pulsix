@@ -44,7 +44,7 @@ class PreparedDecisionTopologyTest {
                 EngineTypeInfos.sceneReleaseTimeline()
         );
 
-        KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::getSceneCode);
+        KeyedStream<RiskEvent, String> keyedEventStream = eventStream.keyBy(RiskEvent::processingRouteKey);
         BroadcastStream<SceneSnapshotEnvelope> broadcastStream = configStream.broadcast(snapshotStateDescriptor);
 
         SingleOutputStreamOperator<StreamFeatureRouteEvent> routedFeatureStream = keyedEventStream
@@ -66,7 +66,6 @@ class PreparedDecisionTopologyTest {
                 .union(routedFeatureStream.getSideOutput(StreamFeatureRoutingProcessFunction.PREPARED_DECISION_BYPASS));
 
         DataStream<DecisionResult> resultStream = preparedDecisionInputStream
-                .keyBy(PreparedDecisionInput::getSceneCode)
                 .process(new PreparedDecisionProcessFunction(InMemoryLookupService::demo))
                 .returns(EngineTypeInfos.decisionResult());
 

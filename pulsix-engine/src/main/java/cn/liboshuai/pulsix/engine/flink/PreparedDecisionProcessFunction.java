@@ -3,6 +3,7 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.core.DecisionExecutionException;
 import cn.liboshuai.pulsix.engine.core.DecisionExecutor;
 import cn.liboshuai.pulsix.engine.feature.LookupService;
+import cn.liboshuai.pulsix.engine.flink.runtime.CompiledSceneRuntimeResolver;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.EngineErrorCodes;
@@ -13,21 +14,15 @@ import cn.liboshuai.pulsix.engine.runtime.CompiledSceneRuntime;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompileException;
 import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
 import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
-import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.util.Collector;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class PreparedDecisionProcessFunction
-        extends KeyedProcessFunction<String, PreparedDecisionInput, DecisionResult> {
+        extends ProcessFunction<PreparedDecisionInput, DecisionResult> {
 
     private final EngineLookupServiceFactory lookupServiceFactory;
 
-    private transient RuntimeCompiler runtimeCompiler;
-
-    private transient Map<String, CompiledSceneRuntime> runtimeCache;
+    private transient CompiledSceneRuntimeResolver runtimeResolver;
 
     private transient DecisionExecutor decisionExecutor;
 
@@ -41,8 +36,7 @@ public class PreparedDecisionProcessFunction
 
     @Override
     public void open(org.apache.flink.configuration.Configuration parameters) {
-        this.runtimeCompiler = new RuntimeCompiler(new DefaultScriptCompiler());
-        this.runtimeCache = new ConcurrentHashMap<>();
+        this.runtimeResolver = new CompiledSceneRuntimeResolver(new RuntimeCompiler(new DefaultScriptCompiler()));
         this.decisionExecutor = new DecisionExecutor();
         this.lookupService = lookupServiceFactory.create();
         this.metrics = FlinkDecisionMetrics.create(getRuntimeContext().getMetricGroup());
@@ -79,24 +73,7 @@ public class PreparedDecisionProcessFunction
     }
 
     private CompiledSceneRuntime resolveRuntime(SceneSnapshot snapshot) {
-        String runtimeKey = runtimeKey(snapshot);
-        CompiledSceneRuntime cachedRuntime = runtimeCache.get(runtimeKey);
-        if (cachedRuntime != null && cachedRuntime.getSnapshot() != null
-                && java.util.Objects.equals(cachedRuntime.getSnapshot().getChecksum(), snapshot.getChecksum())) {
-            return cachedRuntime;
-        }
-        CompiledSceneRuntime compiledRuntime = runtimeCompiler.compile(snapshot);
-        runtimeCache.put(runtimeKey, compiledRuntime);
-        return compiledRuntime;
-    }
-
-    private String runtimeKey(SceneSnapshot snapshot) {
-        if (snapshot == null) {
-            return "scene:default|version:0|checksum:null";
-        }
-        return (snapshot.getSceneCode() == null ? "scene:default" : snapshot.getSceneCode())
-                + "|version:" + (snapshot.getVersion() == null ? 0 : snapshot.getVersion())
-                + "|checksum:" + Optional.ofNullable(snapshot.getChecksum()).orElse("null");
+        return runtimeResolver.resolve(snapshot);
     }
 
     private EngineErrorRecord errorRecord(PreparedDecisionInput input,
@@ -151,7 +128,8 @@ public class PreparedDecisionProcessFunction
         record.setSnapshotChecksum(runtime.getSnapshot().getChecksum());
     }
 
-    private void emitEngineError(Context context, EngineErrorRecord record) {
+    private void emitEngineError(ProcessFunction<PreparedDecisionInput, DecisionResult>.Context context,
+                                 EngineErrorRecord record) {
         context.output(EngineOutputTags.ENGINE_ERROR, record);
         metrics.onEngineError(record);
     }
