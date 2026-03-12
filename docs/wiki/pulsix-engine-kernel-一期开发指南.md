@@ -2,7 +2,7 @@
 
 > 基于 `2026-03-12` 仓库现状整理。判断依据来自：`docs/sql/pulsix-risk.sql`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/风控功能模块与表映射.md`、`docs/参考资料/实时风控系统第7章：控制平台的数据模型设计.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`，以及当前 `pulsix-engine` / `pulsix-framework/pulsix-kernel` 代码。
 >
-> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 与 `bash scripts/decision-engine-job-demo-smoke.sh` 已通过；此前已补齐完整时间线版本治理与 Redis `connectTimeoutMs` 生效，本轮在 P0-A / P1 / P0-B 的基础上，又完成了 `P2 SCORE_CARD` 收口：`PolicySpec` 已补齐 `ruleRefs`，`DecisionExecutor` 已支持 `scoreWeight`、`stopOnHit`、score band reason 渲染与最小可解释结果字段（`totalScore`、`scoreContributions`、`matchedScoreBand`、`reason`），并新增最小 `SCORE_CARD` fixture 以及本地执行、仿真 / 回放、Flink harness 回归。
+> 当前仓库验证结果：`mvn -q -pl pulsix-framework/pulsix-kernel,pulsix-engine test`、`mvn -q -pl pulsix-engine test` 与 `bash scripts/decision-engine-job-demo-smoke.sh` 已通过；此前已补齐完整时间线版本治理与 Redis `connectTimeoutMs` 生效，本轮在 P0-A / P1 / P0-B 的基础上，又完成了 `P2 SCORE_CARD` 收口：`PolicySpec` 已补齐 `ruleRefs`，`DecisionExecutor` 已支持 `scoreWeight`、`stopOnHit`、score band reason 渲染与最小可解释结果字段（`totalScore`、`scoreContributions`、`matchedScoreBand`、`reason`），并新增最小 `SCORE_CARD` fixture 以及本地执行、仿真 / 回放、Flink harness 回归；同时 `kernel / engine` 两侧的 Flink 类型信息也已按模块边界显式收口，当前 demo smoke 输出已不再出现 `GenericType` / `TypeExtractor` 提示。
 >
 > 补充说明：后续 code review 原始结论中的 3 个问题，截至 `2026-03-12` 已全部完成首轮收口：P0-A、P1、P0-B 与 P2 均已落地。对应的修复顺序、设计取舍与验收口径已精简并入本文 `4.2` 节。
 
@@ -273,6 +273,7 @@ standard RiskEvent
 
 - `DecisionEngineJob` 新增 `--event-source demo|kafka`、`--kafka-bootstrap-servers`、`--event-kafka-topic`、`--event-kafka-group-id`、`--event-kafka-starting-offsets` 等参数，默认仍保留 Demo 事件流，正式模式可直接消费标准事件 topic。
 - Flink 主链路的正式路由规划已在 `2026-03-12` 收口：首段输入不再使用 `sceneCode` 单热点，也不复用会误导语义的 `RiskEvent.routeKey()`；当前改为 `keyBy(RiskEvent::processingRouteKey)` 做负载打散，`StreamFeatureRoutingProcessFunction` 在运行时仍按事件自带的 `sceneCode` 解析有效快照并生成 `groupKey + entityKey` 子链路由，prepared decision 主链也已移除 `keyBy(PreparedDecisionInput::getSceneCode)` 的无意义热点。
+- Flink 类型系统也已在 `2026-03-12` 完成模块内收口：`pulsix-kernel` 统一维护共享模型 `TypeInformation`，`pulsix-engine` 仅维护 Flink 中间态 / 状态 `TypeInformation`，并在 `DecisionEngineJob` 启动时统一执行 `TypeExtractor.registerFactory(...)` 注册；当前 `bash scripts/decision-engine-job-demo-smoke.sh` 已不再出现 `GenericType` / `TypeExtractor` 提示。
 - 新增 `--output-sink print|kafka`，并支持 `--result-sink`、`--log-sink`、`--error-sink` 做单流覆盖；默认 topic 分别为 `pulsix.decision.result`、`pulsix.decision.log`、`pulsix.engine.error`，Kafka 输出默认按 `traceId` 写 key，缺失时回退到 `eventId`。
 - Kafka 输入链路新增 `RiskEvent` JSON 反序列化与最小合法性校验；反序列化失败或缺少 `sceneCode` 的事件会被转换为 `EngineErrorRecord`，与主链路 side output 错误流汇合后统一下沉。
 - 新增 `EngineJsonSerializationSchema`，`DecisionResult`、`DecisionLogRecord`、`EngineErrorRecord` 统一按 JSON UTF-8 写入 Kafka，避免 Demo 模式与正式模式使用两套输出协议。

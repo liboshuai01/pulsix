@@ -8,6 +8,7 @@ import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
 import cn.liboshuai.pulsix.engine.model.DerivedFeatureSpec;
+import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
 import cn.liboshuai.pulsix.engine.model.EventSchemaSpec;
 import cn.liboshuai.pulsix.engine.model.LookupFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.MatchedScoreBand;
@@ -23,6 +24,7 @@ import cn.liboshuai.pulsix.engine.model.SceneSpec;
 import cn.liboshuai.pulsix.engine.model.ScoreBandSpec;
 import cn.liboshuai.pulsix.engine.model.ScoreContribution;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
+import cn.liboshuai.pulsix.engine.typeinfo.KernelTypeInfos;
 import org.apache.flink.api.common.typeinfo.TypeInfoFactory;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
@@ -30,67 +32,71 @@ import java.util.Map;
 
 public final class EngineTypeInfos {
 
+    static {
+        EngineTypeInfoRegistrar.registerAll();
+    }
+
     private EngineTypeInfos() {
     }
 
     public static TypeInformation<RiskEvent> riskEvent() {
-        return create(new EngineTypeInfoFactories.RiskEventTypeInfoFactory(), RiskEvent.class);
+        return KernelTypeInfos.riskEvent();
     }
 
     public static TypeInformation<SceneSpec> sceneSpec() {
-        return create(new EngineTypeInfoFactories.SceneSpecTypeInfoFactory(), SceneSpec.class);
+        return KernelTypeInfos.sceneSpec();
     }
 
     public static TypeInformation<EventSchemaSpec> eventSchemaSpec() {
-        return create(new EngineTypeInfoFactories.EventSchemaSpecTypeInfoFactory(), EventSchemaSpec.class);
+        return KernelTypeInfos.eventSchemaSpec();
     }
 
     public static TypeInformation<PolicySpec> policySpec() {
-        return create(new EngineTypeInfoFactories.PolicySpecTypeInfoFactory(), PolicySpec.class);
+        return KernelTypeInfos.policySpec();
     }
 
     public static TypeInformation<PolicyRuleRefSpec> policyRuleRefSpec() {
-        return create(new EngineTypeInfoFactories.PolicyRuleRefSpecTypeInfoFactory(), PolicyRuleRefSpec.class);
+        return KernelTypeInfos.policyRuleRefSpec();
     }
 
     public static TypeInformation<ScoreBandSpec> scoreBandSpec() {
-        return create(new EngineTypeInfoFactories.ScoreBandSpecTypeInfoFactory(), ScoreBandSpec.class);
+        return KernelTypeInfos.scoreBandSpec();
     }
 
     public static TypeInformation<MatchedScoreBand> matchedScoreBand() {
-        return create(new EngineTypeInfoFactories.MatchedScoreBandTypeInfoFactory(), MatchedScoreBand.class);
+        return KernelTypeInfos.matchedScoreBand();
     }
 
     public static TypeInformation<ScoreContribution> scoreContribution() {
-        return create(new EngineTypeInfoFactories.ScoreContributionTypeInfoFactory(), ScoreContribution.class);
+        return KernelTypeInfos.scoreContribution();
     }
 
     public static TypeInformation<RuntimeHints> runtimeHints() {
-        return create(new EngineTypeInfoFactories.RuntimeHintsTypeInfoFactory(), RuntimeHints.class);
+        return KernelTypeInfos.runtimeHints();
     }
 
     public static TypeInformation<LookupFeatureSpec> lookupFeatureSpec() {
-        return create(new EngineTypeInfoFactories.LookupFeatureSpecTypeInfoFactory(), LookupFeatureSpec.class);
+        return KernelTypeInfos.lookupFeatureSpec();
     }
 
     public static TypeInformation<StreamFeatureSpec> streamFeatureSpec() {
-        return create(new EngineTypeInfoFactories.StreamFeatureSpecTypeInfoFactory(), StreamFeatureSpec.class);
+        return KernelTypeInfos.streamFeatureSpec();
     }
 
     public static TypeInformation<DerivedFeatureSpec> derivedFeatureSpec() {
-        return create(new EngineTypeInfoFactories.DerivedFeatureSpecTypeInfoFactory(), DerivedFeatureSpec.class);
+        return KernelTypeInfos.derivedFeatureSpec();
     }
 
     public static TypeInformation<RuleSpec> ruleSpec() {
-        return create(new EngineTypeInfoFactories.RuleSpecTypeInfoFactory(), RuleSpec.class);
+        return KernelTypeInfos.ruleSpec();
     }
 
     public static TypeInformation<SceneSnapshot> sceneSnapshot() {
-        return create(new EngineTypeInfoFactories.SceneSnapshotTypeInfoFactory(), SceneSnapshot.class);
+        return KernelTypeInfos.sceneSnapshot();
     }
 
     public static TypeInformation<SceneSnapshotEnvelope> sceneSnapshotEnvelope() {
-        return create(new EngineTypeInfoFactories.SceneSnapshotEnvelopeTypeInfoFactory(), SceneSnapshotEnvelope.class);
+        return KernelTypeInfos.sceneSnapshotEnvelope();
     }
 
     public static TypeInformation<SceneReleaseTimeline> sceneReleaseTimeline() {
@@ -98,17 +104,20 @@ public final class EngineTypeInfos {
     }
 
     public static TypeInformation<RuleHit> ruleHit() {
-        return create(new EngineTypeInfoFactories.RuleHitTypeInfoFactory(), RuleHit.class);
+        return KernelTypeInfos.ruleHit();
     }
 
     public static TypeInformation<DecisionResult> decisionResult() {
-        return create(new EngineTypeInfoFactories.DecisionResultTypeInfoFactory(), DecisionResult.class);
+        return KernelTypeInfos.decisionResult();
     }
 
     public static TypeInformation<DecisionLogRecord> decisionLogRecord() {
-        return create(new EngineTypeInfoFactories.DecisionLogRecordTypeInfoFactory(), DecisionLogRecord.class);
+        return KernelTypeInfos.decisionLogRecord();
     }
 
+    public static TypeInformation<EngineErrorRecord> engineErrorRecord() {
+        return KernelTypeInfos.engineErrorRecord();
+    }
 
     public static TypeInformation<StreamFeatureRouteEvent> streamFeatureRouteEvent() {
         return create(new EngineTypeInfoFactories.StreamFeatureRouteEventTypeInfoFactory(), StreamFeatureRouteEvent.class);

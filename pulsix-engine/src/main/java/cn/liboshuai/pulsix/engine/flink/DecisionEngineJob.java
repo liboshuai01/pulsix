@@ -6,6 +6,7 @@ import cn.liboshuai.pulsix.engine.feature.RedisLookupService;
 import cn.liboshuai.pulsix.engine.flink.runtime.SceneReleaseTimeline;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceFactory;
 import cn.liboshuai.pulsix.engine.flink.snapshot.SceneSnapshotSourceOptions;
+import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfoRegistrar;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.DecisionResult;
@@ -46,6 +47,7 @@ import java.util.List;
 public class DecisionEngineJob {
 
     public static void main(String[] args) throws Exception {
+        EngineTypeInfoRegistrar.registerAll();
         DecisionEngineJobOptions options = DecisionEngineJobOptions.parse(args);
         Path localLogFile = prepareLocalLogFile(options.runtimeOptions());
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -269,6 +271,7 @@ public class DecisionEngineJob {
                     context.collect(event);
                 }
             }
+            Thread.sleep(PendingEventDefaults.DEFAULT_PENDING_RETRY_DELAY_MS + 200L);
         }
 
         @Override

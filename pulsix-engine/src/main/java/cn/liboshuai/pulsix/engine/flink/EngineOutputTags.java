@@ -3,7 +3,6 @@ package cn.liboshuai.pulsix.engine.flink;
 import cn.liboshuai.pulsix.engine.flink.typeinfo.EngineTypeInfos;
 import cn.liboshuai.pulsix.engine.model.DecisionLogRecord;
 import cn.liboshuai.pulsix.engine.model.EngineErrorRecord;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.util.OutputTag;
 
 public final class EngineOutputTags {
@@ -15,7 +14,7 @@ public final class EngineOutputTags {
 
     public static final OutputTag<EngineErrorRecord> ENGINE_ERROR = new OutputTag<>(
             "engine-error",
-            TypeInformation.of(EngineErrorRecord.class)
+            EngineTypeInfos.engineErrorRecord()
     );
 
     private EngineOutputTags() {
