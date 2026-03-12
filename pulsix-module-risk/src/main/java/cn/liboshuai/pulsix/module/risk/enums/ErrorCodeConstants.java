@@ -74,4 +74,11 @@ public interface ErrorCodeConstants {
     ErrorCode SCENE_RELEASE_ROLLBACK_SOURCE_INVALID = new ErrorCode(1_005_013_003, "仅正式发布历史版本支持作为回滚来源");
     ErrorCode SCENE_RELEASE_ALREADY_ACTIVE = new ErrorCode(1_005_013_004, "所选版本已是当前生效版本，无需回滚");
 
+    // ========== 仿真测试 1-005-015-000 ==========
+    ErrorCode SIMULATION_CASE_NOT_EXISTS = new ErrorCode(1_005_015_000, "仿真用例不存在");
+    ErrorCode SIMULATION_CASE_CODE_DUPLICATE = new ErrorCode(1_005_015_001, "当前场景下仿真用例编码已存在");
+    ErrorCode SIMULATION_CASE_CONFIG_INVALID = new ErrorCode(1_005_015_002, "仿真用例配置不合法：{}");
+    ErrorCode SIMULATION_RELEASE_NOT_AVAILABLE = new ErrorCode(1_005_015_003, "未找到可用于仿真的场景版本");
+    ErrorCode SIMULATION_REPORT_NOT_EXISTS = new ErrorCode(1_005_015_004, "仿真报告不存在");
+
 }
