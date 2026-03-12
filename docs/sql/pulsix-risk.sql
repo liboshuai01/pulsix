@@ -872,6 +872,15 @@ INSERT INTO `feature_derived_conf` (`id`, `scene_code`, `feature_code`, `engine_
 (3702, 'TRADE_RISK', 'trade_burst_flag', 'AVIATOR', 'user_trade_cnt_5m >= 3 && amount >= 5000', JSON_ARRAY('user_trade_cnt_5m', 'amount'), 'BOOLEAN', 1, 50, JSON_OBJECT('resultAlias', 'tradeBurstFlag', 'compiled', true), 0, 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
 
 -- ----------------------------
+-- Records of rule_def
+-- ----------------------------
+DELETE FROM `rule_def` WHERE `scene_code` = 'TRADE_RISK' AND `rule_code` IN ('R001', 'R002', 'R003');
+INSERT INTO `rule_def` (`id`, `scene_code`, `rule_code`, `rule_name`, `rule_type`, `engine_type`, `expr_content`, `priority`, `hit_action`, `risk_score`, `hit_reason_template`, `status`, `version`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(3801, 'TRADE_RISK', 'R001', '黑名单设备直接拒绝', 'NORMAL', 'AVIATOR', 'device_in_blacklist == true', 100, 'REJECT', 100, '设备命中黑名单', 0, 1, '设备命中黑名单时直接拒绝，用于快速拦截高风险设备。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3802, 'TRADE_RISK', 'R002', '大额且短时高频交易', 'NORMAL', 'AVIATOR', 'trade_burst_flag == true', 90, 'REVIEW', 60, '用户5分钟交易次数={user_trade_cnt_5m}, 当前金额={amount}', 0, 1, '结合派生特征 trade_burst_flag，对疑似短时高频大额交易转人工复核。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(3803, 'TRADE_RISK', 'R003', '高风险用户多账号设备', 'NORMAL', 'GROOVY', 'return device_bind_user_cnt_1h >= 4 && [''M'',''H''].contains(user_risk_level)', 80, 'REJECT', 80, '设备1小时关联用户数={device_bind_user_cnt_1h}, 用户风险等级={user_risk_level}', 0, 1, '使用 Groovy 表达式识别一机多号且用户画像风险等级较高的交易。', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0');
+
+-- ----------------------------
 -- S00 风控菜单骨架（可重复执行）
 -- 说明：
 -- 1. 仅插入 `system_menu` 数据，不改动 `pulsix-system-infra.sql` 的表结构。
@@ -943,7 +952,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7243, '派生特征修改', 'risk:feature-derived:update', 3, 3, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7244, '派生特征删除', 'risk:feature-derived:delete', 3, 4, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7245, '派生特征校验', 'risk:feature-derived:validate', 3, 5, 7240, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7250, '规则中心', 'risk:rule:query', 2, 50, 7200, 'rule', 'ep:operation', 'risk/placeholder/index?code=rule', 'RiskRule', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7250, '规则中心', 'risk:rule:query', 2, 50, 7200, 'rule', 'ep:operation', 'risk/rule/index', 'RiskRule', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7251, '规则查询', 'risk:rule:query', 3, 1, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7252, '规则新增', 'risk:rule:create', 3, 2, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7253, '规则修改', 'risk:rule:update', 3, 3, 7250, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),

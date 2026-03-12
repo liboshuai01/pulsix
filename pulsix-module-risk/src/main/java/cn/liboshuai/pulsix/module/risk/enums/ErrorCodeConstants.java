@@ -56,4 +56,10 @@ public interface ErrorCodeConstants {
     ErrorCode FEATURE_DERIVED_DEPENDENCY_CYCLE = new ErrorCode(1_005_010_003, "派生特征依赖存在循环：{}");
     ErrorCode FEATURE_DERIVED_EXPR_INVALID = new ErrorCode(1_005_010_004, "派生特征表达式校验失败：{}");
 
+    // ========== 规则中心 1-005-011-000 ==========
+    ErrorCode RULE_NOT_EXISTS = new ErrorCode(1_005_011_000, "规则不存在");
+    ErrorCode RULE_CODE_DUPLICATE = new ErrorCode(1_005_011_001, "当前场景下规则编码已存在");
+    ErrorCode RULE_EXPR_INVALID = new ErrorCode(1_005_011_002, "规则表达式校验失败：{}");
+    ErrorCode RULE_HIT_REASON_INVALID = new ErrorCode(1_005_011_003, "命中原因模板包含未知占位符：{}");
+
 }
