@@ -62,4 +62,9 @@ public interface ErrorCodeConstants {
     ErrorCode RULE_EXPR_INVALID = new ErrorCode(1_005_011_002, "规则表达式校验失败：{}");
     ErrorCode RULE_HIT_REASON_INVALID = new ErrorCode(1_005_011_003, "命中原因模板包含未知占位符：{}");
 
+    // ========== 策略中心 1-005-012-000 ==========
+    ErrorCode POLICY_NOT_EXISTS = new ErrorCode(1_005_012_000, "策略不存在");
+    ErrorCode POLICY_CODE_DUPLICATE = new ErrorCode(1_005_012_001, "当前场景下策略编码已存在");
+    ErrorCode POLICY_RULE_INVALID = new ErrorCode(1_005_012_002, "策略引用的规则不存在：{}");
+
 }
