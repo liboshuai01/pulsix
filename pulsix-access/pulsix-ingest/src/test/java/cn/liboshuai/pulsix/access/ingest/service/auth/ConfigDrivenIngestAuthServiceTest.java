@@ -3,6 +3,7 @@ package cn.liboshuai.pulsix.access.ingest.service.auth;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestRuntimeConfig;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestSourceConfig;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -13,7 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Base64;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,11 +29,13 @@ class ConfigDrivenIngestAuthServiceTest {
     private static final HexFormat HEX_FORMAT = HexFormat.of();
 
     private final ConfigDrivenIngestAuthService service = new ConfigDrivenIngestAuthService();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "clock",
                 Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("UTC")));
+        ReflectionTestUtils.setField(service, "objectMapper", objectMapper);
     }
 
     @Test
@@ -162,12 +168,153 @@ class ConfigDrivenIngestAuthServiceTest {
                 });
     }
 
+    @Test
+    void shouldPassWhenAkskSignatureMatches() {
+        String timestamp = String.valueOf(Instant.parse("2026-03-13T02:31:00Z").toEpochMilli());
+        String nonce = "NONCE-1001";
+        String payload = "{\"event_id\":\"E_AKSK_1\"}";
+        String signature = signAkskHex("HmacSHA256", "aksk-secret-001", "aksk-demo-001", timestamp, nonce, payload);
+
+        assertThatCode(() -> service.authenticate(AccessIngestRequestDTO.builder()
+                        .sourceCode("trade_aksk_demo")
+                        .payload(payload)
+                        .metadata(Map.of(
+                                "x-pulsix-access-key", "aksk-demo-001",
+                                "x-pulsix-signature", signature,
+                                "x-pulsix-timestamp", timestamp,
+                                "x-pulsix-nonce", nonce
+                        ))
+                        .build(), IngestRuntimeConfig.builder()
+                        .source(IngestSourceConfig.builder()
+                                .authType("AKSK")
+                                .authConfigJson(Map.of(
+                                        "accessKey", "aksk-demo-001",
+                                        "secretKey", "aksk-secret-001",
+                                        "algorithm", "HmacSHA256"
+                                ))
+                                .build())
+                        .build()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectWhenAkskAccessKeyMismatch() {
+        String timestamp = String.valueOf(Instant.parse("2026-03-13T02:31:00Z").toEpochMilli());
+        String payload = "{\"event_id\":\"E_AKSK_2\"}";
+
+        assertThatThrownBy(() -> service.authenticate(AccessIngestRequestDTO.builder()
+                        .sourceCode("trade_aksk_demo")
+                        .payload(payload)
+                        .metadata(Map.of(
+                                "x-pulsix-access-key", "bad-key",
+                                "x-pulsix-signature", "bad-signature",
+                                "x-pulsix-timestamp", timestamp,
+                                "x-pulsix-nonce", "NONCE-1002"
+                        ))
+                        .build(), IngestRuntimeConfig.builder()
+                        .source(IngestSourceConfig.builder()
+                                .authType("AKSK")
+                                .authConfigJson(Map.of(
+                                        "accessKey", "aksk-demo-001",
+                                        "secretKey", "aksk-secret-001"
+                                ))
+                                .build())
+                        .build()))
+                .isInstanceOfSatisfying(IngestAuthException.class, ex -> {
+                    assertThat(ex.getErrorCode()).isEqualTo("AUTH_AKSK_ACCESS_KEY_INVALID");
+                    assertThat(ex.getMessage()).isEqualTo("AccessKey 校验失败");
+                });
+    }
+
+    @Test
+    void shouldPassWhenJwtTokenValid() {
+        String token = createJwt("jwt-secret-001", Map.of("alg", "HS256", "typ", "JWT"), new LinkedHashMap<>(Map.of(
+                "iss", "pulsix-access",
+                "aud", List.of("trade-ingest"),
+                "sub", "trade-client",
+                "exp", Instant.parse("2026-03-13T02:33:00Z").getEpochSecond(),
+                "nbf", Instant.parse("2026-03-13T02:30:00Z").getEpochSecond()
+        )));
+
+        assertThatCode(() -> service.authenticate(AccessIngestRequestDTO.builder()
+                        .sourceCode("trade_jwt_demo")
+                        .metadata(Map.of("authorization", "Bearer " + token))
+                        .build(), IngestRuntimeConfig.builder()
+                        .source(IngestSourceConfig.builder()
+                                .authType("JWT")
+                                .authConfigJson(Map.of(
+                                        "tokenHeader", "Authorization",
+                                        "tokenPrefix", "Bearer ",
+                                        "algorithm", "HS256",
+                                        "jwtSecret", "jwt-secret-001",
+                                        "issuer", "pulsix-access",
+                                        "audience", "trade-ingest",
+                                        "requiredSubject", "trade-client"
+                                ))
+                                .build())
+                        .build()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectWhenJwtExpired() {
+        String token = createJwt("jwt-secret-001", Map.of("alg", "HS256", "typ", "JWT"), new LinkedHashMap<>(Map.of(
+                "iss", "pulsix-access",
+                "aud", "trade-ingest",
+                "sub", "trade-client",
+                "exp", Instant.parse("2026-03-13T02:20:00Z").getEpochSecond()
+        )));
+
+        assertThatThrownBy(() -> service.authenticate(AccessIngestRequestDTO.builder()
+                        .sourceCode("trade_jwt_demo")
+                        .metadata(Map.of("authorization", "Bearer " + token))
+                        .build(), IngestRuntimeConfig.builder()
+                        .source(IngestSourceConfig.builder()
+                                .authType("JWT")
+                                .authConfigJson(Map.of(
+                                        "algorithm", "HS256",
+                                        "jwtSecret", "jwt-secret-001",
+                                        "issuer", "pulsix-access",
+                                        "audience", "trade-ingest"
+                                ))
+                                .build())
+                        .build()))
+                .isInstanceOfSatisfying(IngestAuthException.class, ex -> {
+                    assertThat(ex.getErrorCode()).isEqualTo("AUTH_JWT_EXPIRED");
+                    assertThat(ex.getMessage()).isEqualTo("JWT 已过期");
+                });
+    }
+
     private String signHex(String algorithm, String secret, String appKey, String timestamp, String payload) {
+        return hexSign(algorithm, secret, appKey + '\n' + timestamp + '\n' + payload);
+    }
+
+    private String signAkskHex(String algorithm, String secret, String accessKey, String timestamp, String nonce, String payload) {
+        return hexSign(algorithm, secret, accessKey + '\n' + timestamp + '\n' + nonce + '\n' + payload);
+    }
+
+    private String hexSign(String algorithm, String secret, String content) {
         try {
             Mac mac = Mac.getInstance(algorithm);
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), algorithm));
-            byte[] digest = mac.doFinal((appKey + '\n' + timestamp + '\n' + payload).getBytes(StandardCharsets.UTF_8));
+            byte[] digest = mac.doFinal(content.getBytes(StandardCharsets.UTF_8));
             return HEX_FORMAT.formatHex(digest);
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private String createJwt(String secret, Map<String, Object> header, Map<String, Object> claims) {
+        try {
+            String headerPart = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(objectMapper.writeValueAsBytes(header));
+            String payloadPart = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(objectMapper.writeValueAsBytes(claims));
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] signature = mac.doFinal((headerPart + '.' + payloadPart).getBytes(StandardCharsets.UTF_8));
+            String signaturePart = Base64.getUrlEncoder().withoutPadding().encodeToString(signature);
+            return headerPart + '.' + payloadPart + '.' + signaturePart;
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
         }

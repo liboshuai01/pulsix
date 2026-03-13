@@ -18,5 +18,6 @@ public interface ErrorCodeConstants {
     ErrorCode INGEST_AUTH_UNSUPPORTED = new ErrorCode(1_006_001_011, "接入鉴权暂不支持：{}");
     ErrorCode INGEST_AUTH_FAILED = new ErrorCode(1_006_001_012, "接入鉴权失败：{}");
     ErrorCode INGEST_REQUIRED_FIELDS_MISSING = new ErrorCode(1_006_001_013, "标准事件必填字段缺失：{}");
+    ErrorCode INGEST_RATE_LIMIT_EXCEEDED = new ErrorCode(1_006_001_014, "接入源限流触发：{}");
 
 }

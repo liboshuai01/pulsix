@@ -12,6 +12,7 @@ import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigServic
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
 import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
 import cn.liboshuai.pulsix.access.ingest.service.metrics.InMemoryIngestMetricsService;
+import cn.liboshuai.pulsix.access.ingest.service.ratelimit.InMemoryIngestRateLimitService;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -48,6 +49,7 @@ class DefaultIngestPipelineServiceTest {
     private IngestErrorLogWriter errorLogWriter;
     private DefaultIngestPipelineService service;
     private InMemoryIngestMetricsService ingestMetricsService;
+    private InMemoryIngestRateLimitService ingestRateLimitService;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +65,8 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(errorEventFactory, "properties", properties);
 
         ingestMetricsService = new InMemoryIngestMetricsService();
+        ingestRateLimitService = new InMemoryIngestRateLimitService();
+        ReflectionTestUtils.setField(ingestRateLimitService, "clock", Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("UTC")));
 
         service = new DefaultIngestPipelineService();
         ReflectionTestUtils.setField(service, "configService", configService);
@@ -73,6 +77,7 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(service, "errorLogWriter", errorLogWriter);
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
         ReflectionTestUtils.setField(service, "ingestMetricsService", ingestMetricsService);
+        ReflectionTestUtils.setField(service, "ingestRateLimitService", ingestRateLimitService);
     }
 
     @Test
@@ -195,6 +200,60 @@ class DefaultIngestPipelineServiceTest {
         assertThat(errorEvent.getEventCode()).isEqualTo("TRADE_EVENT");
         assertThat(errorEvent.getErrorTopicName()).isEqualTo("pulsix.event.dlq");
         assertThat(errorEvent.getRawPayloadJson()).isEqualTo("{\"event_id\":\"raw_trade_bad_8103\",\"uid\":\"U8103\"}");
+        verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
+        assertThat(ingestMetricsService.snapshot().getRejectedCount()).isGreaterThanOrEqualTo(1L);
+    }
+
+    @Test
+    void shouldRejectWhenSourceRateLimitExceeded() {
+        IngestRuntimeConfig runtimeConfig = IngestRuntimeConfig.builder()
+                .sourceCode("http_none_demo")
+                .sceneCode("TRADE_RISK")
+                .eventCode("TRADE_EVENT")
+                .source(IngestSourceConfig.builder().sourceCode("http_none_demo").authType("NONE")
+                        .errorTopicName("pulsix.event.dlq").rateLimitQps(1).build())
+                .build();
+        StandardEventNormalizeResult normalizeResult = new StandardEventNormalizeResult();
+        normalizeResult.setStandardEventJson(new LinkedHashMap<>(Map.of(
+                "eventId", "E_9201",
+                "traceId", "T_9201",
+                "sceneCode", "TRADE_RISK",
+                "eventType", "trade",
+                "eventTime", "2026-03-13T10:31:00",
+                "userId", "U9201"
+        )));
+        normalizeResult.setMissingRequiredFields(List.of());
+
+        when(configService.getConfig("http_none_demo", "TRADE_RISK", "TRADE_EVENT")).thenReturn(runtimeConfig);
+        doNothing().when(authService).authenticate(any(), eq(runtimeConfig));
+        when(normalizationService.normalize(eq("http_none_demo"), eq("TRADE_RISK"), eq("TRADE_EVENT"), any()))
+                .thenReturn(normalizeResult);
+        when(eventProducer.sendStandardEvent(eq(runtimeConfig.getSource()), eq(normalizeResult.getStandardEventJson())))
+                .thenReturn(IngestKafkaSendResult.builder().topicName("pulsix.event.standard").messageKey("TRADE_RISK").build());
+        when(eventProducer.sendErrorEvent(any(IngestErrorEvent.class)))
+                .thenReturn(IngestKafkaSendResult.builder().topicName("pulsix.event.dlq").messageKey("REQ_2002").build());
+
+        AccessIngestResponseDTO firstResponse = service.ingest(AccessIngestRequestDTO.builder()
+                .requestId("REQ_2001")
+                .sourceCode("http_none_demo")
+                .payload("{\"event_id\":\"E_9201\"}")
+                .metadata(Map.of("sceneCode", "TRADE_RISK", "eventCode", "TRADE_EVENT"))
+                .build());
+        AccessIngestResponseDTO secondResponse = service.ingest(AccessIngestRequestDTO.builder()
+                .requestId("REQ_2002")
+                .sourceCode("http_none_demo")
+                .payload("{\"event_id\":\"E_9202\"}")
+                .metadata(Map.of("sceneCode", "TRADE_RISK", "eventCode", "TRADE_EVENT"))
+                .build());
+
+        assertThat(firstResponse.getStatus()).isEqualTo(AccessAckStatusEnum.ACCEPTED.getStatus());
+        assertThat(secondResponse.getStatus()).isEqualTo(AccessAckStatusEnum.REJECTED.getStatus());
+        assertThat(secondResponse.getCode()).isEqualTo(1_006_001_014);
+        assertThat(secondResponse.getMessage()).contains("sourceCode=http_none_demo");
+
+        ArgumentCaptor<IngestErrorEvent> captor = ArgumentCaptor.forClass(IngestErrorEvent.class);
+        verify(eventProducer).sendErrorEvent(captor.capture());
+        assertThat(captor.getValue().getIngestStage()).isEqualTo(IngestStageEnum.RATE_LIMIT);
         verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
         assertThat(ingestMetricsService.snapshot().getRejectedCount()).isGreaterThanOrEqualTo(1L);
     }

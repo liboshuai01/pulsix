@@ -12,6 +12,8 @@ import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigServic
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
 import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
 import cn.liboshuai.pulsix.access.ingest.service.metrics.IngestMetricsService;
+import cn.liboshuai.pulsix.access.ingest.service.ratelimit.IngestRateLimitException;
+import cn.liboshuai.pulsix.access.ingest.service.ratelimit.IngestRateLimitService;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -65,6 +67,9 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
     @Resource
     private IngestMetricsService ingestMetricsService;
 
+    @Resource
+    private IngestRateLimitService ingestRateLimitService;
+
     @Override
     public AccessIngestResponseDTO ingest(AccessIngestRequestDTO request) {
         long startTime = System.currentTimeMillis();
@@ -96,6 +101,14 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
             authService.authenticate(request, runtimeConfig);
         } catch (IngestAuthException ex) {
             return reject(requestId, null, null, null, IngestStageEnum.AUTH,
+                    ex.getErrorCode(), ex.getCode(), ex.getMessage(),
+                    sourceCode, sceneCode, eventCode, rawPayloadForError, null, runtimeConfig, startTime);
+        }
+
+        try {
+            ingestRateLimitService.checkAllowed(runtimeConfig);
+        } catch (IngestRateLimitException ex) {
+            return reject(requestId, null, null, null, IngestStageEnum.RATE_LIMIT,
                     ex.getErrorCode(), ex.getCode(), ex.getMessage(),
                     sourceCode, sceneCode, eventCode, rawPayloadForError, null, runtimeConfig, startTime);
         }

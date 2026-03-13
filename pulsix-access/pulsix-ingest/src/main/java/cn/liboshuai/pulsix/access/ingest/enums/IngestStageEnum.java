@@ -11,6 +11,7 @@ import java.util.Arrays;
 public enum IngestStageEnum implements ArrayValuable<String> {
 
     AUTH("AUTH", "鉴权"),
+    RATE_LIMIT("RATE_LIMIT", "限流"),
     PARSE("PARSE", "解析"),
     NORMALIZE("NORMALIZE", "标准化"),
     VALIDATE("VALIDATE", "校验"),
