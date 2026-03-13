@@ -30,6 +30,15 @@
         <el-button type="primary" plain @click="getSummary" v-hasPermi="['risk:dashboard:refresh']">
           <Icon icon="ep:refresh-right" class="mr-5px" /> 刷新
         </el-button>
+        <el-button
+          type="success"
+          plain
+          @click="handleExport"
+          :loading="exportLoading"
+          v-hasPermi="['risk:dashboard:export']"
+        >
+          <Icon icon="ep:download" class="mr-5px" /> 导出
+        </el-button>
       </el-form-item>
     </el-form>
   </ContentWrap>
@@ -85,8 +94,13 @@
 </template>
 
 <script lang="ts" setup>
-import { EChartsOption } from 'echarts'
+import type {
+  DefaultLabelFormatterCallbackParams,
+  EChartsOption,
+  TooltipComponentFormatterCallbackParams
+} from 'echarts'
 import { formatDate } from '@/utils/formatTime'
+import download from '@/utils/download'
 import * as DashboardApi from '@/api/risk/dashboard'
 import {
   dashboardGranularityOptions,
@@ -97,7 +111,10 @@ import {
 
 defineOptions({ name: 'RiskDashboard' })
 
+const message = useMessage()
+
 const loading = ref(true)
+const exportLoading = ref(false)
 const queryFormRef = ref()
 const queryParams = reactive<DashboardApi.DashboardQueryReqVO>({
   sceneCode: 'TRADE_RISK',
@@ -119,6 +136,23 @@ const summary = ref<DashboardApi.DashboardSummaryVO>({
 const latestStatTimeText = computed(() => {
   return summary.value.latestStatTime ? formatDate(summary.value.latestStatTime, 'YYYY-MM-DD HH:mm:ss') : '暂无数据'
 })
+
+const resolveChartNumericValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return value
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  if (Array.isArray(value)) {
+    return resolveChartNumericValue(value[0])
+  }
+  if (value && typeof value === 'object' && 'value' in value) {
+    return resolveChartNumericValue((value as { value?: unknown }).value)
+  }
+  return 0
+}
 
 const trendChartOptions = computed<EChartsOption>(() => {
   const trends = summary.value.trends || []
@@ -167,7 +201,11 @@ const actionRatioChartOptions = computed<EChartsOption>(() => {
   return {
     tooltip: {
       trigger: 'item',
-      formatter: (params: { name: string; value: number }) => `${params.name}: ${formatDashboardPercent(Number(params.value) / 100)}`
+      formatter: (params: TooltipComponentFormatterCallbackParams) => {
+        const item = Array.isArray(params) ? params[0] : params
+        const value = resolveChartNumericValue(item?.value)
+        return `${item?.name || '-'}: ${formatDashboardPercent(value / 100)}`
+      }
     },
     legend: {
       bottom: 10,
@@ -181,7 +219,10 @@ const actionRatioChartOptions = computed<EChartsOption>(() => {
         avoidLabelOverlap: false,
         label: {
           show: true,
-          formatter: ({ name, value }: { name: string; value: number }) => `${name}\n${value.toFixed(2)}%`
+          formatter: (params: DefaultLabelFormatterCallbackParams) => {
+            const value = resolveChartNumericValue(params.value)
+            return `${params.name}\n${value.toFixed(2)}%`
+          }
         },
         data: [
           { name: 'PASS', value: passRate * 100 },
@@ -214,6 +255,18 @@ const resetQuery = () => {
     statTime: undefined
   })
   getSummary()
+}
+
+const handleExport = async () => {
+  try {
+    await message.exportConfirm()
+    exportLoading.value = true
+    const data = await DashboardApi.exportDashboard(queryParams)
+    download.excel(data, '监控大盘趋势.xls')
+  } catch {
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 onMounted(() => {

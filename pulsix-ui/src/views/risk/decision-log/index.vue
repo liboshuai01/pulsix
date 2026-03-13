@@ -21,6 +21,15 @@
       <el-form-item>
         <el-button @click="handleQuery"><Icon icon="ep:search" class="mr-5px" /> 搜索</el-button>
         <el-button @click="resetQuery"><Icon icon="ep:refresh" class="mr-5px" /> 重置</el-button>
+        <el-button
+          type="success"
+          plain
+          @click="handleExport"
+          :loading="exportLoading"
+          v-hasPermi="['risk:decision-log:export']"
+        >
+          <Icon icon="ep:download" class="mr-5px" /> 导出
+        </el-button>
       </el-form-item>
     </el-form>
   </ContentWrap>
@@ -78,11 +87,14 @@
 
 <script lang="ts" setup>
 import { dateFormatter } from '@/utils/formatTime'
+import download from '@/utils/download'
 import * as DecisionLogApi from '@/api/risk/decision-log'
 import DecisionLogDetailDialog from './DecisionLogDetailDialog.vue'
 import { getRiskActionLabel, getRiskActionTag, riskActionOptions } from './constants'
 
 defineOptions({ name: 'RiskDecisionLog' })
+
+const message = useMessage()
 
 const createDefaultQueryParams = (): DecisionLogApi.DecisionLogPageReqVO => ({
   pageNo: 1,
@@ -95,6 +107,7 @@ const createDefaultQueryParams = (): DecisionLogApi.DecisionLogPageReqVO => ({
 })
 
 const loading = ref(true)
+const exportLoading = ref(false)
 const total = ref(0)
 const list = ref<DecisionLogApi.DecisionLogVO[]>([])
 const queryParams = reactive<DecisionLogApi.DecisionLogPageReqVO>(createDefaultQueryParams())
@@ -120,6 +133,18 @@ const resetQuery = () => {
   queryFormRef.value?.resetFields()
   Object.assign(queryParams, createDefaultQueryParams())
   handleQuery()
+}
+
+const handleExport = async () => {
+  try {
+    await message.exportConfirm()
+    exportLoading.value = true
+    const data = await DecisionLogApi.exportDecisionLog(queryParams)
+    download.excel(data, '决策日志.xls')
+  } catch {
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const detailRef = ref()

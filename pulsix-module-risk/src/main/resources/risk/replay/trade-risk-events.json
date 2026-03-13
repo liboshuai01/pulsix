@@ -1,0 +1,26 @@
+[
+  {
+    "eventId": "E_DECISION_7101",
+    "traceId": "TRACE-S16-7101",
+    "sceneCode": "TRADE_RISK",
+    "eventType": "trade",
+    "eventTime": "2026-03-12T10:20:00Z",
+    "userId": "U9101",
+    "deviceId": "D-BLACK-001",
+    "ip": "66.77.88.99",
+    "amount": 6800,
+    "result": "SUCCESS"
+  },
+  {
+    "eventId": "E_DECISION_7102",
+    "traceId": "TRACE-S16-7102",
+    "sceneCode": "TRADE_RISK",
+    "eventType": "trade",
+    "eventTime": "2026-03-12T10:25:00Z",
+    "userId": "U9102",
+    "deviceId": "D-NORMAL-002",
+    "ip": "10.20.30.40",
+    "amount": 6800,
+    "result": "SUCCESS"
+  }
+]

@@ -39,3 +39,7 @@ export const createEventSchema = (data: EventSchemaVO) => {
 export const updateEventSchema = (data: EventSchemaVO) => {
   return request.put({ url: '/risk/event-schema/update', data })
 }
+
+export const deleteEventSchema = (id: number) => {
+  return request.delete({ url: '/risk/event-schema/delete?id=' + id })
+}

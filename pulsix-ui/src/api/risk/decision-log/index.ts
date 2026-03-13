@@ -50,6 +50,10 @@ export const getDecisionLogPage = (params: DecisionLogPageReqVO) => {
   return request.get({ url: '/risk/decision-log/page', params })
 }
 
+export const exportDecisionLog = (params: DecisionLogPageReqVO) => {
+  return request.download({ url: '/risk/decision-log/export-excel', params })
+}
+
 export const getDecisionLog = (id: number) => {
   return request.get({ url: '/risk/decision-log/get?id=' + id })
 }

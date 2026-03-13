@@ -1,7 +1,7 @@
 <template>
   <Dialog v-model="dialogVisible" title="策略规则排序" width="880px">
     <el-alert
-      title="FIRST_HIT 按规则顺序收敛；SCORE_CARD 也保留规则顺序，便于还原命中链路与累计得分来源。"
+      title="当前策略中心支持 FIRST_HIT / SCORE_CARD；两种模式都保留规则顺序，便于还原命中链路与累计得分来源。"
       type="info"
       :closable="false"
       class="mb-16px"

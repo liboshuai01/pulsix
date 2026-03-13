@@ -48,6 +48,10 @@ export const getReplayJobPage = (params: ReplayJobPageReqVO) => {
   return request.get({ url: '/risk/replay/page', params })
 }
 
+export const exportReplayJob = (params: ReplayJobPageReqVO) => {
+  return request.download({ url: '/risk/replay/export-excel', params })
+}
+
 export const getReplayJob = (id: number) => {
   return request.get({ url: '/risk/replay/get?id=' + id })
 }

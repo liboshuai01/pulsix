@@ -11,6 +11,7 @@ import cn.liboshuai.pulsix.engine.simulation.LocalSimulationRunner;
 import cn.liboshuai.pulsix.engine.snapshot.SceneSnapshotEnvelopes;
 import cn.liboshuai.pulsix.framework.common.exception.util.ServiceExceptionUtil;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
+import cn.liboshuai.pulsix.framework.common.util.json.JsonUtils;
 import cn.liboshuai.pulsix.framework.common.util.object.BeanUtils;
 import cn.liboshuai.pulsix.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobCreateReqVO;
@@ -25,10 +26,17 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.decisionlog.DecisionLogMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.replay.ReplayJobMapper;
 import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -58,12 +66,24 @@ public class ReplayJobServiceImpl implements ReplayJobService {
     private static final String JOB_STATUS_SUCCESS = "SUCCESS";
     private static final String JOB_STATUS_FAILED = "FAILED";
 
+    private static final String INPUT_SOURCE_FILE = "FILE";
+    private static final String INPUT_SOURCE_KAFKA_EXPORT = "KAFKA_EXPORT";
     private static final String INPUT_SOURCE_DECISION_LOG_EXPORT = "DECISION_LOG_EXPORT";
+    private static final Set<String> SUPPORTED_INPUT_SOURCE_TYPES = Set.of(
+            INPUT_SOURCE_FILE,
+            INPUT_SOURCE_KAFKA_EXPORT,
+            INPUT_SOURCE_DECISION_LOG_EXPORT
+    );
+    private static final List<String> KAFKA_RECORD_ARRAY_KEYS = List.of("records", "messages", "items", "data");
+    private static final List<String> KAFKA_EVENT_PAYLOAD_KEYS = List.of(
+            "value", "payload", "standardEvent", "standardPayload", "event", "data", "body", "message"
+    );
     private static final String DEFAULT_DECISION_LOG_INPUT_REF = "LATEST_SCENE_DECISION_LOGS";
     private static final int DEFAULT_DECISION_LOG_LIMIT = 20;
     private static final int MAX_SAMPLE_DIFF_COUNT = 10;
 
-    private final LocalReplayRunner replayRunner = new LocalReplayRunner();
+    private final LocalSimulationRunner simulationRunner = new LocalSimulationRunner();
+    private final LocalReplayRunner replayRunner = new LocalReplayRunner(simulationRunner);
 
     @Resource
     private ReplayJobMapper replayJobMapper;
@@ -76,6 +96,9 @@ public class ReplayJobServiceImpl implements ReplayJobService {
 
     @Resource
     private AuditLogService auditLogService;
+
+    @Resource
+    private ResourceLoader resourceLoader;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -187,8 +210,13 @@ public class ReplayJobServiceImpl implements ReplayJobService {
         if (Objects.equals(reqVO.getBaselineVersionNo(), reqVO.getTargetVersionNo())) {
             throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "基线版本号与目标版本号不能相同");
         }
-        if (!Objects.equals(reqVO.getInputSourceType(), INPUT_SOURCE_DECISION_LOG_EXPORT)) {
-            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "当前仅支持 DECISION_LOG_EXPORT 输入源");
+        if (!SUPPORTED_INPUT_SOURCE_TYPES.contains(reqVO.getInputSourceType())) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "暂不支持的输入源类型：" + ObjectUtil.defaultIfNull(reqVO.getInputSourceType(), "-"));
+        }
+        if (!Objects.equals(reqVO.getInputSourceType(), INPUT_SOURCE_DECISION_LOG_EXPORT)
+                && StrUtil.isBlank(reqVO.getInputRef())) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "当前输入源必须提供输入引用");
         }
         validateSceneReleaseExists(reqVO.getSceneCode(), reqVO.getBaselineVersionNo());
         validateSceneReleaseExists(reqVO.getSceneCode(), reqVO.getTargetVersionNo());
@@ -218,21 +246,165 @@ public class ReplayJobServiceImpl implements ReplayJobService {
     }
 
     private List<RiskEvent> loadReplayEvents(ReplayJobDO replayJob) {
-        if (!Objects.equals(replayJob.getInputSourceType(), INPUT_SOURCE_DECISION_LOG_EXPORT)) {
-            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "当前仅支持 DECISION_LOG_EXPORT 输入源");
+        List<RiskEvent> events = switch (ObjectUtil.defaultIfNull(replayJob.getInputSourceType(), "")) {
+            case INPUT_SOURCE_DECISION_LOG_EXPORT -> loadDecisionLogReplayEvents(replayJob);
+            case INPUT_SOURCE_FILE -> loadFileReplayEvents(replayJob.getInputRef());
+            case INPUT_SOURCE_KAFKA_EXPORT -> loadKafkaExportReplayEvents(replayJob.getInputRef());
+            default -> throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "暂不支持的输入源类型：" + ObjectUtil.defaultIfNull(replayJob.getInputSourceType(), "-"));
+        };
+        if (CollUtil.isEmpty(events)) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "未找到可用于回放的事件输入");
         }
+        return events.stream()
+                .sorted(Comparator.comparing(RiskEvent::getEventTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(item -> StrUtil.blankToDefault(item.getEventId(), ""))
+                        .thenComparing(item -> StrUtil.blankToDefault(item.getTraceId(), "")))
+                .toList();
+    }
+
+    private List<RiskEvent> loadDecisionLogReplayEvents(ReplayJobDO replayJob) {
         List<DecisionLogDO> decisionLogs = DEFAULT_DECISION_LOG_INPUT_REF.equalsIgnoreCase(replayJob.getInputRef())
                 ? loadLatestDecisionLogs(replayJob.getSceneCode())
                 : loadDecisionLogsByIds(replayJob.getInputRef());
         if (CollUtil.isEmpty(decisionLogs)) {
             throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "未找到可用于回放的决策日志输入");
         }
-        return decisionLogs.stream()
-                .map(this::buildRiskEvent)
-                .sorted(Comparator.comparing(RiskEvent::getEventTime, Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(item -> StrUtil.blankToDefault(item.getEventId(), ""))
-                        .thenComparing(item -> StrUtil.blankToDefault(item.getTraceId(), "")))
-                .toList();
+        return decisionLogs.stream().map(this::buildRiskEvent).toList();
+    }
+
+    private List<RiskEvent> loadFileReplayEvents(String inputRef) {
+        String payload = loadInputPayload(inputRef);
+        try {
+            return simulationRunner.readEvents(payload);
+        } catch (Exception exception) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "FILE 输入解析失败：" + firstMeaningfulMessage(exception));
+        }
+    }
+
+    private List<RiskEvent> loadKafkaExportReplayEvents(String inputRef) {
+        String payload = loadInputPayload(inputRef);
+        JsonNode root;
+        try {
+            root = JsonUtils.parseTree(payload);
+        } catch (RuntimeException exception) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "KAFKA_EXPORT 输入必须是 JSON：" + firstMeaningfulMessage(exception));
+        }
+        List<JsonNode> recordNodes = extractKafkaRecordNodes(root);
+        List<RiskEvent> events = new ArrayList<>();
+        for (JsonNode recordNode : recordNodes) {
+            JsonNode eventNode = extractKafkaEventNode(recordNode);
+            if (eventNode == null || eventNode.isNull()) {
+                continue;
+            }
+            try {
+                events.add(EngineJson.read(eventNode.toString(), RiskEvent.class));
+            } catch (Exception exception) {
+                throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                        "KAFKA_EXPORT 记录无法转换为 RiskEvent：" + firstMeaningfulMessage(exception));
+            }
+        }
+        if (CollUtil.isEmpty(events)) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "KAFKA_EXPORT 输入中未解析出有效事件，支持 value/payload/standardEvent/standardPayload/event/data 等包装字段");
+        }
+        return events;
+    }
+
+    private String loadInputPayload(String inputRef) {
+        String normalized = trimToNull(inputRef);
+        if (normalized == null) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "输入引用不能为空");
+        }
+        if (JsonUtils.isJson(normalized)) {
+            return normalized;
+        }
+        if (normalized.startsWith("classpath:") || normalized.startsWith("file:")
+                || normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            org.springframework.core.io.Resource resource = resourceLoader.getResource(normalized);
+            if (!resource.exists()) {
+                throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "输入资源不存在：" + normalized);
+            }
+            try (InputStream inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException exception) {
+                throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                        "读取输入资源失败：" + normalized + "，原因：" + firstMeaningfulMessage(exception));
+            }
+        }
+        try {
+            return Files.readString(Path.of(normalized), StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                    "读取输入文件失败：" + normalized + "，原因：" + firstMeaningfulMessage(exception));
+        }
+    }
+
+    private List<JsonNode> extractKafkaRecordNodes(JsonNode root) {
+        if (root == null || root.isNull()) {
+            return Collections.emptyList();
+        }
+        if (root.isArray()) {
+            return toJsonNodeList(root);
+        }
+        if (root.isObject()) {
+            for (String key : KAFKA_RECORD_ARRAY_KEYS) {
+                JsonNode arrayNode = root.get(key);
+                if (arrayNode != null && arrayNode.isArray()) {
+                    return toJsonNodeList(arrayNode);
+                }
+            }
+        }
+        return List.of(root);
+    }
+
+    private JsonNode extractKafkaEventNode(JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        if (isRiskEventNode(node)) {
+            return node;
+        }
+        if (node.isTextual()) {
+            String text = trimToNull(node.asText());
+            if (text == null || !JsonUtils.isJson(text)) {
+                return null;
+            }
+            try {
+                return extractKafkaEventNode(JsonUtils.parseTree(text));
+            } catch (RuntimeException exception) {
+                throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID,
+                        "KAFKA_EXPORT 文本记录不是有效 JSON：" + text);
+            }
+        }
+        if (node.isObject()) {
+            for (String key : KAFKA_EVENT_PAYLOAD_KEYS) {
+                JsonNode child = node.get(key);
+                JsonNode extracted = extractKafkaEventNode(child);
+                if (extracted != null) {
+                    return extracted;
+                }
+            }
+            return isRiskEventNode(node) ? node : null;
+        }
+        return null;
+    }
+
+    private boolean isRiskEventNode(JsonNode node) {
+        if (node == null || !node.isObject()) {
+            return false;
+        }
+        boolean hasIdentity = node.hasNonNull("eventId") || node.hasNonNull("traceId");
+        boolean hasContext = node.hasNonNull("sceneCode") || node.hasNonNull("eventType") || node.hasNonNull("eventTime");
+        return hasIdentity && hasContext;
+    }
+
+    private List<JsonNode> toJsonNodeList(JsonNode arrayNode) {
+        List<JsonNode> list = new ArrayList<>();
+        arrayNode.forEach(list::add);
+        return list;
     }
 
     private List<DecisionLogDO> loadLatestDecisionLogs(String sceneCode) {
@@ -413,6 +585,18 @@ public class ReplayJobServiceImpl implements ReplayJobService {
 
     private String trimToNull(String text) {
         return StrUtil.emptyToNull(StrUtil.trim(text));
+    }
+
+    private String firstMeaningfulMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = trimToNull(current.getMessage());
+            if (message != null) {
+                return message;
+            }
+            current = current.getCause();
+        }
+        return throwable == null ? "未知错误" : throwable.getClass().getSimpleName();
     }
 
     private <T> List<T> defaultList(List<T> source) {

@@ -11,6 +11,8 @@ public interface EventSchemaService {
 
     void updateEventSchema(EventSchemaSaveReqVO updateReqVO);
 
+    void deleteEventSchema(Long id);
+
     EventSchemaDO getEventSchema(Long id);
 
     PageResult<EventSchemaDO> getEventSchemaPage(EventSchemaPageReqVO pageReqVO);

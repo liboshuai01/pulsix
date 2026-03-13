@@ -33,6 +33,15 @@
       <el-form-item>
         <el-button @click="handleQuery"><Icon icon="ep:search" class="mr-5px" /> 搜索</el-button>
         <el-button @click="resetQuery"><Icon icon="ep:refresh" class="mr-5px" /> 重置</el-button>
+        <el-button
+          type="success"
+          plain
+          @click="handleExport"
+          :loading="exportLoading"
+          v-hasPermi="['risk:ingest-error:export']"
+        >
+          <Icon icon="ep:download" class="mr-5px" /> 导出
+        </el-button>
       </el-form-item>
     </el-form>
   </ContentWrap>
@@ -98,6 +107,7 @@
 
 <script lang="ts" setup>
 import { dateFormatter } from '@/utils/formatTime'
+import download from '@/utils/download'
 import * as IngestErrorApi from '@/api/risk/ingest-error'
 import IngestErrorDetailDialog from './IngestErrorDetailDialog.vue'
 import {
@@ -113,6 +123,8 @@ import {
 
 defineOptions({ name: 'RiskIngestError' })
 
+const message = useMessage()
+
 const createDefaultQueryParams = (): IngestErrorApi.IngestErrorPageReqVO => ({
   pageNo: 1,
   pageSize: 10,
@@ -127,6 +139,7 @@ const createDefaultQueryParams = (): IngestErrorApi.IngestErrorPageReqVO => ({
 })
 
 const loading = ref(true)
+const exportLoading = ref(false)
 const total = ref(0)
 const list = ref<IngestErrorApi.IngestErrorVO[]>([])
 const queryParams = reactive<IngestErrorApi.IngestErrorPageReqVO>(createDefaultQueryParams())
@@ -152,6 +165,18 @@ const resetQuery = () => {
   queryFormRef.value?.resetFields()
   Object.assign(queryParams, createDefaultQueryParams())
   handleQuery()
+}
+
+const handleExport = async () => {
+  try {
+    await message.exportConfirm()
+    exportLoading.value = true
+    const data = await IngestErrorApi.exportIngestError(queryParams)
+    download.excel(data, '接入异常.xls')
+  } catch {
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const detailRef = ref()

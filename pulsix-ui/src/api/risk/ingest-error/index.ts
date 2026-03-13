@@ -36,6 +36,10 @@ export const getIngestErrorPage = (params: IngestErrorPageReqVO) => {
   return request.get({ url: '/risk/ingest-error/page', params })
 }
 
+export const exportIngestError = (params: IngestErrorPageReqVO) => {
+  return request.download({ url: '/risk/ingest-error/export-excel', params })
+}
+
 export const getIngestError = (id: number) => {
   return request.get({ url: '/risk/ingest-error/get?id=' + id })
 }

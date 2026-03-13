@@ -32,3 +32,7 @@ export interface DashboardQueryReqVO {
 export const getDashboardSummary = (params: DashboardQueryReqVO) => {
   return request.get({ url: '/risk/dashboard/summary', params })
 }
+
+export const exportDashboard = (params: DashboardQueryReqVO) => {
+  return request.download({ url: '/risk/dashboard/export-excel', params })
+}

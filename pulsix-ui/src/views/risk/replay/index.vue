@@ -18,13 +18,22 @@
         <el-button type="primary" plain @click="openCreateDialog" v-hasPermi="['risk:replay:create']">
           <Icon icon="ep:plus" class="mr-5px" /> 新增回放
         </el-button>
+        <el-button
+          type="success"
+          plain
+          @click="handleExport"
+          :loading="exportLoading"
+          v-hasPermi="['risk:replay:export']"
+        >
+          <Icon icon="ep:download" class="mr-5px" /> 导出
+        </el-button>
       </el-form-item>
     </el-form>
   </ContentWrap>
 
   <ContentWrap>
     <el-alert
-      title="S21 回放对比：当前样例建议使用 TRADE_RISK v14 -> v15，输入源默认复用 decision_log 标准事件导出。"
+      title="S21 回放对比：当前支持 DECISION_LOG_EXPORT、FILE、KAFKA_EXPORT 三种输入源；可直接使用 classpath 样例完成演示。"
       type="info"
       :closable="false"
       class="mb-16px"
@@ -80,7 +89,7 @@
     <ReplayJobDetailDialog ref="detailRef" />
   </ContentWrap>
 
-  <Dialog v-model="createDialogVisible" title="新增回放任务" width="620px">
+  <Dialog v-model="createDialogVisible" title="新增回放任务" width="680px">
     <el-form ref="createFormRef" :model="createFormData" :rules="createRules" label-width="110px">
       <el-form-item label="所属场景" prop="sceneCode">
         <el-input v-model="createFormData.sceneCode" placeholder="请输入场景编码，例如 TRADE_RISK" />
@@ -97,19 +106,25 @@
         </el-select>
       </el-form-item>
       <el-form-item label="输入引用" prop="inputRef">
-        <el-input
-          v-model="createFormData.inputRef"
-          type="textarea"
-          :rows="3"
-          placeholder="留空自动取该场景最新 20 条 decision_log；也可填写 7101,7102 这类决策日志编号列表"
-        />
+        <div class="w-full">
+          <el-input
+            v-model="createFormData.inputRef"
+            type="textarea"
+            :rows="4"
+            :placeholder="inputRefPlaceholder"
+          />
+          <div class="mt-6px flex items-center justify-between gap-12px text-12px text-[var(--el-text-color-secondary)]">
+            <span>{{ inputRefHelpText }}</span>
+            <el-button link type="primary" @click="fillInputRefExample">填充样例</el-button>
+          </div>
+        </div>
       </el-form-item>
       <el-form-item label="任务备注" prop="remark">
         <el-input
           v-model="createFormData.remark"
           type="textarea"
           :rows="4"
-          placeholder="可填写本次回放的变更背景，例如候选版本阈值调整或规则收敛策略变化"
+          placeholder="可填写本次回放的变更背景，例如候选版本阈值调整、文件样例验证或 Kafka 导出回归核对"
         />
       </el-form-item>
     </el-form>
@@ -123,10 +138,14 @@
 <script lang="ts" setup>
 import type { FormRules } from 'element-plus'
 import { dateFormatter } from '@/utils/formatTime'
+import download from '@/utils/download'
 import * as ReplayApi from '@/api/risk/replay'
 import ReplayJobDetailDialog from './ReplayJobDetailDialog.vue'
 import {
   formatReplayRate,
+  getReplayInputSourceHelpText,
+  getReplayInputSourcePlaceholder,
+  getReplayInputSourceSampleRef,
   getReplayInputSourceTypeLabel,
   getReplayJobStatusLabel,
   getReplayJobStatusTag,
@@ -156,6 +175,7 @@ const createDefaultCreateFormData = (): ReplayApi.ReplayJobCreateReqVO => ({
 })
 
 const loading = ref(true)
+const exportLoading = ref(false)
 const total = ref(0)
 const list = ref<ReplayApi.ReplayJobVO[]>([])
 const queryParams = reactive<ReplayApi.ReplayJobPageReqVO>(createDefaultQueryParams())
@@ -169,8 +189,27 @@ const createRules = reactive<FormRules>({
   sceneCode: [{ required: true, message: '所属场景不能为空', trigger: 'blur' }],
   baselineVersionNo: [{ required: true, message: '基线版本不能为空', trigger: 'blur' }],
   targetVersionNo: [{ required: true, message: '目标版本不能为空', trigger: 'blur' }],
-  inputSourceType: [{ required: true, message: '输入源类型不能为空', trigger: 'change' }]
+  inputSourceType: [{ required: true, message: '输入源类型不能为空', trigger: 'change' }],
+  inputRef: [
+    {
+      validator: (_rule, value, callback) => {
+        if (createFormData.inputSourceType === 'DECISION_LOG_EXPORT') {
+          callback()
+          return
+        }
+        if (!String(value || '').trim()) {
+          callback(new Error('当前输入源必须提供输入引用'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ]
 })
+
+const inputRefPlaceholder = computed(() => getReplayInputSourcePlaceholder(createFormData.inputSourceType))
+const inputRefHelpText = computed(() => getReplayInputSourceHelpText(createFormData.inputSourceType))
 
 const getList = async () => {
   loading.value = true
@@ -193,6 +232,32 @@ const resetQuery = () => {
   Object.assign(queryParams, createDefaultQueryParams())
   handleQuery()
 }
+
+const handleExport = async () => {
+  try {
+    await message.exportConfirm()
+    exportLoading.value = true
+    const data = await ReplayApi.exportReplayJob(queryParams)
+    download.excel(data, '回放任务.xls')
+  } catch {
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+const fillInputRefExample = () => {
+  createFormData.inputRef = getReplayInputSourceSampleRef(createFormData.inputSourceType)
+}
+
+watch(
+  () => createFormData.inputSourceType,
+  (value, oldValue) => {
+    const oldSample = getReplayInputSourceSampleRef(oldValue)
+    if (!String(createFormData.inputRef || '').trim() || createFormData.inputRef === oldSample) {
+      createFormData.inputRef = getReplayInputSourceSampleRef(value)
+    }
+  }
+)
 
 const openCreateDialog = () => {
   createDialogVisible.value = true

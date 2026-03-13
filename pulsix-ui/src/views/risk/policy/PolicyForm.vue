@@ -8,7 +8,7 @@
       label-width="120px"
     >
       <el-alert
-        :title="isScoreCard ? 'S17 已补齐 SCORE_CARD：可维护评分段，并按总分预览最终动作。' : 'S17 在保留 FIRST_HIT 的同时补齐 SCORE_CARD；当前可切换策略决策模式。 '"
+        :title="isScoreCard ? '当前策略支持 SCORE_CARD：可维护评分段，并按总分预览最终动作。' : '当前策略中心同时支持 FIRST_HIT / SCORE_CARD；默认仍建议先按 FIRST_HIT 规则顺序收敛。'"
         type="info"
         :closable="false"
         class="mb-16px"

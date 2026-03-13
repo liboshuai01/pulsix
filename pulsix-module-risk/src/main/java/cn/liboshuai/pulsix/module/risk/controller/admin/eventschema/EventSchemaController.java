@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -46,6 +47,15 @@ public class EventSchemaController {
     @PreAuthorize("@ss.hasPermission('risk:event-schema:update')")
     public CommonResult<Boolean> updateEventSchema(@Valid @RequestBody EventSchemaSaveReqVO updateReqVO) {
         eventSchemaService.updateEventSchema(updateReqVO);
+        return success(true);
+    }
+
+    @DeleteMapping("/delete")
+    @Operation(summary = "删除事件 Schema")
+    @Parameter(name = "id", description = "编号", required = true, example = "1")
+    @PreAuthorize("@ss.hasPermission('risk:event-schema:delete')")
+    public CommonResult<Boolean> deleteEventSchema(@RequestParam("id") Long id) {
+        eventSchemaService.deleteEventSchema(id);
         return success(true);
     }
 

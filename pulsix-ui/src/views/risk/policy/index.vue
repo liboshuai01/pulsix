@@ -56,7 +56,7 @@
 
   <ContentWrap>
     <el-alert
-      title="S17 已补齐 SCORE_CARD；页面现支持 FIRST_HIT / SCORE_CARD 双模式、评分段维护与总分预览。"
+      title="当前策略中心支持 FIRST_HIT / SCORE_CARD 双模式；评分段维护与总分预览已可用。"
       type="info"
       :closable="false"
       class="mb-16px"

@@ -16,6 +16,7 @@ public interface ErrorCodeConstants {
     // ========== 事件 Schema 管理 1-005-002-000 ==========
     ErrorCode EVENT_SCHEMA_NOT_EXISTS = new ErrorCode(1_005_002_000, "事件 Schema 不存在");
     ErrorCode EVENT_SCHEMA_CODE_DUPLICATE = new ErrorCode(1_005_002_001, "当前场景下事件编码已存在");
+    ErrorCode EVENT_SCHEMA_DELETE_INVALID = new ErrorCode(1_005_002_002, "事件 Schema 已被引用，无法删除：{}");
 
     // ========== 事件字段管理 1-005-003-000 ==========
     ErrorCode EVENT_FIELD_NOT_EXISTS = new ErrorCode(1_005_003_000, "事件字段不存在");

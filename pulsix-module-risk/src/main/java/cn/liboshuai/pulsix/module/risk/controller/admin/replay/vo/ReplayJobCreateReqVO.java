@@ -21,11 +21,11 @@ public class ReplayJobCreateReqVO {
     @NotNull(message = "目标版本号不能为空")
     private Integer targetVersionNo;
 
-    @Schema(description = "输入源类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "DECISION_LOG_EXPORT")
+    @Schema(description = "输入源类型，支持 DECISION_LOG_EXPORT、FILE、KAFKA_EXPORT", requiredMode = Schema.RequiredMode.REQUIRED, example = "FILE")
     @NotBlank(message = "输入源类型不能为空")
     private String inputSourceType;
 
-    @Schema(description = "输入源引用，可填写 decision_log 编号列表，逗号分隔；留空则自动取场景最新日志", example = "7101,7102")
+    @Schema(description = "输入源引用，可填写 decision_log 编号列表、classpath:file 资源、服务端文件路径，或直接粘贴 JSON 文本", example = "classpath:risk/replay/trade-risk-events.json")
     private String inputRef;
 
     @Schema(description = "任务备注")

@@ -1,10 +1,15 @@
 package cn.liboshuai.pulsix.module.risk.controller.admin.replay;
 
+import cn.liboshuai.pulsix.framework.apilog.core.annotation.ApiAccessLog;
 import cn.liboshuai.pulsix.framework.common.pojo.CommonResult;
+import cn.liboshuai.pulsix.framework.common.pojo.PageParam;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
+import cn.liboshuai.pulsix.framework.common.util.object.BeanUtils;
+import cn.liboshuai.pulsix.framework.excel.core.util.ExcelUtils;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobCreateReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobDetailRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobExecuteReqVO;
+import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobExportRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobPageReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.replay.vo.ReplayJobRespVO;
 import cn.liboshuai.pulsix.module.risk.service.replay.ReplayJobService;
@@ -12,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +28,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.util.List;
+
+import static cn.liboshuai.pulsix.framework.apilog.core.enums.OperateTypeEnum.EXPORT;
 import static cn.liboshuai.pulsix.framework.common.pojo.CommonResult.success;
 
 @Tag(name = "管理后台 - 回放对比")
@@ -45,6 +55,18 @@ public class ReplayJobController {
     @PreAuthorize("@ss.hasPermission('risk:replay:query')")
     public CommonResult<PageResult<ReplayJobRespVO>> getReplayJobPage(@Valid ReplayJobPageReqVO pageReqVO) {
         return success(replayJobService.getReplayJobPage(pageReqVO));
+    }
+
+    @GetMapping("/export-excel")
+    @Operation(summary = "导出回放任务 Excel")
+    @PreAuthorize("@ss.hasPermission('risk:replay:export')")
+    @ApiAccessLog(operateType = EXPORT)
+    public void exportReplayJobExcel(@Valid ReplayJobPageReqVO pageReqVO,
+                                     HttpServletResponse response) throws IOException {
+        pageReqVO.setPageSize(PageParam.PAGE_SIZE_NONE);
+        List<ReplayJobRespVO> list = replayJobService.getReplayJobPage(pageReqVO).getList();
+        ExcelUtils.write(response, "回放任务.xls", "数据", ReplayJobExportRespVO.class,
+                BeanUtils.toBean(list, ReplayJobExportRespVO.class));
     }
 
     @GetMapping("/get")

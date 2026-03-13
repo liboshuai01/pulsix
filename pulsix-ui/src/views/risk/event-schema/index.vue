@@ -74,7 +74,7 @@
       <el-table-column label="模型版本" align="center" prop="version" width="100" />
       <el-table-column label="标准 Topic" align="center" prop="standardTopicName" min-width="180" show-overflow-tooltip />
       <el-table-column label="更新时间" align="center" prop="updateTime" width="180" :formatter="dateFormatter" />
-      <el-table-column label="操作" align="center" width="180" fixed="right">
+      <el-table-column label="操作" align="center" width="240" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="openDetail(scope.row.id)" v-hasPermi="['risk:event-schema:get']">
             详情
@@ -86,6 +86,14 @@
             v-hasPermi="['risk:event-schema:update']"
           >
             编辑
+          </el-button>
+          <el-button
+            link
+            type="danger"
+            @click="handleDelete(scope.row.id)"
+            v-hasPermi="['risk:event-schema:delete']"
+          >
+            删除
           </el-button>
         </template>
       </el-table-column>
@@ -115,6 +123,9 @@ import {
 } from './constants'
 
 defineOptions({ name: 'RiskEventSchema' })
+
+const message = useMessage()
+const { t } = useI18n()
 
 const createDefaultQueryParams = (): EventSchemaApi.EventSchemaPageReqVO => ({
   pageNo: 1,
@@ -161,6 +172,18 @@ const openForm = (type: 'create' | 'update', id?: number) => {
 const detailRef = ref()
 const openDetail = (id: number) => {
   detailRef.value.open(id)
+}
+
+const handleDelete = async (id?: number) => {
+  if (!id) {
+    return
+  }
+  try {
+    await message.delConfirm()
+    await EventSchemaApi.deleteEventSchema(id)
+    message.success(t('common.delSuccess'))
+    await getList()
+  } catch {}
 }
 
 onMounted(() => {
