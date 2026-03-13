@@ -65,4 +65,71 @@ class HttpIngestControllerTest {
         assertThat(request.getMetadata()).containsEntry("authorization", "Bearer token-demo-001");
     }
 
+    @Test
+    void shouldBindBeaconPlainTextRequestIntoAccessIngestRequest() throws Exception {
+        when(ingestPipelineService.ingest(any())).thenReturn(AccessIngestResponseDTO.builder()
+                .requestId("REQ_BEACON_1")
+                .traceId("TRACE_BEACON_1")
+                .eventId("E_BEACON_1")
+                .status(AccessAckStatusEnum.ACCEPTED.getStatus())
+                .code(0)
+                .message("accepted")
+                .standardTopicName("pulsix.event.standard")
+                .processTimeMillis(8L)
+                .build());
+
+        mockMvc.perform(post("/api/access/ingest/beacon")
+                        .queryParam("sourceCode", "beacon_none_demo")
+                        .queryParam("sceneCode", "TRADE_RISK")
+                        .queryParam("eventCode", "TRADE_EVENT")
+                        .queryParam("requestId", "REQ_BEACON_1")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("{\"event_id\":\"E_BEACON_1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value("REQ_BEACON_1"))
+                .andExpect(jsonPath("$.status").value("ACCEPTED"));
+
+        ArgumentCaptor<AccessIngestRequestDTO> captor = ArgumentCaptor.forClass(AccessIngestRequestDTO.class);
+        verify(ingestPipelineService).ingest(captor.capture());
+        AccessIngestRequestDTO request = captor.getValue();
+        assertThat(request.getRequestId()).isEqualTo("REQ_BEACON_1");
+        assertThat(request.getSourceCode()).isEqualTo("beacon_none_demo");
+        assertThat(request.getTransportType()).isEqualTo("BEACON");
+        assertThat(request.getPayload()).isEqualTo("{\"event_id\":\"E_BEACON_1\"}");
+        assertThat(request.getMetadata()).containsEntry("sceneCode", "TRADE_RISK");
+        assertThat(request.getMetadata()).containsEntry("eventCode", "TRADE_EVENT");
+    }
+
+    @Test
+    void shouldBindBeaconFormPayloadIntoAccessIngestRequest() throws Exception {
+        when(ingestPipelineService.ingest(any())).thenReturn(AccessIngestResponseDTO.builder()
+                .requestId("REQ_BEACON_2")
+                .traceId("TRACE_BEACON_2")
+                .eventId("E_BEACON_2")
+                .status(AccessAckStatusEnum.ACCEPTED.getStatus())
+                .code(0)
+                .message("accepted")
+                .standardTopicName("pulsix.event.standard")
+                .processTimeMillis(9L)
+                .build());
+
+        mockMvc.perform(post("/api/access/ingest/beacon")
+                        .queryParam("sourceCode", "beacon_none_demo")
+                        .queryParam("sceneCode", "TRADE_RISK")
+                        .queryParam("eventCode", "TRADE_EVENT")
+                        .queryParam("requestId", "REQ_BEACON_2")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("payload", "{\"event_id\":\"E_BEACON_2\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value("REQ_BEACON_2"))
+                .andExpect(jsonPath("$.status").value("ACCEPTED"));
+
+        ArgumentCaptor<AccessIngestRequestDTO> captor = ArgumentCaptor.forClass(AccessIngestRequestDTO.class);
+        verify(ingestPipelineService).ingest(captor.capture());
+        AccessIngestRequestDTO request = captor.getValue();
+        assertThat(request.getRequestId()).isEqualTo("REQ_BEACON_2");
+        assertThat(request.getTransportType()).isEqualTo("BEACON");
+        assertThat(request.getPayload()).isEqualTo("{\"event_id\":\"E_BEACON_2\"}");
+    }
+
 }

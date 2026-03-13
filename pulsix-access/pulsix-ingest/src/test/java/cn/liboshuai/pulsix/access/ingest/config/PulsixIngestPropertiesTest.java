@@ -16,6 +16,7 @@ class PulsixIngestPropertiesTest {
             .withPropertyValues(
                     "pulsix.access.ingest.zone-id=UTC",
                     "pulsix.access.ingest.http.path=/custom/access/events",
+                    "pulsix.access.ingest.http.beacon-path=/custom/access/beacon",
                     "pulsix.access.ingest.http.max-payload-bytes=4096",
                     "pulsix.access.ingest.netty.port=29091",
                     "pulsix.access.ingest.kafka.standard-topic-name=pulsix.event.standard.test",
@@ -36,6 +37,7 @@ class PulsixIngestPropertiesTest {
 
             assertThat(properties.getZoneId()).isEqualTo("UTC");
             assertThat(properties.getHttp().getPath()).isEqualTo("/custom/access/events");
+            assertThat(properties.getHttp().getBeaconPath()).isEqualTo("/custom/access/beacon");
             assertThat(properties.getHttp().getMaxPayloadBytes()).isEqualTo(4096);
             assertThat(properties.getNetty().getPort()).isEqualTo(29091);
             assertThat(properties.getKafka().getStandardTopicName()).isEqualTo("pulsix.event.standard.test");
