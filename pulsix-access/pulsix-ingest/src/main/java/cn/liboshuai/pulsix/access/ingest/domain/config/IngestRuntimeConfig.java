@@ -39,4 +39,8 @@ public class IngestRuntimeConfig {
                 item -> item, (left, right) -> left, LinkedHashMap::new));
     }
 
+    public Map<String, IngestMappingConfig> getMappingsByTargetField() {
+        return mappingsByTargetField();
+    }
+
 }
