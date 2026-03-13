@@ -3,8 +3,10 @@ package cn.liboshuai.pulsix.access.ingest.service;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestRuntimeConfig;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestSourceConfig;
 import cn.liboshuai.pulsix.access.ingest.domain.error.IngestErrorEvent;
+import cn.liboshuai.pulsix.access.ingest.enums.IngestStageEnum;
 import cn.liboshuai.pulsix.access.ingest.infra.kafka.IngestEventProducer;
 import cn.liboshuai.pulsix.access.ingest.infra.kafka.IngestKafkaSendResult;
+import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthException;
 import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
@@ -16,6 +18,7 @@ import cn.liboshuai.pulsix.framework.common.biz.risk.access.normalize.StandardEv
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
@@ -29,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,6 +143,45 @@ class DefaultIngestPipelineServiceTest {
         assertThat(response.getCode()).isEqualTo(1_006_001_013);
         assertThat(response.getMessage()).contains("eventTime,userId");
         verify(eventProducer).sendErrorEvent(any(IngestErrorEvent.class));
+    }
+
+    @Test
+    void shouldRejectWhenHmacAuthFailsAndSendAuthDlqEvent() {
+        IngestRuntimeConfig runtimeConfig = IngestRuntimeConfig.builder()
+                .sourceCode("trade_http_demo")
+                .sceneCode("TRADE_RISK")
+                .eventCode("TRADE_EVENT")
+                .source(IngestSourceConfig.builder().sourceCode("trade_http_demo").authType("HMAC")
+                        .errorTopicName("pulsix.event.dlq").build())
+                .build();
+
+        when(configService.getConfig("trade_http_demo", "TRADE_RISK", "TRADE_EVENT")).thenReturn(runtimeConfig);
+        doThrow(new IngestAuthException(1_006_001_012, "AUTH_SIGN_INVALID", "签名校验失败，拒绝写入标准事件 Topic"))
+                .when(authService).authenticate(any(), eq(runtimeConfig));
+        when(eventProducer.sendErrorEvent(any(IngestErrorEvent.class)))
+                .thenReturn(IngestKafkaSendResult.builder().topicName("pulsix.event.dlq").messageKey("REQ_1003").build());
+
+        AccessIngestResponseDTO response = service.ingest(AccessIngestRequestDTO.builder()
+                .requestId("REQ_1003")
+                .sourceCode("trade_http_demo")
+                .payload("{\"event_id\":\"raw_trade_bad_8103\",\"uid\":\"U8103\"}")
+                .metadata(Map.of("sceneCode", "TRADE_RISK", "eventCode", "TRADE_EVENT"))
+                .build());
+
+        assertThat(response.getStatus()).isEqualTo(AccessAckStatusEnum.REJECTED.getStatus());
+        assertThat(response.getCode()).isEqualTo(1_006_001_012);
+        assertThat(response.getMessage()).isEqualTo("签名校验失败，拒绝写入标准事件 Topic");
+
+        ArgumentCaptor<IngestErrorEvent> captor = ArgumentCaptor.forClass(IngestErrorEvent.class);
+        verify(eventProducer).sendErrorEvent(captor.capture());
+        IngestErrorEvent errorEvent = captor.getValue();
+        assertThat(errorEvent.getIngestStage()).isEqualTo(IngestStageEnum.AUTH);
+        assertThat(errorEvent.getErrorCode()).isEqualTo("AUTH_SIGN_INVALID");
+        assertThat(errorEvent.getSourceCode()).isEqualTo("trade_http_demo");
+        assertThat(errorEvent.getSceneCode()).isEqualTo("TRADE_RISK");
+        assertThat(errorEvent.getEventCode()).isEqualTo("TRADE_EVENT");
+        assertThat(errorEvent.getErrorTopicName()).isEqualTo("pulsix.event.dlq");
+        assertThat(errorEvent.getRawPayloadJson()).isEqualTo("{\"event_id\":\"raw_trade_bad_8103\",\"uid\":\"U8103\"}");
     }
 
 }
