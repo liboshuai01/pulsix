@@ -102,6 +102,8 @@ docker compose up -d
 - `pulsix.event.dlq`
 - `pulsix.ingest.error`
 
+> 说明：`pulsix.ingest.error` 当前按“预留增强流”处理，`deploy` 会默认预创建该 Topic，但一期运行时默认只强依赖 `pulsix.event.dlq`。
+
 当前系统不创建配置类 Kafka Topic；MySQL 配置快照通过 `scene_release -> MySQL CDC -> Flink` 直接同步。
 
 当前 `deploy` 默认按 `docs/wiki/kafka-redis-doris-落地清单.md` 中的表格创建 Topic：

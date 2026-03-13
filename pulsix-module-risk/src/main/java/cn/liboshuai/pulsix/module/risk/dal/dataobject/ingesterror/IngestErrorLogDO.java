@@ -9,8 +9,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-
 @TableName(value = "ingest_error_log", autoResultMap = true)
 @TenantIgnore
 @Data
@@ -36,10 +34,10 @@ public class IngestErrorLogDO extends BaseDO {
     private String errorMessage;
 
     @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> rawPayloadJson;
+    private Object rawPayloadJson;
 
     @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> standardPayloadJson;
+    private Object standardPayloadJson;
 
     private String errorTopicName;
 

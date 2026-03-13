@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static cn.liboshuai.pulsix.access.ingest.enums.ErrorCodeConstants.INGEST_KAFKA_DISABLED;
 import static cn.liboshuai.pulsix.access.ingest.enums.ErrorCodeConstants.INGEST_KAFKA_ERROR_SEND_FAILED;
 import static cn.liboshuai.pulsix.access.ingest.enums.ErrorCodeConstants.INGEST_KAFKA_SEND_FAILED;
 import static cn.liboshuai.pulsix.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -57,6 +58,7 @@ public class KafkaIngestEventProducer implements IngestEventProducer {
     }
 
     private IngestKafkaSendResult send(String topicName, String messageKey, Object payload, boolean standardEvent) {
+        ensureKafkaEnabled(topicName, messageKey, standardEvent);
         try {
             return buildRetryTemplate().execute(context -> doSend(topicName, messageKey, payload));
         } catch (Exception ex) {
@@ -67,6 +69,14 @@ public class KafkaIngestEventProducer implements IngestEventProducer {
             throw standardEvent ? exception(INGEST_KAFKA_SEND_FAILED, topicName)
                     : exception(INGEST_KAFKA_ERROR_SEND_FAILED, topicName);
         }
+    }
+
+    private void ensureKafkaEnabled(String topicName, String messageKey, boolean standardEvent) {
+        if (Boolean.TRUE.equals(properties.getKafka().getEnabled())) {
+            return;
+        }
+        log.warn("[send][Kafka 开关已关闭，拒绝发送 topic={}, key={}, standardEvent={}]", topicName, messageKey, standardEvent);
+        throw exception(INGEST_KAFKA_DISABLED);
     }
 
     private IngestKafkaSendResult doSend(String topicName, String messageKey, Object payload) throws Exception {

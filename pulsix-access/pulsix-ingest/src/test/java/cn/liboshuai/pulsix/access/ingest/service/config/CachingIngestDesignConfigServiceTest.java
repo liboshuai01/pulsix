@@ -27,12 +27,13 @@ class CachingIngestDesignConfigServiceTest {
     private MutableClock clock;
     private FakeRepository repository;
     private CachingIngestDesignConfigService service;
+    private PulsixIngestProperties properties;
 
     @BeforeEach
     void setUp() {
         clock = new MutableClock(Instant.parse("2026-03-13T00:00:00Z"), ZoneId.of("UTC"));
         repository = new FakeRepository();
-        PulsixIngestProperties properties = new PulsixIngestProperties();
+        properties = new PulsixIngestProperties();
         properties.getConfigCache().setRefreshIntervalSeconds(30);
 
         service = new CachingIngestDesignConfigService();
@@ -77,6 +78,19 @@ class CachingIngestDesignConfigServiceTest {
     }
 
     @Test
+    void shouldEvictOldestSourceWhenCacheExceedsMaxSourceEntries() {
+        properties.getConfigCache().setMaxSourceEntries(1);
+
+        service.getConfig("trade_http_demo", "TRADE_RISK", "TRADE_EVENT");
+        service.getConfig("trade_sdk_demo", "TRADE_RISK", "TRADE_EVENT");
+        service.getConfig("trade_http_demo", "TRADE_RISK", "TRADE_EVENT");
+
+        assertThat(repository.sourceQueries.get()).isEqualTo(3);
+        assertThat(repository.mappingQueries.get()).isEqualTo(3);
+        assertThat(repository.fieldQueries.get()).isEqualTo(3);
+    }
+
+    @Test
     void shouldRejectSceneOutOfScope() {
         assertThatThrownBy(() -> service.getConfig("trade_http_demo", "LOGIN_RISK", "TRADE_EVENT"))
                 .isInstanceOf(ServiceException.class)
@@ -92,14 +106,14 @@ class CachingIngestDesignConfigServiceTest {
         @Override
         public Optional<IngestSourceConfig> findSource(String sourceCode) {
             sourceQueries.incrementAndGet();
-            if (!"trade_http_demo".equals(sourceCode)) {
+            if (!"trade_http_demo".equals(sourceCode) && !"trade_sdk_demo".equals(sourceCode)) {
                 return Optional.empty();
             }
             return Optional.of(IngestSourceConfig.builder()
-                    .sourceCode("trade_http_demo")
-                    .sourceName("交易 HTTP Demo")
-                    .sourceType("HTTP")
-                    .authType("HMAC")
+                    .sourceCode(sourceCode)
+                    .sourceName(sourceCode)
+                    .sourceType("trade_http_demo".equals(sourceCode) ? "HTTP" : "SDK")
+                    .authType("trade_http_demo".equals(sourceCode) ? "HMAC" : "TOKEN")
                     .authConfigJson(Map.of("headerName", "X-Pulsix-Signature"))
                     .sceneScope(Set.of("TRADE_RISK"))
                     .standardTopicName("pulsix.event.standard")

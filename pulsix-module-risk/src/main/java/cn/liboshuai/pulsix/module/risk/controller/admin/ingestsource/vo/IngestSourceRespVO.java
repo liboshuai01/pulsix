@@ -35,7 +35,7 @@ public class IngestSourceRespVO {
     @Schema(description = "标准事件 Topic", example = "pulsix.event.standard")
     private String standardTopicName;
 
-    @Schema(description = "异常事件 Topic", example = "pulsix.event.dlq")
+    @Schema(description = "异常 / DLQ Topic", example = "pulsix.event.dlq")
     private String errorTopicName;
 
     @Schema(description = "限流阈值 QPS", example = "300")

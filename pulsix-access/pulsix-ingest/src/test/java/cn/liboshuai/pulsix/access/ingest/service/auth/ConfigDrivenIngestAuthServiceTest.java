@@ -102,11 +102,41 @@ class ConfigDrivenIngestAuthServiceTest {
                                         "headerName", "X-Pulsix-Signature",
                                         "timestampHeader", "X-Pulsix-Timestamp",
                                         "algorithm", "HmacSHA256",
-                                        "appKey", "trade-http-demo"
+                                        "appKey", "trade-http-demo",
+                                        "appSecret", "trade-http-demo"
                                 ))
                                 .build())
                         .build()))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectWhenHmacSecretMissing() {
+        String timestamp = String.valueOf(Instant.parse("2026-03-13T02:31:00Z").toEpochMilli());
+        String payload = "{\"event_id\":\"E_RAW_9103\"}";
+
+        assertThatThrownBy(() -> service.authenticate(AccessIngestRequestDTO.builder()
+                        .sourceCode("trade_http_demo")
+                        .payload(payload)
+                        .metadata(Map.of(
+                                "x-pulsix-signature", "bad-signature",
+                                "x-pulsix-timestamp", timestamp
+                        ))
+                        .build(), IngestRuntimeConfig.builder()
+                        .source(IngestSourceConfig.builder()
+                                .authType("HMAC")
+                                .authConfigJson(Map.of(
+                                        "headerName", "X-Pulsix-Signature",
+                                        "timestampHeader", "X-Pulsix-Timestamp",
+                                        "algorithm", "HmacSHA256",
+                                        "appKey", "trade-http-demo"
+                                ))
+                                .build())
+                        .build()))
+                .isInstanceOfSatisfying(IngestAuthException.class, ex -> {
+                    assertThat(ex.getErrorCode()).isEqualTo("AUTH_SIGN_CONFIG_INVALID");
+                    assertThat(ex.getMessage()).isEqualTo("HMAC 鉴权配置缺少 appKey 或密钥");
+                });
     }
 
     @Test
@@ -128,7 +158,8 @@ class ConfigDrivenIngestAuthServiceTest {
                                         "headerName", "X-Pulsix-Signature",
                                         "timestampHeader", "X-Pulsix-Timestamp",
                                         "algorithm", "HmacSHA256",
-                                        "appKey", "trade-http-demo"
+                                        "appKey", "trade-http-demo",
+                                        "appSecret", "trade-http-demo"
                                 ))
                                 .build())
                         .build()))
@@ -158,7 +189,8 @@ class ConfigDrivenIngestAuthServiceTest {
                                         "headerName", "X-Pulsix-Signature",
                                         "timestampHeader", "X-Pulsix-Timestamp",
                                         "algorithm", "HmacSHA256",
-                                        "appKey", "trade-http-demo"
+                                        "appKey", "trade-http-demo",
+                                        "appSecret", "trade-http-demo"
                                 ))
                                 .build())
                         .build()))

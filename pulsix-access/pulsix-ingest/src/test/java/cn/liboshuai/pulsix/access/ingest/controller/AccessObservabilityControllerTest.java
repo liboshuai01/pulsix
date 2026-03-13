@@ -70,6 +70,7 @@ class AccessObservabilityControllerTest {
 
     @Test
     void shouldReturnDegradedHealthWhenNettyEnabledButStopped() throws Exception {
+        properties.getHttp().setEnabled(true);
         properties.getNetty().setEnabled(true);
         when(ingestMetricsService.snapshot()).thenReturn(IngestMetricsSnapshot.builder()
                 .totalCount(5L)
@@ -84,6 +85,26 @@ class AccessObservabilityControllerTest {
                 .andExpect(jsonPath("$.httpStatus").value("UP"))
                 .andExpect(jsonPath("$.nettyStatus").value("DOWN"))
                 .andExpect(jsonPath("$.totalCount").value(5));
+    }
+
+    @Test
+    void shouldReturnUpHealthWhenHttpDisabledButNettyRunning() throws Exception {
+        properties.getHttp().setEnabled(false);
+        properties.getNetty().setEnabled(true);
+        when(ingestMetricsService.snapshot()).thenReturn(IngestMetricsSnapshot.builder()
+                .totalCount(2L)
+                .errorCount(0L)
+                .nettyActiveConnectionCount(1)
+                .build());
+        when(nettyIngestServer.isRunning()).thenReturn(true);
+        when(nettyIngestServer.getBoundPort()).thenReturn(19100);
+
+        mockMvc.perform(get("/api/access/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.httpStatus").value("DISABLED"))
+                .andExpect(jsonPath("$.nettyStatus").value("UP"))
+                .andExpect(jsonPath("$.nettyBoundPort").value(19100));
     }
 
 }

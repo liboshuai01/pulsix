@@ -2,6 +2,8 @@ package cn.liboshuai.pulsix.access.ingest.netty;
 
 import cn.hutool.core.util.StrUtil;
 import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
+import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorDispatchService;
+import cn.liboshuai.pulsix.access.ingest.enums.IngestStageEnum;
 import cn.liboshuai.pulsix.access.ingest.service.metrics.IngestMetricsService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -30,13 +32,16 @@ import static cn.liboshuai.pulsix.access.ingest.enums.ErrorCodeConstants.INGEST_
 public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<String> {
 
     private final IngestPipelineService ingestPipelineService;
+    private final IngestErrorDispatchService errorDispatchService;
     private final ObjectMapper objectMapper;
     private final IngestMetricsService ingestMetricsService;
 
     public NettyIngestRequestHandler(IngestPipelineService ingestPipelineService,
+                                     IngestErrorDispatchService errorDispatchService,
                                      ObjectMapper objectMapper,
                                      IngestMetricsService ingestMetricsService) {
         this.ingestPipelineService = ingestPipelineService;
+        this.errorDispatchService = errorDispatchService;
         this.objectMapper = objectMapper;
         this.ingestMetricsService = ingestMetricsService;
     }
@@ -50,6 +55,7 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
     @Override
     protected void channelRead0(ChannelHandlerContext context, String frameText) {
         String requestId = null;
+        long startTime = System.currentTimeMillis();
         try {
             AccessIngestRequestDTO request = objectMapper.readValue(frameText, AccessIngestRequestDTO.class);
             requestId = request.getRequestId();
@@ -57,10 +63,23 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
             writeResponse(context, ingestPipelineService.ingest(request), false);
         } catch (JsonProcessingException ex) {
             log.warn("[channelRead0][SDK 请求帧不是合法 JSON]", ex);
-            writeResponse(context, reject(requestId, INGEST_REQUEST_INVALID.getCode(), "SDK 请求帧不是合法 JSON"), false);
+            errorDispatchService.dispatch(IngestStageEnum.PARSE,
+                    "SDK_FRAME_JSON_INVALID",
+                    "SDK 请求帧不是合法 JSON",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    buildInvalidFramePayload(context, frameText, requestId, ex),
+                    null,
+                    null);
+            long processTimeMillis = System.currentTimeMillis() - startTime;
+            ingestMetricsService.recordRejected(null, IngestStageEnum.PARSE, processTimeMillis);
+            writeResponse(context, reject(requestId, INGEST_REQUEST_INVALID.getCode(), "SDK 请求帧不是合法 JSON", processTimeMillis), false);
         } catch (Exception ex) {
             log.warn("[channelRead0][SDK 请求处理异常 requestId={}]", requestId, ex);
-            writeResponse(context, reject(requestId, GlobalErrorCodeConstants.INTERNAL_SERVER_ERROR.getCode(), "SDK 服务端处理失败"), false);
+            writeResponse(context, reject(requestId, GlobalErrorCodeConstants.INTERNAL_SERVER_ERROR.getCode(), "SDK 服务端处理失败", 0L), false);
         }
     }
 
@@ -83,7 +102,7 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         log.warn("[exceptionCaught][SDK 连接异常 remoteAddress={}]", resolveRemoteAddress(context), cause);
-        writeResponse(context, reject(null, GlobalErrorCodeConstants.BAD_REQUEST.getCode(), "SDK 请求帧处理失败"), true);
+        writeResponse(context, reject(null, GlobalErrorCodeConstants.BAD_REQUEST.getCode(), "SDK 请求帧处理失败", 0L), true);
     }
 
     private void enrichRequest(ChannelHandlerContext context, AccessIngestRequestDTO request) {
@@ -110,14 +129,32 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
         return remoteAddress == null ? null : remoteAddress.toString();
     }
 
-    private AccessIngestResponseDTO reject(String requestId, Integer code, String message) {
+    private AccessIngestResponseDTO reject(String requestId, Integer code, String message, long processTimeMillis) {
         return AccessIngestResponseDTO.builder()
                 .requestId(StrUtil.trim(requestId))
                 .status(AccessAckStatusEnum.REJECTED.getStatus())
                 .code(code)
                 .message(message)
-                .processTimeMillis(0L)
+                .processTimeMillis(Math.max(processTimeMillis, 0L))
                 .build();
+    }
+
+    private LinkedHashMap<String, Object> buildInvalidFramePayload(ChannelHandlerContext context,
+                                                                   String frameText,
+                                                                   String requestId,
+                                                                   Exception exception) {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("transportType", AccessTransportTypeEnum.SDK.getType());
+        payload.put("remoteAddress", resolveRemoteAddress(context));
+        payload.put("rawFrameText", frameText);
+        if (StrUtil.isNotBlank(requestId)) {
+            payload.put("requestId", StrUtil.trim(requestId));
+        }
+        payload.put("exceptionType", exception.getClass().getSimpleName());
+        payload.put("exceptionMessage", exception instanceof JsonProcessingException jsonProcessingException
+                ? jsonProcessingException.getOriginalMessage()
+                : exception.getMessage());
+        return payload;
     }
 
     private void writeResponse(ChannelHandlerContext context, AccessIngestResponseDTO response, boolean closeAfterWrite) {

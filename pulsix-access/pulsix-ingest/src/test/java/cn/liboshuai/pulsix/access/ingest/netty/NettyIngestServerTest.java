@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.access.ingest.netty;
 
 import cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties;
 import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
+import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorDispatchService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +30,7 @@ class NettyIngestServerTest {
     @Test
     void shouldAcceptOneMessageFromMockSocketClient() throws Exception {
         IngestPipelineService ingestPipelineService = mock(IngestPipelineService.class);
+        IngestErrorDispatchService errorDispatchService = mock(IngestErrorDispatchService.class);
         when(ingestPipelineService.ingest(any())).thenReturn(AccessIngestResponseDTO.builder()
                 .requestId("REQ_SOCKET_1")
                 .traceId("TRACE_SOCKET_1")
@@ -49,7 +51,7 @@ class NettyIngestServerTest {
         properties.getNetty().setIdleTimeoutSeconds(30);
 
         NettyIngestServer server = new NettyIngestServer(properties,
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService()));
+                new NettyIngestRequestHandler(ingestPipelineService, errorDispatchService, objectMapper, new InMemoryIngestMetricsService()));
         server.start();
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress("127.0.0.1", server.getBoundPort()), 3000);

@@ -1,6 +1,12 @@
 package cn.liboshuai.pulsix.access.ingest.netty;
 
+import cn.liboshuai.pulsix.access.ingest.domain.error.IngestErrorEvent;
 import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
+import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorDispatchService;
+import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
+import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
+import cn.liboshuai.pulsix.access.ingest.infra.kafka.IngestEventProducer;
+import cn.liboshuai.pulsix.access.ingest.infra.kafka.IngestKafkaSendResult;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,13 +22,18 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class NettyIngestRequestHandlerTest {
 
@@ -31,6 +42,7 @@ class NettyIngestRequestHandlerTest {
     @Test
     void shouldDispatchSdkFrameIntoPipeline() throws Exception {
         IngestPipelineService ingestPipelineService = mock(IngestPipelineService.class);
+        IngestErrorDispatchService errorDispatchService = mock(IngestErrorDispatchService.class);
         when(ingestPipelineService.ingest(any())).thenReturn(AccessIngestResponseDTO.builder()
                 .requestId("REQ_NETTY_1")
                 .traceId("TRACE_NETTY_1")
@@ -47,7 +59,7 @@ class NettyIngestRequestHandlerTest {
                 new StringDecoder(StandardCharsets.UTF_8),
                 new LengthFieldPrepender(4),
                 new StringEncoder(StandardCharsets.UTF_8),
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService())
+                new NettyIngestRequestHandler(ingestPipelineService, errorDispatchService, objectMapper, new InMemoryIngestMetricsService())
         );
 
         String requestJson = objectMapper.writeValueAsString(AccessIngestRequestDTO.builder()
@@ -81,12 +93,27 @@ class NettyIngestRequestHandlerTest {
     @Test
     void shouldReturnRejectedResponseWhenFrameIsInvalidJson() throws Exception {
         IngestPipelineService ingestPipelineService = mock(IngestPipelineService.class);
+        IngestEventProducer eventProducer = mock(IngestEventProducer.class);
+        IngestErrorLogWriter errorLogWriter = mock(IngestErrorLogWriter.class);
+        IngestErrorEventFactory errorEventFactory = new IngestErrorEventFactory();
+        ReflectionTestUtils.setField(errorEventFactory, "clock",
+                Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("Asia/Shanghai")));
+        ReflectionTestUtils.setField(errorEventFactory, "properties",
+                new cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties());
+        IngestErrorDispatchService errorDispatchService = new IngestErrorDispatchService();
+        ReflectionTestUtils.setField(errorDispatchService, "errorEventFactory", errorEventFactory);
+        ReflectionTestUtils.setField(errorDispatchService, "eventProducer", eventProducer);
+        ReflectionTestUtils.setField(errorDispatchService, "errorLogWriter", errorLogWriter);
+        InMemoryIngestMetricsService ingestMetricsService = new InMemoryIngestMetricsService();
+        when(eventProducer.sendErrorEvent(any(IngestErrorEvent.class)))
+                .thenReturn(IngestKafkaSendResult.builder().topicName("pulsix.event.dlq").messageKey(null).build());
+
         EmbeddedChannel channel = new EmbeddedChannel(
                 new LengthFieldBasedFrameDecoder(4096, 0, 4, 0, 4),
                 new StringDecoder(StandardCharsets.UTF_8),
                 new LengthFieldPrepender(4),
                 new StringEncoder(StandardCharsets.UTF_8),
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService())
+                new NettyIngestRequestHandler(ingestPipelineService, errorDispatchService, objectMapper, ingestMetricsService)
         );
 
         channel.writeInbound(frame("not-json"));
@@ -95,6 +122,20 @@ class NettyIngestRequestHandlerTest {
         assertThat(response.getStatus()).isEqualTo("REJECTED");
         assertThat(response.getCode()).isEqualTo(1_006_001_010);
         assertThat(response.getMessage()).isEqualTo("SDK 请求帧不是合法 JSON");
+        assertThat(response.getProcessTimeMillis()).isGreaterThanOrEqualTo(0L);
+
+        ArgumentCaptor<IngestErrorEvent> captor = ArgumentCaptor.forClass(IngestErrorEvent.class);
+        verify(eventProducer).sendErrorEvent(captor.capture());
+        IngestErrorEvent errorEvent = captor.getValue();
+        assertThat(errorEvent.getIngestStage()).isEqualTo(cn.liboshuai.pulsix.access.ingest.enums.IngestStageEnum.PARSE);
+        assertThat(errorEvent.getErrorCode()).isEqualTo("SDK_FRAME_JSON_INVALID");
+        assertThat(errorEvent.getRawPayloadJson()).isInstanceOf(Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rawPayload = (Map<String, Object>) errorEvent.getRawPayloadJson();
+        assertThat(rawPayload).containsEntry("transportType", "SDK");
+        assertThat(rawPayload).containsEntry("rawFrameText", "not-json");
+        verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
+        assertThat(ingestMetricsService.snapshot().getRejectedCount()).isEqualTo(1L);
 
         channel.finishAndReleaseAll();
     }

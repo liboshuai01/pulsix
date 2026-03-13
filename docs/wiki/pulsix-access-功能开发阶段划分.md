@@ -2,7 +2,9 @@
 
 > 基于 `2026-03-13` 仓库 `code view` 更新。主要参考：`docs/wiki/接入层设计.md`、`docs/wiki/kafka-redis-doris-落地清单.md`、`docs/wiki/中间件版本.md`、`docs/wiki/项目架构及技术栈.md`、`docs/wiki/风控功能清单.md`、`docs/wiki/pulsix-module-risk-管理端页面开发阶段划分.md`；辅助参考：`docs/wiki/风控功能模块与表映射.md`、`docs/sql/pulsix-risk.sql`、`docs/参考资料/实时风控系统第20章：Spring Boot 控制平台的模块设计与实现.md`、`docs/参考资料/实时风控系统第22章：项目代码结构设计与从0到1的落地顺序.md`、`docs/参考资料/实时风控系统第23章：测试体系——单元测试、仿真测试、回放测试、联调测试.md`、`deploy/README.md`、`deploy/docker-compose.yml`。
 >
-> 当前实际状态：`pulsix-access/pulsix-ingest` 与 `pulsix-access/pulsix-sdk` 已有 Maven 骨架；`pulsix-ingest` 仅有启动类，接入运行时主链路基本尚未开始。与之配套的设计态 / 治理态能力已经在 `pulsix-module-risk` 落下：`ingest_source`、`ingest_mapping_def`、`ingest_error_log`、标准事件预览、接入治理页均已存在。因此，后续工作重点不是再做一套配置后台，而是把 `pulsix-access` 的运行时链路按小阶段稳步落地。
+> 当前实际状态：基于 `2026-03-13` 仓库 `code view` 与 `mvn -q -pl pulsix-access -am test -Dsurefire.failIfNoSpecifiedTests=false` 的结果，`pulsix-access` 已不再只是 Maven 骨架。`pulsix-ingest` 已具备：设计态配置读取、本地缓存、运行时标准化内核、Kafka 投递、统一错误模型、HTTP / Beacon / Netty 入口、DLQ / `ingest_error_log`、最小指标与健康检查、`AKSK / JWT` 扩展鉴权、source 级限流；`pulsix-sdk` 已具备：Netty 客户端、批量发送、失败重试、内存缓冲、断线重连、ACK 回调、最小 smoke 测试与回归入口。
+>
+> 因此，当前更准确的判断是：`pulsix-access` 整体已经推进到 `A14`，但还不能简单视为“所有阶段都严格收口”。若按“功能是否已落地”口径，`A00 ~ A14` 基本都已覆盖；若按“与文档要求完全一致、无明显尾项”口径，仍有若干需要继续追踪修复的问题，详见文末“阶段完成度复盘”与“修复优先级建议”。
 
 ## 1. 文档目标
 
@@ -39,7 +41,7 @@ pulsix-access
 - 一期**不新增** `pulsix.config.snapshot` 一类配置 Topic；接入配置读取先走 MySQL 读模型 + 本地缓存 / 定时刷新，不把 CDC / Kafka 配置同步绑进首批阶段。
 - 标准事件主 Topic 统一为 `pulsix.event.standard`；不要一开始就按场景拆 Topic。
 - 异常流至少保证 `pulsix.event.dlq`；`pulsix.ingest.error` 作为推荐预留流。
-- 管理端与运行时的标准化逻辑必须保持一致：后续代码应优先复用或提取 `StandardEventPreviewService` 的纯标准化核心，而不是再手写一份不同规则。
+- 管理端与运行时的标准化逻辑必须保持一致：后续代码应优先复用或提取 `StandardEventNormalizer` 的纯标准化核心，并显式复用 `pulsix.access.ingest.zone-id`，而不是再手写一份不同规则。
 - 单阶段建议控制在：**1 个协议入口或 1 个核心组件、最多 2 个 package、1 条 smoke case、1 组最小测试**。
 - 每个阶段都要至少包含：代码、测试、验收样例；如果改动设计态约束，还要同步文档或 SQL 样例。
 - 仓库 `CommonStatusEnum` 约定为：`0=开启`、`1=关闭`。后续 AI 不要按常见习惯误判状态值。
@@ -72,9 +74,9 @@ pulsix-access
 | --- | --- | --- | --- | --- |
 | `pulsix.event.standard` | 是 | `sceneCode` | `pulsix-ingest` | 标准事件主流 |
 | `pulsix.event.dlq` | 是 | `traceId` 或 `rawEventId` | `pulsix-ingest` | 非法事件 / 死信 |
-| `pulsix.ingest.error` | 建议预留 | `traceId` 或 `rawEventId` | `pulsix-ingest` | 接入错误增强流 |
+| `pulsix.ingest.error` | 建议预留 | `traceId` 或 `rawEventId` | `pulsix-ingest` | 接入错误增强流（预留可选，一期默认不强依赖） |
 
-> 一期 `pulsix-access` 只需要保证上表三类生产行为；`pulsix.decision.*`、`pulsix.engine.error` 由引擎负责。
+> 一期 `pulsix-access` 默认只需要保证 `pulsix.event.standard` 与 `pulsix.event.dlq` 两类生产行为；`pulsix.ingest.error` 保持预留可选，`pulsix.decision.*`、`pulsix.engine.error` 由引擎负责。
 
 ### 4.4 设计态表与运行时职责
 
@@ -231,3 +233,128 @@ pulsix-access
 
 > **`pulsix-access` 的正确开发顺序不是“先把所有协议都接上”，而是“先把一条统一的接入主链路做对，再逐个给它加入口”。**
 
+## 11. 基于当前 `code view` 的阶段完成度复盘
+
+> 本节用于给后续 AI 做“现状判断 + 修复追踪”基线。
+>
+> 判定口径分两层：
+>
+> - **完成**：核心能力、最小测试、主要验收链路都已存在，且未发现明显缺口。
+> - **基本完成**：主能力已经落地，但仍有一致性、观测性、边界行为或文档兑现度问题，后续应继续收口。
+
+### 11.1 阶段状态总表
+
+| 阶段 | 当前判定 | 说明 |
+| --- | --- | --- |
+| `A00` | 完成 | Maven 模块、配置类、共享 DTO、错误码骨架、序列化测试均已存在。 |
+| `A01` | 完成 | 已实现 `ingest_source / ingest_mapping_def / event_field_def` MySQL 读模型与本地缓存。 |
+| `A02` | 完成 | 运行时标准化已复用 `pulsix-common` 的 `StandardEventNormalizer`，与管理端预览共用同一标准化核心。 |
+| `A03` | 完成（按一期口径） | 标准事件 / 错误事件 producer、Key 选择、重试基础配置已实现；`pulsix.ingest.error` 已明确为预留增强流，不再作为一期默认产出项。 |
+| `A04` | 完成 | `AUTH / RATE_LIMIT / PARSE / NORMALIZE / VALIDATE / PRODUCE` 错误模型已落地；HTTP 与 SDK 非法帧都已进入统一错误主链路。 |
+| `A05` | 完成 | HTTP JSON 入口已存在，`NONE / TOKEN` 鉴权路径可走通。 |
+| `A06` | 完成 | HMAC 鉴权已实现，样例、单测、HTTP smoke 脚本均已存在。 |
+| `A07` | 完成 | Beacon 兼容入口已实现，支持表单参数 / 文本请求体两种轻量模式。 |
+| `A08` | 完成 | 错误事件已可写 Kafka 与 `ingest_error_log`，且错误日志 JSON 字段的跨模块类型契约已统一。 |
+| `A09` | 完成 | Netty 服务端、最小帧协议、ACK / NACK、本地 mock client 测试已存在。 |
+| `A10` | 完成 | `pulsix-sdk` 最小客户端已具备连接、发送、ACK 回调与最小请求模型。 |
+| `A11` | 完成 | SDK 批量、缓冲、重试、断线重连都已实现，并有专项测试覆盖。 |
+| `A12` | 基本完成 | `ingest` 与 `sdk` 都已有最小指标 / 健康检查；但异常观测仍未完全统一到所有入口。 |
+| `A13` | 完成 | `AKSK / JWT` 扩展鉴权与 source 级限流均已落地，并有单测。 |
+| `A14` | 完成 | README、HTTP smoke、SDK smoke、模块回归入口均已存在，且 smoke 已支持可选 Kafka / MySQL 深验收。 |
+
+### 11.2 当前推荐结论
+
+- 若按**功能是否已落地**判断：`A00 ~ A14` 已基本全部覆盖，`pulsix-access` 当前整体可视为已推进到 `A14`。
+- 若按**是否严格收口**判断：建议记为：`A00 / A01 / A02 / A03 / A04 / A05 / A06 / A07 / A08 / A09 / A10 / A11 / A13 / A14 = 完成`；`A12 = 基本完成`。
+- 后续 AI 在修复问题时，不应再从“补全整条主链路”思路出发，而应从“补齐一致性、观测、文档兑现度、边界场景”思路出发。
+
+## 12. 后续修复优先级建议
+
+> 原则：优先修“会影响运行时一致性、错误追踪、后续 AI 判断”的问题，再修文档与死配置，再做体验层补强。
+
+### 12.1 `P0`：优先立即修
+
+> 进度更新（2026-03-13）：以下 3 项已在本轮完成代码修复与回归测试，后续 AI 无需重复按故障修复处理，可转为回归验证与继续推进 `P1`。
+
+1. **统一 `ingest_error_log` 的 JSON 字段契约**
+   - 当前 `pulsix-ingest` 写入侧允许 `rawPayloadJson / standardPayloadJson` 为任意 `Object`，包括字符串；但 `pulsix-module-risk` 读取侧与详情 VO 期望的是 `Map<String, Object>`。
+   - 这会导致 `AUTH / PARSE` 一类“尚未成功解析成 JSON 对象”的错误事件，在治理端详情页存在类型不稳、反序列化不一致的风险。
+   - 修复目标：统一写入 / 读取两端的类型契约。若要兼容字符串原文，建议统一包装为对象，例如：`{"rawText":"...","transportType":"HTTP"}`；或者两端统一改成 `Object` / `JsonNode` 承载。
+
+2. **让 SDK 非法帧进入统一错误主链路**
+   - 当前 `NettyIngestRequestHandler` 在非法 JSON 帧场景下只返回 `REJECTED`，不会生成统一 `IngestErrorEvent`，也不会写 Kafka DLQ、`ingest_error_log`、统一 rejected metrics。
+   - 这会让 `A04` 的“非法输入统一错误对象化”和 `A12` 的“错误观测一致性”留下缺口。
+   - 修复目标：抽取共享的 reject / error sink 逻辑，让 HTTP 主链路与 Netty 非法帧共用同一套错误落地能力。
+
+3. **补 1 组跨模块回归用例，锁住上述两类问题**
+   - 建议至少增加：
+     - `SDK 非法帧 -> DLQ / ingest_error_log / metrics`；
+     - `AUTH / PARSE` 错误详情在管理端可稳定展示原始报文。
+   - 这样可以避免后续 AI 只修一侧、不修另一侧，导致问题反复出现。
+
+#### 12.1.1 `P0` 修复落地记录（2026-03-13）
+
+- 已新增统一错误分发服务：`pulsix-access/pulsix-ingest` 通过共享 `IngestErrorDispatchService` 统一完成 `IngestErrorEvent` 创建、DLQ 投递、`ingest_error_log` 写入。
+- 已补齐 SDK 非法帧主链路：`NettyIngestRequestHandler` 在非法 JSON 帧场景下不再只返回 `REJECTED`，而是同步进入统一错误事件、错误日志、rejected metrics 主链路。
+- 已统一治理端详情契约：`pulsix-module-risk` 的 `rawPayloadJson / standardPayloadJson` 已改为 `Object` 承载，兼容原始字符串 JSON 与对象 JSON。
+- 已补回归测试：覆盖 `SDK 非法帧 -> 错误分发` 与 `错误详情 VO 保持原始 payload 契约` 两类回归场景。
+- 当前结论：`12.1 P0` 已完成，可进入 `12.2 P1` 阶段。
+
+### 12.2 `P1`：高优先级收口
+
+> 进度更新（2026-03-13）：以下 3 项已在本轮完成修复或口径收敛，后续 AI 可直接进入 `P2`。
+
+1. **统一管理端预览与运行时标准化的时区口径**
+   - 运行时标准化使用 `pulsix.access.ingest.zone-id`；管理端预览当前使用 `ZoneId.systemDefault()`。
+   - 这会在 `TIME_MILLIS_TO_DATETIME` 一类转换上留下环境相关差异。
+   - 修复目标：让两端显式使用同一时区配置或同一公共约定，不再依赖宿主机默认时区。
+
+2. **明确 `pulsix.ingest.error` 的真实策略**
+   - 当前文档、部署、配置项都声明了 `pulsix.ingest.error`，但默认运行时代码并不会真正把错误增强流发送到该 Topic。
+   - 修复目标二选一：
+     - 要么真正实现增强错误流的生产逻辑；
+     - 要么在一期文档中明确写成“仅预留 Topic 和配置项，默认仍只走 `pulsix.event.dlq`”。
+
+3. **修正文档 / SQL 中的状态位注释冲突**
+   - 本文档已明确要求后续 AI 遵守 `CommonStatusEnum: 0=开启, 1=关闭`。
+   - 但 `docs/sql/pulsix-risk.sql` 仍有多处接入相关 DDL 注释写成 `1-启用，0-停用`，会误导后续初始化与排障。
+   - 修复目标：统一文档、DDL 注释、样例数据的口径，避免“代码按 0 启用，文档注释却写成 1 启用”。
+
+#### 12.2.1 `P1` 修复落地记录（2026-03-13）
+
+- 已统一时区口径：管理端 `StandardEventPreviewService` 不再使用宿主机 `ZoneId.systemDefault()`，而是显式复用 `pulsix.access.ingest.zone-id`。
+- 已明确错误增强流策略：`pulsix.ingest.error` 保持“预留可选 Topic”定位，一期默认运行时仍以 `pulsix.event.dlq` 为唯一必达错误流；部署文档中保留预建 Topic 说明，便于后续扩展。
+- 已统一接入源命名口径：管理端与 SQL 中的 `errorTopicName / error_topic_name` 均明确表示“异常 / DLQ Topic”，避免与预留增强流混淆。
+- 已修正 `docs/sql/pulsix-risk.sql` 中 `CommonStatusEnum` 相关 DDL 的默认值与注释，统一为 `0=启用`、`1=停用`。
+- 当前结论：`12.2 P1` 已完成，可进入 `12.3 P2` 阶段。
+
+### 12.3 `P2`：中优先级整理项
+
+> 进度更新（2026-03-13）：以下 3 项已在本轮完成代码/脚本收口，后续 AI 可转向新的优化项。
+
+1. **清理或落实当前未生效的配置项**
+   - 当前已有但尚未真正生效的配置项包括：`http.enabled`、`http.maxPayloadBytes`、`kafka.enabled`、`configCache.maxSourceEntries`。
+   - 修复目标：要么实现其真实运行时行为，要么删除死配置，避免“文档可配、代码不消费”。
+
+2. **收紧 HMAC demo 的默认密钥语义**
+   - 当前 HMAC 鉴权在缺少显式 secret 时会回退到 `appKey`，这对 smoke demo 方便，但不适合作为长期默认安全语义。
+   - 修复目标：把 `appSecret = appKey` 这类约定收敛到 smoke 数据，不作为运行时代码的默认行为。
+
+3. **增强真机 smoke 的验收力度**
+   - 当前 `README` 与脚本主要验证“接口返回 `ACCEPTED`”。
+   - 修复目标：后续可以追加最小 Kafka / MySQL 校验，例如：确认标准事件进入 `pulsix.event.standard`、错误事件进入 `ingest_error_log`，让 `A14` 验收更扎实。
+
+#### 12.3.1 `P2` 修复落地记录（2026-03-13）
+
+- 已落实配置项行为：`http.enabled` 可真实关闭 HTTP / Beacon 入口，`http.maxPayloadBytes` 可返回 `413`，`kafka.enabled` 可真实阻断 Kafka 发送，`configCache.maxSourceEntries` 可限制 source 缓存并联动逐出对应 runtime config。
+- 已收紧 HMAC 密钥语义：运行时代码不再把 `appKey` 自动兼作 HMAC 密钥；该约定只保留在 demo SQL / smoke 脚本的显式样例数据中。
+- 已增强 smoke 验收：`scripts/pulsix-access-http-smoke.sh` 新增可选 Kafka / MySQL 深验收，`scripts/pulsix-access-sdk-smoke.sh` 新增可选 Kafka 深验收。
+- 已同步文档口径：`pulsix-access/README.md` 与本追踪文档都已更新，避免后续 AI 继续把这些项误判为“配置已声明但未生效”。
+- 当前结论：`12.3 P2` 已完成。
+
+## 13. 给后续 AI 的执行建议
+
+- **不要再把当前状态误判为“只有骨架”。** 现在的问题重心已经不是补全主链路，而是收口尾项。
+- **优先按 `P0 -> P1 -> P2` 顺序推进。** 不要跳过 `P0` 直接去做体验层优化。
+- **修复时优先补回归测试。** 每修一个问题，都应补一个能长期锁定该问题的测试，而不是只改实现。
+- **改文档时同步改 SQL 注释与 smoke 说明。** 当前 `pulsix-access` 的主要风险之一就是“代码与文档口径不完全一致”。

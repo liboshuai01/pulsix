@@ -7,11 +7,14 @@ import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResp
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.enums.AccessTransportTypeEnum;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +29,12 @@ public class HttpIngestController {
 
     @Resource
     private IngestPipelineService ingestPipelineService;
+
+    @Value("${pulsix.access.ingest.http.enabled:true}")
+    private boolean httpEnabled;
+
+    @Value("${pulsix.access.ingest.http.max-payload-bytes:262144}")
+    private int maxPayloadBytes;
 
     @PostMapping("${pulsix.access.ingest.http.path:/api/access/ingest/events}")
     public AccessIngestResponseDTO ingest(@RequestParam String sourceCode,
@@ -51,6 +60,8 @@ public class HttpIngestController {
                                              String payload,
                                              AccessTransportTypeEnum transportType,
                                              HttpServletRequest request) {
+        ensureHttpEnabled();
+        validatePayloadSize(payload, transportType);
         return ingestPipelineService.ingest(AccessIngestRequestDTO.builder()
                 .requestId(resolveRequestId(request))
                 .sourceCode(sourceCode)
@@ -60,6 +71,20 @@ public class HttpIngestController {
                 .sendTimeMillis(System.currentTimeMillis())
                 .remoteAddress(request.getRemoteAddr())
                 .build());
+    }
+
+    private void ensureHttpEnabled() {
+        if (!httpEnabled) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "HTTP 接入已关闭");
+        }
+    }
+
+    private void validatePayloadSize(String payload, AccessTransportTypeEnum transportType) {
+        int payloadBytes = StrUtil.nullToEmpty(payload).getBytes(StandardCharsets.UTF_8).length;
+        if (payloadBytes > maxPayloadBytes) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                    transportType.getType() + " 请求报文超过最大限制: " + payloadBytes + " > " + maxPayloadBytes);
+        }
     }
 
     private Map<String, String> resolveMetadata(String sceneCode, String eventCode, HttpServletRequest request) {

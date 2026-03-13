@@ -30,7 +30,7 @@
 | `pulsix.decision.log` | 是 | 3 | 1 | `traceId` | `pulsix-engine` | Doris sink、问题排查消费者 | 详细决策追溯流 |
 | `pulsix.engine.error` | 是 | 1 | 1 | `traceId` | `pulsix-engine` | Doris sink、告警消费者 | 引擎异常流 |
 | `pulsix.event.dlq` | 是 | 1 | 1 | `traceId` 或 `rawEventId` | `pulsix-ingest` | Doris sink、接入治理页 | 非法事件 / 死信流 |
-| `pulsix.ingest.error` | 建议预留 | 1 | 1 | `traceId` 或 `rawEventId` | `pulsix-ingest` | Doris sink、接入治理页 | 接入错误增强流；文档里标记为可选 |
+| `pulsix.ingest.error` | 建议预留 | 1 | 1 | `traceId` 或 `rawEventId` | `pulsix-ingest` | Doris sink、接入治理页 | 接入错误增强流；预留可选，一期默认不强依赖 |
 
 ### 分区数说明
 
@@ -40,7 +40,7 @@
 - 因此本文给出的分区数是**一期可直接用**的建议值：
   - `pulsix.event.standard = 6`：输入主流，预留并行度空间。
   - `pulsix.decision.result / pulsix.decision.log = 3`：结果和日志分流，吞吐压力明显小于主输入流。
-  - `pulsix.engine.error / pulsix.event.dlq / pulsix.ingest.error = 1`：异常流默认低吞吐，先简单落地。
+  - `pulsix.engine.error / pulsix.event.dlq / pulsix.ingest.error = 1`：异常流默认低吞吐；其中 `pulsix.ingest.error` 仅作为预留增强流，可先预建但一期默认不强依赖。
 - 如果你当前只是单机联调，也可以先下调为：`3 / 2 / 2 / 1 / 1 / 1`。
 
 ### 不建议当前创建的 Topic
@@ -318,7 +318,7 @@
 
 ### 6）`pulsix.ingest.error`
 
-如果你决定单独保留一条“接入错误增强流”，建议字段与 `ingest_error_log` 对齐，并额外携带：
+一期默认仍以 `pulsix.event.dlq` 作为唯一必达错误流；如果你决定单独保留一条“接入错误增强流”，建议字段与 `ingest_error_log` 对齐，并额外携带：
 
 - `topicName`
 - `reprocessStatus`

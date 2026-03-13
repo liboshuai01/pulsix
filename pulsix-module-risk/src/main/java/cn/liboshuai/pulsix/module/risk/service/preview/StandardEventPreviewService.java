@@ -11,6 +11,7 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.ingestmapping.IngestMappin
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.ingestmapping.IngestMappingMapper;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
@@ -20,6 +21,9 @@ import java.util.Map;
 
 @Service
 public class StandardEventPreviewService {
+
+    @Value("${pulsix.access.ingest.zone-id:Asia/Shanghai}")
+    private String ingestZoneId;
 
     @Resource
     private EventFieldMapper eventFieldMapper;
@@ -43,7 +47,7 @@ public class StandardEventPreviewService {
                 rawEventJson == null ? new LinkedHashMap<>() : new LinkedHashMap<>(rawEventJson),
                 eventFields.stream().map(this::toFieldDefinition).toList(),
                 ingestMappings.stream().map(this::toMappingDefinition).toList(),
-                ZoneId.systemDefault());
+                ZoneId.of(ingestZoneId));
 
         StandardEventPreviewResult result = new StandardEventPreviewResult();
         result.setRawEventJson(normalizeResult.getRawEventJson());

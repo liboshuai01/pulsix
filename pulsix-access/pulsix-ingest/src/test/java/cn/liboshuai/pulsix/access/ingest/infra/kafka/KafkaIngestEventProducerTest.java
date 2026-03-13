@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.access.ingest.domain.config.IngestSourceConfig;
 import cn.liboshuai.pulsix.access.ingest.domain.error.IngestDlqPayload;
 import cn.liboshuai.pulsix.access.ingest.domain.error.IngestErrorEvent;
 import cn.liboshuai.pulsix.access.ingest.enums.IngestStageEnum;
+import cn.liboshuai.pulsix.framework.common.exception.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -58,6 +60,19 @@ class KafkaIngestEventProducerTest {
         assertThat(result.getTopicName()).isEqualTo("pulsix.event.standard.custom");
         assertThat(result.getMessageKey()).isEqualTo("TRADE_RISK");
         verify(kafkaTemplate).send("pulsix.event.standard.custom", "TRADE_RISK", standardEventJson);
+    }
+
+    @Test
+    void shouldRejectSendWhenKafkaDisabled() {
+        properties.getKafka().setEnabled(false);
+
+        assertThatThrownBy(() -> producer.sendStandardEvent(IngestSourceConfig.builder()
+                .standardTopicName("pulsix.event.standard")
+                .build(), Map.of("sceneCode", "TRADE_RISK")))
+                .isInstanceOfSatisfying(ServiceException.class, ex -> {
+                    assertThat(ex.getCode()).isEqualTo(1_006_001_015);
+                    assertThat(ex.getMessage()).isEqualTo("Kafka 投递开关已关闭");
+                });
     }
 
     @Test

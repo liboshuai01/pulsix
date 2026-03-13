@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -97,6 +99,7 @@ public class CachingIngestDesignConfigService implements IngestDesignConfigServi
                     .orElseThrow(() -> exception(INGEST_SOURCE_NOT_EXISTS, sourceCode));
             return new CachedSource(source, now);
         });
+        enforceSourceCacheLimit(sourceCode, now);
         return cachedSource.value();
     }
 
@@ -107,6 +110,45 @@ public class CachingIngestDesignConfigService implements IngestDesignConfigServi
         if (!sourceConfig.supportsScene(sceneCode)) {
             throw exception(INGEST_SOURCE_SCENE_NOT_ALLOWED, sourceConfig.getSourceCode(), sceneCode);
         }
+    }
+
+    private void enforceSourceCacheLimit(String protectedSourceCode, long now) {
+        int maxSourceEntries = maxSourceEntries();
+        if (sourceCache.size() <= maxSourceEntries) {
+            return;
+        }
+        synchronized (this) {
+            if (sourceCache.size() <= maxSourceEntries) {
+                return;
+            }
+            evictExpiredSources(now);
+            while (sourceCache.size() > maxSourceEntries) {
+                String evictedSourceCode = sourceCache.entrySet().stream()
+                        .filter(entry -> !StrUtil.equals(entry.getKey(), protectedSourceCode))
+                        .min(Comparator.comparingLong(entry -> entry.getValue().loadedAtMillis()))
+                        .map(Map.Entry::getKey)
+                        .orElse(null);
+                if (evictedSourceCode == null) {
+                    break;
+                }
+                sourceCache.remove(evictedSourceCode);
+                evictConfigsForSource(evictedSourceCode);
+            }
+        }
+    }
+
+    private void evictExpiredSources(long now) {
+        long ttlMillis = ttlMillis();
+        sourceCache.entrySet().removeIf(entry -> entry.getValue().expired(now, ttlMillis));
+        configCache.keySet().removeIf(cacheKey -> !sourceCache.containsKey(cacheKey.sourceCode()));
+    }
+
+    private void evictConfigsForSource(String sourceCode) {
+        configCache.keySet().removeIf(cacheKey -> StrUtil.equals(cacheKey.sourceCode(), sourceCode));
+    }
+
+    private int maxSourceEntries() {
+        return Math.max(1, properties.getConfigCache().getMaxSourceEntries());
     }
 
     private long ttlMillis() {

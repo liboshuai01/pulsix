@@ -54,9 +54,9 @@ public class IngestSourceSaveReqVO {
     @Size(max = 128, message = "标准事件 Topic 长度不能超过 128 个字符")
     private String standardTopicName;
 
-    @Schema(description = "异常事件 Topic", requiredMode = Schema.RequiredMode.REQUIRED, example = "pulsix.event.dlq")
-    @NotBlank(message = "异常事件 Topic 不能为空")
-    @Size(max = 128, message = "异常事件 Topic 长度不能超过 128 个字符")
+    @Schema(description = "异常 / DLQ Topic", requiredMode = Schema.RequiredMode.REQUIRED, example = "pulsix.event.dlq")
+    @NotBlank(message = "异常 / DLQ Topic 不能为空")
+    @Size(max = 128, message = "异常 / DLQ Topic 长度不能超过 128 个字符")
     private String errorTopicName;
 
     @Schema(description = "限流阈值 QPS，0 表示不限制", requiredMode = Schema.RequiredMode.REQUIRED, example = "300")

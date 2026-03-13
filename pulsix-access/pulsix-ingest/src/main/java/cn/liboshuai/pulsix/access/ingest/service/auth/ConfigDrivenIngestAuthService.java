@@ -124,8 +124,7 @@ public class ConfigDrivenIngestAuthService implements IngestAuthService {
         String secret = firstNonBlank(
                 toStringValue(authConfig.get("appSecret")),
                 toStringValue(authConfig.get("secretKey")),
-                toStringValue(authConfig.get("secret")),
-                appKey
+                toStringValue(authConfig.get("secret"))
         );
 
         if (StrUtil.isBlank(appKey) || StrUtil.isBlank(secret)) {

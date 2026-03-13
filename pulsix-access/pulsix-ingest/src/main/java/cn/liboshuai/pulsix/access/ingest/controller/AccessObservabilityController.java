@@ -31,14 +31,16 @@ public class AccessObservabilityController {
     @GetMapping("/api/access/health")
     public IngestHealthSnapshot health() {
         IngestMetricsSnapshot snapshot = ingestMetricsService.snapshot();
+        boolean httpEnabled = Boolean.TRUE.equals(properties.getHttp().getEnabled());
         boolean nettyEnabled = Boolean.TRUE.equals(properties.getNetty().getEnabled());
         boolean nettyRunning = nettyEnabled && nettyIngestServer.isRunning();
+        String httpStatus = httpEnabled ? "UP" : "DISABLED";
         String nettyStatus = !nettyEnabled ? "DISABLED" : (nettyRunning ? "UP" : "DOWN");
-        String status = !nettyEnabled || nettyRunning ? "UP" : "DEGRADED";
+        String status = resolveOverallStatus(httpEnabled, nettyEnabled, nettyRunning);
         return IngestHealthSnapshot.builder()
                 .status(status)
                 .timestamp(System.currentTimeMillis())
-                .httpStatus("UP")
+                .httpStatus(httpStatus)
                 .nettyEnabled(nettyEnabled)
                 .nettyStatus(nettyStatus)
                 .nettyBoundPort(nettyRunning ? nettyIngestServer.getBoundPort() : -1)
@@ -46,6 +48,18 @@ public class AccessObservabilityController {
                 .totalCount(snapshot.getTotalCount())
                 .errorCount(snapshot.getErrorCount())
                 .build();
+    }
+
+    private String resolveOverallStatus(boolean httpEnabled, boolean nettyEnabled, boolean nettyRunning) {
+        boolean anyConfigured = httpEnabled || nettyEnabled;
+        boolean anyAvailable = httpEnabled || (nettyEnabled && nettyRunning);
+        if (!anyConfigured || !anyAvailable) {
+            return "DOWN";
+        }
+        if (nettyEnabled && !nettyRunning) {
+            return "DEGRADED";
+        }
+        return "UP";
     }
 
 }

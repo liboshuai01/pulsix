@@ -9,6 +9,7 @@ import cn.liboshuai.pulsix.access.ingest.infra.kafka.IngestKafkaSendResult;
 import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthException;
 import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
+import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorDispatchService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
 import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
 import cn.liboshuai.pulsix.access.ingest.service.metrics.InMemoryIngestMetricsService;
@@ -64,6 +65,11 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(errorEventFactory, "clock", Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("Asia/Shanghai")));
         ReflectionTestUtils.setField(errorEventFactory, "properties", properties);
 
+        IngestErrorDispatchService errorDispatchService = new IngestErrorDispatchService();
+        ReflectionTestUtils.setField(errorDispatchService, "errorEventFactory", errorEventFactory);
+        ReflectionTestUtils.setField(errorDispatchService, "eventProducer", eventProducer);
+        ReflectionTestUtils.setField(errorDispatchService, "errorLogWriter", errorLogWriter);
+
         ingestMetricsService = new InMemoryIngestMetricsService();
         ingestRateLimitService = new InMemoryIngestRateLimitService();
         ReflectionTestUtils.setField(ingestRateLimitService, "clock", Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("UTC")));
@@ -73,8 +79,7 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(service, "authService", authService);
         ReflectionTestUtils.setField(service, "normalizationService", normalizationService);
         ReflectionTestUtils.setField(service, "eventProducer", eventProducer);
-        ReflectionTestUtils.setField(service, "errorEventFactory", errorEventFactory);
-        ReflectionTestUtils.setField(service, "errorLogWriter", errorLogWriter);
+        ReflectionTestUtils.setField(service, "errorDispatchService", errorDispatchService);
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
         ReflectionTestUtils.setField(service, "ingestMetricsService", ingestMetricsService);
         ReflectionTestUtils.setField(service, "ingestRateLimitService", ingestRateLimitService);
