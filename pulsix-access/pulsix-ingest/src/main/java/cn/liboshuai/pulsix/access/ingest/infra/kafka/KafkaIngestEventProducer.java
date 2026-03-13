@@ -3,6 +3,8 @@ package cn.liboshuai.pulsix.access.ingest.infra.kafka;
 import cn.hutool.core.util.StrUtil;
 import cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestSourceConfig;
+import cn.liboshuai.pulsix.access.ingest.domain.error.IngestDlqPayload;
+import cn.liboshuai.pulsix.access.ingest.domain.error.IngestErrorEvent;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -44,7 +46,17 @@ public class KafkaIngestEventProducer implements IngestEventProducer {
         return send(topicName, messageKey, errorPayload, false);
     }
 
-    private IngestKafkaSendResult send(String topicName, String messageKey, Map<String, Object> payload, boolean standardEvent) {
+    @Override
+    public IngestKafkaSendResult sendErrorEvent(IngestErrorEvent errorEvent) {
+        IngestDlqPayload payload = errorEvent.toDlqPayload();
+        String topicName = normalizeKey(errorEvent.getErrorTopicName());
+        if (topicName == null) {
+            topicName = properties.getKafka().getDlqTopicName();
+        }
+        return send(topicName, errorEvent.resolveMessageKey(), payload, false);
+    }
+
+    private IngestKafkaSendResult send(String topicName, String messageKey, Object payload, boolean standardEvent) {
         try {
             return buildRetryTemplate().execute(context -> doSend(topicName, messageKey, payload));
         } catch (Exception ex) {
@@ -57,8 +69,8 @@ public class KafkaIngestEventProducer implements IngestEventProducer {
         }
     }
 
-    private IngestKafkaSendResult doSend(String topicName, String messageKey, Map<String, Object> payload) throws Exception {
-        Map<String, Object> messagePayload = payload == null ? Collections.emptyMap() : payload;
+    private IngestKafkaSendResult doSend(String topicName, String messageKey, Object payload) throws Exception {
+        Object messagePayload = payload == null ? Collections.emptyMap() : payload;
         CompletableFuture<SendResult<Object, Object>> future = kafkaTemplate.send(topicName, messageKey, messagePayload);
         future.get(properties.getKafka().getSendTimeoutMillis(), TimeUnit.MILLISECONDS);
         return IngestKafkaSendResult.builder()

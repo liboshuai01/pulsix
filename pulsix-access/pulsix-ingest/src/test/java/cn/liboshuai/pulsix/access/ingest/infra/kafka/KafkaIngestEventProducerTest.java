@@ -2,6 +2,9 @@ package cn.liboshuai.pulsix.access.ingest.infra.kafka;
 
 import cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties;
 import cn.liboshuai.pulsix.access.ingest.domain.config.IngestSourceConfig;
+import cn.liboshuai.pulsix.access.ingest.domain.error.IngestDlqPayload;
+import cn.liboshuai.pulsix.access.ingest.domain.error.IngestErrorEvent;
+import cn.liboshuai.pulsix.access.ingest.enums.IngestStageEnum;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -73,6 +76,34 @@ class KafkaIngestEventProducerTest {
         assertThat(result.getTopicName()).isEqualTo("pulsix.event.dlq");
         assertThat(result.getMessageKey()).isEqualTo("TRACE_2001");
         verify(kafkaTemplate).send("pulsix.event.dlq", "TRACE_2001", errorPayload);
+    }
+
+    @Test
+    void shouldSendErrorModelAsDlqPayload() {
+        IngestErrorEvent errorEvent = IngestErrorEvent.builder()
+                .traceId("TRACE_4001")
+                .sourceCode("trade_http_demo")
+                .sceneCode("TRADE_RISK")
+                .eventCode("TRADE_EVENT")
+                .rawEventId("RAW_4001")
+                .ingestStage(IngestStageEnum.VALIDATE)
+                .errorCode("REQUIRED_FIELD_MISSING")
+                .errorMessage("eventTime 缺失")
+                .rawPayloadJson(Map.of("event_id", "RAW_4001"))
+                .standardPayloadJson(Map.of("eventId", "RAW_4001"))
+                .errorTopicName("pulsix.event.dlq")
+                .occurTime("2026-03-13T10:31:00")
+                .build();
+        IngestDlqPayload payload = errorEvent.toDlqPayload();
+
+        CompletableFuture<SendResult<Object, Object>> future = CompletableFuture.completedFuture(mock(SendResult.class));
+        when(kafkaTemplate.send("pulsix.event.dlq", "TRACE_4001", payload)).thenReturn(future);
+
+        IngestKafkaSendResult result = producer.sendErrorEvent(errorEvent);
+
+        assertThat(result.getTopicName()).isEqualTo("pulsix.event.dlq");
+        assertThat(result.getMessageKey()).isEqualTo("TRACE_4001");
+        verify(kafkaTemplate).send("pulsix.event.dlq", "TRACE_4001", payload);
     }
 
     @Test
