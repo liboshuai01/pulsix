@@ -14,5 +14,9 @@ public interface ErrorCodeConstants {
     ErrorCode INGEST_PAYLOAD_INVALID = new ErrorCode(1_006_001_006, "接入报文不合法：{}");
     ErrorCode INGEST_KAFKA_SEND_FAILED = new ErrorCode(1_006_001_007, "标准事件投递 Kafka 失败：topic={}");
     ErrorCode INGEST_KAFKA_ERROR_SEND_FAILED = new ErrorCode(1_006_001_009, "异常事件投递 Kafka 失败：topic={}");
+    ErrorCode INGEST_REQUEST_INVALID = new ErrorCode(1_006_001_010, "接入请求不合法：{}");
+    ErrorCode INGEST_AUTH_UNSUPPORTED = new ErrorCode(1_006_001_011, "接入鉴权暂不支持：{}");
+    ErrorCode INGEST_AUTH_FAILED = new ErrorCode(1_006_001_012, "接入鉴权失败：{}");
+    ErrorCode INGEST_REQUIRED_FIELDS_MISSING = new ErrorCode(1_006_001_013, "标准事件必填字段缺失：{}");
 
 }
