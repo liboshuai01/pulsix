@@ -88,4 +88,7 @@ public interface ErrorCodeConstants {
     // ========== 接入异常 1-005-018-000 ==========
     ErrorCode INGEST_ERROR_LOG_NOT_EXISTS = new ErrorCode(1_005_018_000, "接入异常记录不存在");
 
+    // ========== 审计日志 1-005-020-000 ==========
+    ErrorCode AUDIT_LOG_NOT_EXISTS = new ErrorCode(1_005_020_000, "审计日志不存在");
+
 }
