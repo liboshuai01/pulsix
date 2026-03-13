@@ -91,4 +91,8 @@ public interface ErrorCodeConstants {
     // ========== 审计日志 1-005-020-000 ==========
     ErrorCode AUDIT_LOG_NOT_EXISTS = new ErrorCode(1_005_020_000, "审计日志不存在");
 
+    // ========== 回放对比 1-005-021-000 ==========
+    ErrorCode REPLAY_JOB_NOT_EXISTS = new ErrorCode(1_005_021_000, "回放任务不存在");
+    ErrorCode REPLAY_JOB_CONFIG_INVALID = new ErrorCode(1_005_021_001, "回放任务配置不合法：{}");
+
 }
