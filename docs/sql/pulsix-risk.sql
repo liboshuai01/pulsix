@@ -843,6 +843,48 @@ INSERT INTO `ingest_error_log` (`id`, `trace_id`, `source_code`, `scene_code`, `
 (8102, 'TRACE-S18-8102', 'trade_sdk_demo', 'TRADE_RISK', 'TRADE_EVENT', 'raw_trade_bad_8102', 'NORMALIZE', 'AMOUNT_NEGATIVE', 'amountFen 转换后得到负数金额，疑似上游报文异常', '{"req":{"traceId":"TRACE-S18-8102","occurTime":1772842800000},"biz":{"tradeId":"raw_trade_bad_8102","uid":"U8102","deviceNo":"D8102","ip":"66.77.88.10","amountFen":-1000,"merchantNo":"M2001","payMethod":"CARD"}}', '{"eventId":"raw_trade_bad_8102","traceId":"TRACE-S18-8102","sceneCode":"TRADE_RISK","eventType":"trade","eventTime":"2026-03-12T10:32:00","userId":"U8102","deviceId":"D8102","ip":"66.77.88.10","amount":-10.00,"merchantId":"M2001","payMethod":"CARD"}', 'pulsix.event.dlq', 'IGNORED', '2026-03-12 10:32:00', 1, 'admin', '2026-03-12 10:32:00', 'admin', '2026-03-12 10:32:00', b'0'),
 (8103, 'TRACE-S18-8103', 'trade_http_demo', NULL, NULL, 'raw_trade_bad_8103', 'AUTH', 'AUTH_SIGN_INVALID', '签名校验失败，拒绝写入标准事件 Topic', '{"event_id":"raw_trade_bad_8103","uid":"U8103","dev_id":"D8103","client_ip":"88.10.20.30","pay_amt":128000,"trade_result":"ok"}', NULL, 'pulsix.event.dlq', 'RETRY_FAILED', '2026-03-12 10:35:00', 1, 'admin', '2026-03-12 10:35:00', 'admin', '2026-03-12 10:35:00', b'0');
 
+-- ----------------------------
+-- Records of risk_metric_snapshot
+-- ----------------------------
+DELETE FROM `risk_metric_snapshot` WHERE `id` BETWEEN 10101 AND 10136;
+INSERT INTO `risk_metric_snapshot` (`id`, `stat_time`, `stat_granularity`, `scene_code`, `metric_domain`, `metric_code`, `metric_name`, `metric_value`, `metric_unit`, `metric_tags_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(10101, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 120.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10102, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 118.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10103, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.7450, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10104, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.1700, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10105, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.0850, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10106, '2026-03-12 10:40:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 18.0000, 'ms', NULL, 'admin', '2026-03-12 10:40:00', 'admin', '2026-03-12 10:40:00', b'0'),
+(10107, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 135.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10108, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 130.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10109, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.7300, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10110, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.1800, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10111, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.0900, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10112, '2026-03-12 10:41:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 20.0000, 'ms', NULL, 'admin', '2026-03-12 10:41:00', 'admin', '2026-03-12 10:41:00', b'0'),
+(10113, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 128.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10114, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 126.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10115, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.7100, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10116, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.1900, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10117, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.1000, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10118, '2026-03-12 10:42:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 22.0000, 'ms', NULL, 'admin', '2026-03-12 10:42:00', 'admin', '2026-03-12 10:42:00', b'0'),
+(10119, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 146.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10120, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 141.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10121, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.7050, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10122, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.1950, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10123, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.1000, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10124, '2026-03-12 10:43:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 24.0000, 'ms', NULL, 'admin', '2026-03-12 10:43:00', 'admin', '2026-03-12 10:43:00', b'0'),
+(10125, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 152.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10126, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 148.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10127, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.6900, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10128, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.2000, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10129, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.1100, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10130, '2026-03-12 10:44:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 23.0000, 'ms', NULL, 'admin', '2026-03-12 10:44:00', 'admin', '2026-03-12 10:44:00', b'0'),
+(10131, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'INGEST', 'EVENT_IN_TOTAL', '事件接入量', 160.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0'),
+(10132, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'DECISION', 'DECISION_TOTAL', '决策量', 156.0000, 'count', JSON_OBJECT('sceneCode', 'TRADE_RISK'), 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0'),
+(10133, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'DECISION', 'PASS_RATE', '通过率', 0.6800, 'ratio', JSON_OBJECT('action', 'PASS'), 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0'),
+(10134, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'DECISION', 'REVIEW_RATE', '复核率', 0.2050, 'ratio', JSON_OBJECT('action', 'REVIEW'), 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0'),
+(10135, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'DECISION', 'REJECT_RATE', '拒绝率', 0.1150, 'ratio', JSON_OBJECT('action', 'REJECT'), 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0'),
+(10136, '2026-03-12 10:45:00', '1m', 'TRADE_RISK', 'ENGINE', 'P95_LATENCY_MS', '决策 P95 延迟', 26.0000, 'ms', NULL, 'admin', '2026-03-12 10:45:00', 'admin', '2026-03-12 10:45:00', b'0');
+
 DELETE FROM `risk_audit_log` WHERE `scene_code` = 'TRADE_RISK' AND `biz_type` = 'RELEASE';
 INSERT INTO `risk_audit_log` (`id`, `trace_id`, `scene_code`, `operator_id`, `operator_name`, `biz_type`, `biz_code`, `action_type`, `before_json`, `after_json`, `remark`, `operate_time`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (9101, 'TRACE-S14-PUBLISH-001', 'TRADE_RISK', 1, 'admin', 'RELEASE', 'TRADE_RISK_v13', 'PUBLISH', '{"sceneCode":"TRADE_RISK","versionNo":13,"publishStatus":"DRAFT","validationStatus":"PASSED"}', '{"sceneCode":"TRADE_RISK","versionNo":13,"publishStatus":"ROLLED_BACK","validationStatus":"PASSED","effectiveFrom":"2026-03-12 09:05:00"}', 'S14 发布样例：v13 正式发布后进入观察窗口。', '2026-03-12 09:00:00', 'admin', '2026-03-12 09:00:00', 'admin', '2026-03-12 09:00:00', b'0'),
@@ -1052,7 +1094,7 @@ INSERT INTO `system_menu` (`id`, `name`, `permission`, `type`, `sort`, `parent_i
 (7421, '接入异常查询', 'risk:ingest-error:query', 3, 1, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7422, '接入异常详情', 'risk:ingest-error:get', 3, 2, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7423, '接入异常导出', 'risk:ingest-error:export', 3, 3, 7420, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
-(7430, '监控大盘', 'risk:dashboard:query', 2, 30, 7400, 'dashboard', 'ep:data-line', 'risk/placeholder/index?code=dashboard', 'RiskDashboard', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
+(7430, '监控大盘', 'risk:dashboard:query', 2, 30, 7400, 'dashboard', 'ep:data-line', 'risk/dashboard/index', 'RiskDashboard', 0, b'1', b'0', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7431, '监控大盘查询', 'risk:dashboard:query', 3, 1, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7432, '监控大盘导出', 'risk:dashboard:export', 3, 2, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
 (7433, '监控大盘刷新', 'risk:dashboard:refresh', 3, 3, 7430, '', '', '', '', 0, b'1', b'1', b'1', 'admin', '2026-03-12 00:00:00', 'admin', '2026-03-12 00:00:00', b'0'),
