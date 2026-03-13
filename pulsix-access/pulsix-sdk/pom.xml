@@ -18,6 +18,11 @@
     </description>
 
     <dependencies>
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-common</artifactId>
+        </dependency>
+
         <!-- Netty：长连接客户端、批量发送、异步回调、重试缓冲的基础 -->
         <dependency>
             <groupId>io.netty</groupId>
