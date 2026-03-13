@@ -24,6 +24,7 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.replay.ReplayJobDO;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.decisionlog.DecisionLogMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.replay.ReplayJobMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,9 @@ import java.util.stream.Collectors;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.REPLAY_JOB_CONFIG_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.REPLAY_JOB_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_EXECUTE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_REPLAY;
 
 @Service
 public class ReplayJobServiceImpl implements ReplayJobService {
@@ -70,6 +74,9 @@ public class ReplayJobServiceImpl implements ReplayJobService {
     @Resource
     private DecisionLogMapper decisionLogMapper;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createReplayJob(ReplayJobCreateReqVO createReqVO) {
@@ -82,6 +89,8 @@ public class ReplayJobServiceImpl implements ReplayJobService {
         replayJob.setEventTotalCount(0);
         replayJob.setDiffEventCount(0);
         replayJobMapper.insert(replayJob);
+        auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_CREATE,
+                null, getReplayJob(replayJob.getId()), "新增回放任务 " + replayJob.getJobCode());
         return replayJob.getId();
     }
 
@@ -105,6 +114,7 @@ public class ReplayJobServiceImpl implements ReplayJobService {
     @Override
     public ReplayJobDetailRespVO executeReplayJob(ReplayJobExecuteReqVO reqVO) {
         ReplayJobDO replayJob = validateReplayJobExists(reqVO.getId());
+        ReplayJobDetailRespVO beforePayload = getReplayJob(replayJob.getId());
         SceneReleaseDO baselineRelease = validateSceneReleaseExists(replayJob.getSceneCode(), replayJob.getBaselineVersionNo());
         SceneReleaseDO targetRelease = validateSceneReleaseExists(replayJob.getSceneCode(), replayJob.getTargetVersionNo());
         List<RiskEvent> events = loadReplayEvents(replayJob);
@@ -122,9 +132,14 @@ public class ReplayJobServiceImpl implements ReplayJobService {
                     ObjectUtil.defaultIfNull(diffReport.getChangedEventCount(), 0),
                     buildSummaryJson(diffReport),
                     buildSampleDiffJson(diffReport));
-            return getReplayJob(replayJob.getId());
+            ReplayJobDetailRespVO afterPayload = getReplayJob(replayJob.getId());
+            auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_EXECUTE,
+                    beforePayload, afterPayload, "执行回放任务 " + replayJob.getJobCode());
+            return afterPayload;
         } catch (Exception exception) {
             updateJobStatus(replayJob.getId(), JOB_STATUS_FAILED, startedAt, LocalDateTime.now(), 0, 0, Collections.emptyMap(), Collections.emptyList());
+            auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_EXECUTE,
+                    beforePayload, getReplayJob(replayJob.getId()), "执行回放任务失败 " + replayJob.getJobCode());
             throw exception;
         }
     }

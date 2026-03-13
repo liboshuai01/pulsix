@@ -15,6 +15,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureLookupConfMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureTypeEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,10 @@ import java.util.stream.Collectors;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_LOOKUP_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_LOOKUP_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_FEATURE;
 
 @Service
 public class FeatureLookupServiceImpl implements FeatureLookupService {
@@ -41,6 +46,9 @@ public class FeatureLookupServiceImpl implements FeatureLookupService {
 
     @Resource
     private SceneMapper sceneMapper;
+
+    @Resource
+    private AuditLogService auditLogService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -63,6 +71,8 @@ public class FeatureLookupServiceImpl implements FeatureLookupService {
 
         FeatureLookupConfDO conf = buildFeatureLookupConf(createReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode());
         featureLookupConfMapper.insert(conf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_CREATE,
+                null, getFeatureLookup(featureDef.getId()), "新增查表特征 " + featureDef.getFeatureCode());
         return featureDef.getId();
     }
 
@@ -70,6 +80,7 @@ public class FeatureLookupServiceImpl implements FeatureLookupService {
     @Transactional(rollbackFor = Exception.class)
     public void updateFeatureLookup(FeatureLookupSaveReqVO updateReqVO) {
         FeatureDefDO featureDef = validateFeatureLookupExists(updateReqVO.getId());
+        FeatureLookupRespVO beforePayload = getFeatureLookup(featureDef.getId());
         FeatureLookupConfDO conf = validateFeatureLookupConfExists(featureDef.getSceneCode(), featureDef.getFeatureCode());
 
         FeatureDefDO updateFeatureDef = new FeatureDefDO();
@@ -87,17 +98,22 @@ public class FeatureLookupServiceImpl implements FeatureLookupService {
         FeatureLookupConfDO updateConf = buildFeatureLookupConf(updateReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode());
         updateConf.setId(conf.getId());
         featureLookupConfMapper.updateById(updateConf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_UPDATE,
+                beforePayload, getFeatureLookup(featureDef.getId()), "修改查表特征 " + featureDef.getFeatureCode());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteFeatureLookup(Long id) {
+        FeatureLookupRespVO beforePayload = getFeatureLookup(id);
         FeatureDefDO featureDef = validateFeatureLookupExists(id);
         FeatureLookupConfDO conf = featureLookupConfMapper.selectBySceneAndFeatureCode(featureDef.getSceneCode(), featureDef.getFeatureCode());
         if (conf != null) {
             featureLookupConfMapper.deleteById(conf.getId());
         }
         featureDefMapper.deleteById(id);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_DELETE,
+                beforePayload, null, "删除查表特征 " + featureDef.getFeatureCode());
     }
 
     @Override

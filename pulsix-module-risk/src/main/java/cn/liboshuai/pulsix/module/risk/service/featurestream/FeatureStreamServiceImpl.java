@@ -24,6 +24,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureAggTypeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureTypeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureWindowTypeEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,10 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCH
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_STREAM_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_STREAM_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_FEATURE;
 
 @Service
 public class FeatureStreamServiceImpl implements FeatureStreamService {
@@ -58,6 +63,9 @@ public class FeatureStreamServiceImpl implements FeatureStreamService {
 
     @Resource
     private EventSchemaMapper eventSchemaMapper;
+
+    @Resource
+    private AuditLogService auditLogService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -83,6 +91,8 @@ public class FeatureStreamServiceImpl implements FeatureStreamService {
 
         FeatureStreamConfDO conf = buildFeatureStreamConf(createReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode(), entityType, sourceEventCodes);
         featureStreamConfMapper.insert(conf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_CREATE,
+                null, getFeatureStream(featureDef.getId()), "新增流式特征 " + featureDef.getFeatureCode());
         return featureDef.getId();
     }
 
@@ -90,6 +100,7 @@ public class FeatureStreamServiceImpl implements FeatureStreamService {
     @Transactional(rollbackFor = Exception.class)
     public void updateFeatureStream(FeatureStreamSaveReqVO updateReqVO) {
         FeatureDefDO featureDef = validateFeatureStreamExists(updateReqVO.getId());
+        FeatureStreamRespVO beforePayload = getFeatureStream(featureDef.getId());
         FeatureStreamConfDO conf = validateFeatureStreamConfExists(featureDef.getSceneCode(), featureDef.getFeatureCode());
         EntityTypeDO entityType = validateEntityTypeExists(updateReqVO.getEntityType());
         List<String> sourceEventCodes = normalizeSourceEventCodes(updateReqVO.getSourceEventCodes());
@@ -112,17 +123,22 @@ public class FeatureStreamServiceImpl implements FeatureStreamService {
         FeatureStreamConfDO updateConf = buildFeatureStreamConf(updateReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode(), entityType, sourceEventCodes);
         updateConf.setId(conf.getId());
         featureStreamConfMapper.updateById(updateConf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_UPDATE,
+                beforePayload, getFeatureStream(featureDef.getId()), "修改流式特征 " + featureDef.getFeatureCode());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteFeatureStream(Long id) {
+        FeatureStreamRespVO beforePayload = getFeatureStream(id);
         FeatureDefDO featureDef = validateFeatureStreamExists(id);
         FeatureStreamConfDO conf = featureStreamConfMapper.selectBySceneAndFeatureCode(featureDef.getSceneCode(), featureDef.getFeatureCode());
         if (conf != null) {
             featureStreamConfMapper.deleteById(conf.getId());
         }
         featureDefMapper.deleteById(id);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_DELETE,
+                beforePayload, null, "删除流式特征 " + featureDef.getFeatureCode());
     }
 
     @Override

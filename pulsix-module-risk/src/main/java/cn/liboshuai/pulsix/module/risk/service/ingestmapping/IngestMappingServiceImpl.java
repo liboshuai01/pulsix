@@ -17,6 +17,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.ingestmapping.IngestMappingMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.ingestsource.IngestSourceMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.service.preview.StandardEventPreviewResult;
 import cn.liboshuai.pulsix.module.risk.service.preview.StandardEventPreviewService;
 import jakarta.annotation.Resource;
@@ -27,6 +28,10 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCH
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.INGEST_MAPPING_KEY_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.INGEST_MAPPING_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.INGEST_SOURCE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_INGEST_MAPPING;
 
 @Service
 public class IngestMappingServiceImpl implements IngestMappingService {
@@ -46,6 +51,9 @@ public class IngestMappingServiceImpl implements IngestMappingService {
     @Resource
     private StandardEventPreviewService standardEventPreviewService;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createIngestMapping(IngestMappingSaveReqVO createReqVO) {
         validateSourceExists(createReqVO.getSourceCode());
@@ -57,6 +65,9 @@ public class IngestMappingServiceImpl implements IngestMappingService {
         IngestMappingDO ingestMapping = BeanUtils.toBean(createReqVO, IngestMappingDO.class);
         ingestMapping.setTargetFieldName(targetField.getFieldName());
         ingestMappingMapper.insert(ingestMapping);
+        auditLogService.createAuditLog(ingestMapping.getSceneCode(), BIZ_TYPE_INGEST_MAPPING, buildIngestMappingBizCode(ingestMapping),
+                ACTION_CREATE, null, ingestMappingMapper.selectById(ingestMapping.getId()),
+                "新增接入映射 " + ingestMapping.getTargetFieldCode());
         return ingestMapping.getId();
     }
 
@@ -72,12 +83,17 @@ public class IngestMappingServiceImpl implements IngestMappingService {
         updateObj.setTargetFieldCode(ingestMapping.getTargetFieldCode());
         updateObj.setTargetFieldName(targetField.getFieldName());
         ingestMappingMapper.updateById(updateObj);
+        auditLogService.createAuditLog(ingestMapping.getSceneCode(), BIZ_TYPE_INGEST_MAPPING, buildIngestMappingBizCode(ingestMapping),
+                ACTION_UPDATE, ingestMapping, ingestMappingMapper.selectById(ingestMapping.getId()),
+                "修改接入映射 " + ingestMapping.getTargetFieldCode());
     }
 
     @Override
     public void deleteIngestMapping(Long id) {
-        validateIngestMappingExists(id);
+        IngestMappingDO ingestMapping = validateIngestMappingExists(id);
         ingestMappingMapper.deleteById(id);
+        auditLogService.createAuditLog(ingestMapping.getSceneCode(), BIZ_TYPE_INGEST_MAPPING, buildIngestMappingBizCode(ingestMapping),
+                ACTION_DELETE, ingestMapping, null, "删除接入映射 " + ingestMapping.getTargetFieldCode());
     }
 
     @Override
@@ -157,6 +173,11 @@ public class IngestMappingServiceImpl implements IngestMappingService {
         if (id == null || !ObjectUtil.equal(ingestMapping.getId(), id)) {
             throw ServiceExceptionUtil.exception(INGEST_MAPPING_KEY_DUPLICATE);
         }
+    }
+
+    private String buildIngestMappingBizCode(IngestMappingDO ingestMapping) {
+        return ingestMapping.getSourceCode() + ':' + ingestMapping.getSceneCode() + ':'
+                + ingestMapping.getEventCode() + ':' + ingestMapping.getTargetFieldCode();
     }
 
 }

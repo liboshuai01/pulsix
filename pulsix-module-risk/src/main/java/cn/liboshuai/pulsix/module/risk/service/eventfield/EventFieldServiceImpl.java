@@ -10,12 +10,18 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventfield.EventFieldDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_FIELD_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_FIELD_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCHEMA_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_SORT;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_EVENT_FIELD;
 
 @Service
 public class EventFieldServiceImpl implements EventFieldService {
@@ -26,6 +32,9 @@ public class EventFieldServiceImpl implements EventFieldService {
     @Resource
     private EventSchemaMapper eventSchemaMapper;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createEventField(EventFieldSaveReqVO createReqVO) {
         validateEventSchemaExists(createReqVO.getSceneCode(), createReqVO.getEventCode());
@@ -33,6 +42,8 @@ public class EventFieldServiceImpl implements EventFieldService {
         EventFieldDO eventField = BeanUtils.toBean(createReqVO, EventFieldDO.class);
         fillFieldPathIfBlank(eventField);
         eventFieldMapper.insert(eventField);
+        auditLogService.createAuditLog(eventField.getSceneCode(), BIZ_TYPE_EVENT_FIELD, buildEventFieldBizCode(eventField),
+                ACTION_CREATE, null, eventFieldMapper.selectById(eventField.getId()), "新增事件字段 " + eventField.getFieldCode());
         return eventField.getId();
     }
 
@@ -45,12 +56,16 @@ public class EventFieldServiceImpl implements EventFieldService {
         updateObj.setFieldCode(eventField.getFieldCode());
         fillFieldPathIfBlank(updateObj);
         eventFieldMapper.updateById(updateObj);
+        auditLogService.createAuditLog(eventField.getSceneCode(), BIZ_TYPE_EVENT_FIELD, buildEventFieldBizCode(eventField),
+                ACTION_UPDATE, eventField, eventFieldMapper.selectById(eventField.getId()), "修改事件字段 " + eventField.getFieldCode());
     }
 
     @Override
     public void deleteEventField(Long id) {
-        validateEventFieldExists(id);
+        EventFieldDO eventField = validateEventFieldExists(id);
         eventFieldMapper.deleteById(id);
+        auditLogService.createAuditLog(eventField.getSceneCode(), BIZ_TYPE_EVENT_FIELD, buildEventFieldBizCode(eventField),
+                ACTION_DELETE, eventField, null, "删除事件字段 " + eventField.getFieldCode());
     }
 
     @Override
@@ -65,11 +80,13 @@ public class EventFieldServiceImpl implements EventFieldService {
 
     @Override
     public void updateEventFieldSort(Long id, Integer sortNo) {
-        validateEventFieldExists(id);
+        EventFieldDO eventField = validateEventFieldExists(id);
         EventFieldDO updateObj = new EventFieldDO();
         updateObj.setId(id);
         updateObj.setSortNo(sortNo);
         eventFieldMapper.updateById(updateObj);
+        auditLogService.createAuditLog(eventField.getSceneCode(), BIZ_TYPE_EVENT_FIELD, buildEventFieldBizCode(eventField),
+                ACTION_SORT, eventField, eventFieldMapper.selectById(id), "调整事件字段排序 " + eventField.getFieldCode());
     }
 
     private EventFieldDO validateEventFieldExists(Long id) {
@@ -106,6 +123,10 @@ public class EventFieldServiceImpl implements EventFieldService {
         if (StrUtil.isBlank(eventField.getFieldPath())) {
             eventField.setFieldPath("$." + eventField.getFieldCode());
         }
+    }
+
+    private String buildEventFieldBizCode(EventFieldDO eventField) {
+        return eventField.getSceneCode() + ':' + eventField.getEventCode() + ':' + eventField.getFieldCode();
     }
 
 }

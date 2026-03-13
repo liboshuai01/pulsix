@@ -21,6 +21,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDerivedConfMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureTypeEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.service.expression.RiskExpressionValidationService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,10 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_D
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_DERIVED_EXPR_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.FEATURE_DERIVED_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_FEATURE;
 
 @Service
 public class FeatureDerivedServiceImpl implements FeatureDerivedService {
@@ -62,6 +67,9 @@ public class FeatureDerivedServiceImpl implements FeatureDerivedService {
 
     @Resource
     private RiskExpressionValidationService expressionValidationService;
+
+    @Resource
+    private AuditLogService auditLogService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -85,6 +93,8 @@ public class FeatureDerivedServiceImpl implements FeatureDerivedService {
 
         FeatureDerivedConfDO conf = buildFeatureDerivedConf(createReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode());
         featureDerivedConfMapper.insert(conf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_CREATE,
+                null, getFeatureDerived(featureDef.getId()), "新增派生特征 " + featureDef.getFeatureCode());
         return featureDef.getId();
     }
 
@@ -92,6 +102,7 @@ public class FeatureDerivedServiceImpl implements FeatureDerivedService {
     @Transactional(rollbackFor = Exception.class)
     public void updateFeatureDerived(FeatureDerivedSaveReqVO updateReqVO) {
         FeatureDefDO featureDef = validateFeatureDerivedExists(updateReqVO.getId());
+        FeatureDerivedRespVO beforePayload = getFeatureDerived(featureDef.getId());
         FeatureDerivedConfDO conf = validateFeatureDerivedConfExists(featureDef.getSceneCode(), featureDef.getFeatureCode());
         FeatureDerivedValidateReqVO validateReq = toValidateReq(updateReqVO);
         validateReq.setFeatureCode(featureDef.getFeatureCode());
@@ -112,17 +123,22 @@ public class FeatureDerivedServiceImpl implements FeatureDerivedService {
         FeatureDerivedConfDO updateConf = buildFeatureDerivedConf(updateReqVO, featureDef.getSceneCode(), featureDef.getFeatureCode());
         updateConf.setId(conf.getId());
         featureDerivedConfMapper.updateById(updateConf);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_UPDATE,
+                beforePayload, getFeatureDerived(featureDef.getId()), "修改派生特征 " + featureDef.getFeatureCode());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteFeatureDerived(Long id) {
+        FeatureDerivedRespVO beforePayload = getFeatureDerived(id);
         FeatureDefDO featureDef = validateFeatureDerivedExists(id);
         FeatureDerivedConfDO conf = featureDerivedConfMapper.selectBySceneAndFeatureCode(featureDef.getSceneCode(), featureDef.getFeatureCode());
         if (conf != null) {
             featureDerivedConfMapper.deleteById(conf.getId());
         }
         featureDefMapper.deleteById(id);
+        auditLogService.createAuditLog(featureDef.getSceneCode(), BIZ_TYPE_FEATURE, featureDef.getFeatureCode(), ACTION_DELETE,
+                beforePayload, null, "删除派生特征 " + featureDef.getFeatureCode());
     }
 
     @Override

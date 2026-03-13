@@ -40,7 +40,6 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseR
 import cn.liboshuai.pulsix.module.risk.controller.admin.release.vo.SceneReleaseRollbackReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.rule.vo.RuleValidateReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.rule.vo.RuleValidateRespVO;
-import cn.liboshuai.pulsix.module.risk.dal.dataobject.auditlog.RiskAuditLogDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventfield.EventFieldDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.feature.FeatureDefDO;
@@ -54,7 +53,6 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.policy.PolicyScoreBandDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.release.SceneReleaseDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.rule.RuleDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
-import cn.liboshuai.pulsix.module.risk.dal.mysql.auditlog.RiskAuditLogMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDefMapper;
@@ -69,6 +67,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.rule.RuleDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.feature.RiskFeatureTypeEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.service.featurederived.FeatureDerivedService;
 import cn.liboshuai.pulsix.module.risk.service.rule.RuleService;
 import cn.liboshuai.pulsix.module.risk.util.RiskListRedisUtils;
@@ -105,6 +104,9 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_REL
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_ROLLBACK_SOURCE_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_STATUS_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_VALIDATION_FAILED;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_COMPILE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_PUBLISH;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_ROLLBACK;
 
 @Service
 public class SceneReleaseServiceImpl implements SceneReleaseService {
@@ -114,9 +116,6 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
     private static final String PUBLISH_STATUS_ACTIVE = "ACTIVE";
     private static final String PUBLISH_STATUS_ROLLED_BACK = "ROLLED_BACK";
     private static final String PUBLISH_STATUS_FAILED = "FAILED";
-    private static final String AUDIT_BIZ_TYPE_RELEASE = "RELEASE";
-    private static final String AUDIT_ACTION_PUBLISH = "PUBLISH";
-    private static final String AUDIT_ACTION_ROLLBACK = "ROLLBACK";
     private static final String VALIDATION_STATUS_PASSED = "PASSED";
     private static final String VALIDATION_STATUS_FAILED = "FAILED";
     private static final String SNAPSHOT_STATUS_DRAFT = "DRAFT";
@@ -132,7 +131,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
     private SceneMapper sceneMapper;
 
     @Resource
-    private RiskAuditLogMapper riskAuditLogMapper;
+    private AuditLogService auditLogService;
 
     @Resource
     private EventSchemaMapper eventSchemaMapper;
@@ -223,6 +222,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         release.setCompiledPolicyCount(snapshot.getPolicy() == null ? 0 : 1);
         release.setRemark(trimToNull(reqVO.getRemark()));
         sceneReleaseMapper.insert(release);
+        writeReleaseAuditLog(release.getSceneCode(), buildReleaseBizCode(release), ACTION_COMPILE,
+                null, buildReleaseAuditPayload(release), "编译场景发布版本 " + buildReleaseBizCode(release));
         return buildRespVO(release);
     }
 
@@ -244,7 +245,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         applyPublishMetadata(release, effectiveNow ? PUBLISH_STATUS_ACTIVE : PUBLISH_STATUS_PUBLISHED,
                 publishedAt, effectiveFrom, resolveUpdatedRemark(reqVO.getRemark(), release.getRemark()));
         sceneReleaseMapper.updateById(release);
-        writeReleaseAuditLog(release.getSceneCode(), buildReleaseBizCode(release), AUDIT_ACTION_PUBLISH,
+        writeReleaseAuditLog(release.getSceneCode(), buildReleaseBizCode(release), ACTION_PUBLISH,
                 beforePayload, buildReleaseAuditPayload(release), buildPublishAuditRemark(release, effectiveNow));
         return buildRespVO(release);
     }
@@ -270,7 +271,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         SceneReleaseDO rollbackRelease = buildRollbackRelease(sourceRelease, nextVersionNo, publishedAt, effectiveFrom,
                 effectiveNow ? PUBLISH_STATUS_ACTIVE : PUBLISH_STATUS_PUBLISHED, reqVO.getRemark());
         sceneReleaseMapper.insert(rollbackRelease);
-        writeReleaseAuditLog(sourceRelease.getSceneCode(), buildReleaseBizCode(rollbackRelease), AUDIT_ACTION_ROLLBACK,
+        writeReleaseAuditLog(sourceRelease.getSceneCode(), buildReleaseBizCode(rollbackRelease), ACTION_ROLLBACK,
                 buildReleaseAuditPayload(sourceRelease), buildReleaseAuditPayload(rollbackRelease),
                 buildRollbackAuditRemark(sourceRelease, rollbackRelease, currentActiveRelease, effectiveNow));
         return buildRespVO(rollbackRelease);
@@ -394,19 +395,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
 
     private void writeReleaseAuditLog(String sceneCode, String bizCode, String actionType, Map<String, Object> beforeJson,
                                       Map<String, Object> afterJson, String remark) {
-        RiskAuditLogDO auditLog = new RiskAuditLogDO();
-        auditLog.setTraceId(StrUtil.blankToDefault(TracerUtils.getTraceId(), UUID.randomUUID().toString()));
-        auditLog.setSceneCode(sceneCode);
-        auditLog.setOperatorId(ObjectUtil.defaultIfNull(SecurityFrameworkUtils.getLoginUserId(), 0L));
-        auditLog.setOperatorName(resolveOperatorName());
-        auditLog.setBizType(AUDIT_BIZ_TYPE_RELEASE);
-        auditLog.setBizCode(bizCode);
-        auditLog.setActionType(actionType);
-        auditLog.setBeforeJson(beforeJson);
-        auditLog.setAfterJson(afterJson);
-        auditLog.setRemark(trimToNull(remark));
-        auditLog.setOperateTime(LocalDateTime.now());
-        riskAuditLogMapper.insert(auditLog);
+        auditLogService.createAuditLog(sceneCode, cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_RELEASE,
+                bizCode, actionType, beforeJson, afterJson, remark);
     }
 
     private String buildReleaseBizCode(SceneReleaseDO release) {

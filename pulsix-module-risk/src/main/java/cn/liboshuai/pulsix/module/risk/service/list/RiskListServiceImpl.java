@@ -19,6 +19,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.list.ListSetMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.list.RiskListStorageTypeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.list.RiskListSyncStatusEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.util.RiskListRedisUtils;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,6 +39,12 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.LIST_SET_
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.LIST_SET_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.LIST_SYNC_FAILED;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_SYNC;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE_STATUS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_LIST;
 
 @Service
 public class RiskListServiceImpl implements RiskListService {
@@ -54,6 +61,9 @@ public class RiskListServiceImpl implements RiskListService {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createListSet(ListSetSaveReqVO createReqVO) {
         validateSceneExists(createReqVO.getSceneCode());
@@ -62,6 +72,8 @@ public class RiskListServiceImpl implements RiskListService {
         listSet.setSyncStatus(RiskListSyncStatusEnum.PENDING.getType());
         listSet.setLastSyncTime(null);
         listSetMapper.insert(listSet);
+        auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_CREATE,
+                null, listSetMapper.selectById(listSet.getId()), "新增名单集 " + listSet.getListCode());
         return listSet.getId();
     }
 
@@ -73,6 +85,8 @@ public class RiskListServiceImpl implements RiskListService {
         updateObj.setListCode(listSet.getListCode());
         updateObj.setSyncStatus(RiskListSyncStatusEnum.PENDING.getType());
         listSetMapper.updateById(updateObj);
+        auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_UPDATE,
+                listSet, listSetMapper.selectById(listSet.getId()), "修改名单集 " + listSet.getListCode());
     }
 
     @Override
@@ -86,6 +100,8 @@ public class RiskListServiceImpl implements RiskListService {
         updateObj.setStatus(status);
         updateObj.setSyncStatus(RiskListSyncStatusEnum.PENDING.getType());
         listSetMapper.updateById(updateObj);
+        auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_UPDATE_STATUS,
+                listSet, listSetMapper.selectById(id), "更新名单集状态为 " + status + "：" + listSet.getListCode());
     }
 
     @Override
@@ -96,6 +112,8 @@ public class RiskListServiceImpl implements RiskListService {
                 .eq(ListItemDO::getSceneCode, listSet.getSceneCode())
                 .eq(ListItemDO::getListCode, listSet.getListCode()));
         listSetMapper.deleteById(id);
+        auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_DELETE,
+                listSet, null, "删除名单集 " + listSet.getListCode());
         try {
             purgeRedisData(listSet);
         } catch (Exception ignored) {
@@ -117,6 +135,7 @@ public class RiskListServiceImpl implements RiskListService {
         ListSetDO listSet = validateListSetExists(id);
         String redisKeyPrefix = buildRedisKeyPrefix(listSet);
         LocalDateTime now = LocalDateTime.now();
+        Map<String, Object> beforePayload = buildListSyncAuditPayload(listSet, null, null);
         try {
             purgeRedisData(listSet);
             int syncedCount = 0;
@@ -139,12 +158,18 @@ public class RiskListServiceImpl implements RiskListService {
             respVO.setRedisKeyPrefix(redisKeyPrefix);
             respVO.setSyncedItemCount(syncedCount);
             respVO.setStorageType(listSet.getStorageType());
+            auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_SYNC,
+                    beforePayload, buildListSyncAuditPayload(listSetMapper.selectById(listSet.getId()), respVO, null),
+                    "同步名单到 Redis：" + listSet.getListCode());
             return respVO;
         } catch (Exception exception) {
             ListSetDO updateObj = new ListSetDO();
             updateObj.setId(listSet.getId());
             updateObj.setSyncStatus(RiskListSyncStatusEnum.FAILED.getType());
             listSetMapper.updateById(updateObj);
+            auditLogService.createAuditLog(listSet.getSceneCode(), BIZ_TYPE_LIST, buildListSetBizCode(listSet), ACTION_SYNC,
+                    beforePayload, buildListSyncAuditPayload(listSetMapper.selectById(listSet.getId()), null, exception.getMessage()),
+                    "同步名单到 Redis 失败：" + listSet.getListCode());
             throw ServiceExceptionUtil.exception(LIST_SYNC_FAILED);
         }
     }
@@ -157,6 +182,8 @@ public class RiskListServiceImpl implements RiskListService {
         ListItemDO listItem = BeanUtils.toBean(createReqVO, ListItemDO.class);
         listItemMapper.insert(listItem);
         markSetSyncPending(createReqVO.getSceneCode(), createReqVO.getListCode());
+        auditLogService.createAuditLog(listItem.getSceneCode(), BIZ_TYPE_LIST, buildListItemBizCode(listItem), ACTION_CREATE,
+                null, listItemMapper.selectById(listItem.getId()), "新增名单项 " + listItem.getMatchValue());
         return listItem.getId();
     }
 
@@ -170,6 +197,8 @@ public class RiskListServiceImpl implements RiskListService {
         updateObj.setListCode(listItem.getListCode());
         listItemMapper.updateById(updateObj);
         markSetSyncPending(listItem.getSceneCode(), listItem.getListCode());
+        auditLogService.createAuditLog(listItem.getSceneCode(), BIZ_TYPE_LIST, buildListItemBizCode(listItem), ACTION_UPDATE,
+                listItem, listItemMapper.selectById(listItem.getId()), "修改名单项 " + listItem.getMatchValue());
     }
 
     @Override
@@ -184,6 +213,8 @@ public class RiskListServiceImpl implements RiskListService {
         updateObj.setStatus(status);
         listItemMapper.updateById(updateObj);
         markSetSyncPending(listItem.getSceneCode(), listItem.getListCode());
+        auditLogService.createAuditLog(listItem.getSceneCode(), BIZ_TYPE_LIST, buildListItemBizCode(listItem), ACTION_UPDATE_STATUS,
+                listItem, listItemMapper.selectById(id), "更新名单项状态为 " + status + "：" + listItem.getMatchValue());
     }
 
     @Override
@@ -192,6 +223,8 @@ public class RiskListServiceImpl implements RiskListService {
         ListItemDO listItem = validateListItemExists(id);
         listItemMapper.deleteById(id);
         markSetSyncPending(listItem.getSceneCode(), listItem.getListCode());
+        auditLogService.createAuditLog(listItem.getSceneCode(), BIZ_TYPE_LIST, buildListItemBizCode(listItem), ACTION_DELETE,
+                listItem, null, "删除名单项 " + listItem.getMatchValue());
     }
 
     @Override
@@ -317,6 +350,26 @@ public class RiskListServiceImpl implements RiskListService {
             syncedCount++;
         }
         return syncedCount;
+    }
+
+    private String buildListSetBizCode(ListSetDO listSet) {
+        return listSet.getListCode();
+    }
+
+    private String buildListItemBizCode(ListItemDO listItem) {
+        return listItem.getListCode() + ':' + listItem.getMatchValue();
+    }
+
+    private Map<String, Object> buildListSyncAuditPayload(ListSetDO listSet, ListSyncRespVO syncRespVO, String syncError) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("listSet", listSet);
+        if (syncRespVO != null) {
+            payload.put("syncResult", syncRespVO);
+        }
+        if (syncError != null) {
+            payload.put("syncError", syncError);
+        }
+        return payload;
     }
 
 }

@@ -10,6 +10,7 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventsample.EventSampleDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventsample.EventSampleMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.service.preview.StandardEventPreviewResult;
 import cn.liboshuai.pulsix.module.risk.service.preview.StandardEventPreviewService;
 import jakarta.annotation.Resource;
@@ -18,6 +19,10 @@ import org.springframework.stereotype.Service;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SAMPLE_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SAMPLE_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCHEMA_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_EVENT_SAMPLE;
 
 @Service
 public class EventSampleServiceImpl implements EventSampleService {
@@ -31,12 +36,17 @@ public class EventSampleServiceImpl implements EventSampleService {
     @Resource
     private StandardEventPreviewService standardEventPreviewService;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createEventSample(EventSampleSaveReqVO createReqVO) {
         validateEventSchemaExists(createReqVO.getSceneCode(), createReqVO.getEventCode());
         validateEventSampleCodeUnique(createReqVO.getSceneCode(), createReqVO.getEventCode(), createReqVO.getSampleCode(), null);
         EventSampleDO eventSample = BeanUtils.toBean(createReqVO, EventSampleDO.class);
         eventSampleMapper.insert(eventSample);
+        auditLogService.createAuditLog(eventSample.getSceneCode(), BIZ_TYPE_EVENT_SAMPLE, buildEventSampleBizCode(eventSample),
+                ACTION_CREATE, null, eventSampleMapper.selectById(eventSample.getId()), "新增事件样例 " + eventSample.getSampleCode());
         return eventSample.getId();
     }
 
@@ -48,12 +58,16 @@ public class EventSampleServiceImpl implements EventSampleService {
         updateObj.setEventCode(eventSample.getEventCode());
         updateObj.setSampleCode(eventSample.getSampleCode());
         eventSampleMapper.updateById(updateObj);
+        auditLogService.createAuditLog(eventSample.getSceneCode(), BIZ_TYPE_EVENT_SAMPLE, buildEventSampleBizCode(eventSample),
+                ACTION_UPDATE, eventSample, eventSampleMapper.selectById(eventSample.getId()), "修改事件样例 " + eventSample.getSampleCode());
     }
 
     @Override
     public void deleteEventSample(Long id) {
-        validateEventSampleExists(id);
+        EventSampleDO eventSample = validateEventSampleExists(id);
         eventSampleMapper.deleteById(id);
+        auditLogService.createAuditLog(eventSample.getSceneCode(), BIZ_TYPE_EVENT_SAMPLE, buildEventSampleBizCode(eventSample),
+                ACTION_DELETE, eventSample, null, "删除事件样例 " + eventSample.getSampleCode());
     }
 
     @Override
@@ -113,6 +127,10 @@ public class EventSampleServiceImpl implements EventSampleService {
         if (id == null || !id.equals(eventSample.getId())) {
             throw ServiceExceptionUtil.exception(EVENT_SAMPLE_CODE_DUPLICATE);
         }
+    }
+
+    private String buildEventSampleBizCode(EventSampleDO eventSample) {
+        return eventSample.getSceneCode() + ':' + eventSample.getEventCode() + ':' + eventSample.getSampleCode();
     }
 
 }

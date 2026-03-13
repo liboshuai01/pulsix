@@ -31,6 +31,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.simulation.SimulationCaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.simulation.SimulationReportMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,11 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SIMULATIO
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SIMULATION_RELEASE_NOT_AVAILABLE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SIMULATION_REPORT_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_EXECUTE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_SIMULATION;
 
 @Service
 public class RiskSimulationServiceImpl implements RiskSimulationService {
@@ -83,30 +89,41 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
     @Resource
     private SceneMapper sceneMapper;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createSimulationCase(SimulationCaseSaveReqVO createReqVO) {
         SimulationCaseSaveReqVO normalizedReqVO = normalizeSaveReqVO(createReqVO);
         validateSimulationCaseCodeUnique(normalizedReqVO.getSceneCode(), normalizedReqVO.getCaseCode(), null);
         SimulationCaseDO simulationCase = BeanUtils.toBean(normalizedReqVO, SimulationCaseDO.class);
         simulationCaseMapper.insert(simulationCase);
+        auditLogService.createAuditLog(simulationCase.getSceneCode(), BIZ_TYPE_SIMULATION, simulationCase.getCaseCode(), ACTION_CREATE,
+                null, getSimulationCase(simulationCase.getId()), "新增仿真用例 " + simulationCase.getCaseCode());
         return simulationCase.getId();
     }
 
     @Override
     public void updateSimulationCase(SimulationCaseSaveReqVO updateReqVO) {
         SimulationCaseDO simulationCase = validateSimulationCaseExists(updateReqVO.getId());
+        SimulationCaseRespVO beforePayload = getSimulationCase(simulationCase.getId());
         SimulationCaseSaveReqVO normalizedReqVO = normalizeSaveReqVO(updateReqVO);
         validateSimulationCaseCodeUnique(normalizedReqVO.getSceneCode(), normalizedReqVO.getCaseCode(), simulationCase.getId());
         SimulationCaseDO updateObj = BeanUtils.toBean(normalizedReqVO, SimulationCaseDO.class);
         simulationCaseMapper.updateById(updateObj);
+        auditLogService.createAuditLog(simulationCase.getSceneCode(), BIZ_TYPE_SIMULATION, simulationCase.getCaseCode(), ACTION_UPDATE,
+                beforePayload, getSimulationCase(simulationCase.getId()), "修改仿真用例 " + simulationCase.getCaseCode());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteSimulationCase(Long id) {
-        validateSimulationCaseExists(id);
+        SimulationCaseRespVO beforePayload = getSimulationCase(id);
+        SimulationCaseDO simulationCase = validateSimulationCaseExists(id);
         simulationCaseMapper.deleteById(id);
         simulationReportMapper.delete(SimulationReportDO::getCaseId, id);
+        auditLogService.createAuditLog(simulationCase.getSceneCode(), BIZ_TYPE_SIMULATION, simulationCase.getCaseCode(), ACTION_DELETE,
+                beforePayload, null, "删除仿真用例 " + simulationCase.getCaseCode());
     }
 
     @Override
@@ -134,6 +151,7 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
     @Transactional(rollbackFor = Exception.class)
     public SimulationReportRespVO executeSimulation(SimulationExecuteReqVO reqVO) {
         SimulationCaseDO simulationCase = validateSimulationCaseExists(reqVO.getCaseId());
+        SimulationCaseRespVO beforePayload = getSimulationCase(simulationCase.getId());
         SceneReleaseDO release = resolveSceneRelease(simulationCase);
         SceneSnapshot snapshot = EngineJson.read(EngineJson.write(release.getSnapshotJson()), SceneSnapshot.class);
         RiskEvent riskEvent = buildRiskEvent(simulationCase, snapshot);
@@ -155,7 +173,12 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
         reportDO.setPassFlag(matchExpectation(simulationCase, report) ? 1 : 0);
         reportDO.setDurationMs(durationMs);
         simulationReportMapper.insert(reportDO);
-        return buildSimulationReportRespVO(reportDO, simulationCase);
+        SimulationReportRespVO respVO = buildSimulationReportRespVO(reportDO, simulationCase);
+        auditLogService.createAuditLog(simulationCase.getSceneCode(), BIZ_TYPE_SIMULATION, simulationCase.getCaseCode(), ACTION_EXECUTE,
+                buildSimulationExecuteAuditPayload(beforePayload, null),
+                buildSimulationExecuteAuditPayload(getSimulationCase(simulationCase.getId()), respVO),
+                "执行仿真用例 " + simulationCase.getCaseCode());
+        return respVO;
     }
 
     @Override
@@ -277,6 +300,15 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
         overrides.setStreamFeatures(copyObjectMap(simulationCase.getMockFeatureJson()));
         overrides.setLookupFeatures(copyObjectMap(simulationCase.getMockLookupJson()));
         return overrides;
+    }
+
+    private Map<String, Object> buildSimulationExecuteAuditPayload(SimulationCaseRespVO caseRespVO, SimulationReportRespVO reportRespVO) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("case", caseRespVO);
+        if (reportRespVO != null) {
+            payload.put("report", reportRespVO);
+        }
+        return payload;
     }
 
     private boolean matchExpectation(SimulationCaseDO simulationCase, LocalSimulationRunner.SimulationReport report) {

@@ -9,12 +9,16 @@ import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventschema.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventschema.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCHEMA_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_SCHEMA_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_EVENT_SCHEMA;
 
 @Service
 public class EventSchemaServiceImpl implements EventSchemaService {
@@ -25,6 +29,9 @@ public class EventSchemaServiceImpl implements EventSchemaService {
     @Resource
     private SceneMapper sceneMapper;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     public Long createEventSchema(EventSchemaSaveReqVO createReqVO) {
         validateSceneExists(createReqVO.getSceneCode());
@@ -32,6 +39,9 @@ public class EventSchemaServiceImpl implements EventSchemaService {
         EventSchemaDO eventSchema = BeanUtils.toBean(createReqVO, EventSchemaDO.class);
         eventSchema.setVersion(1);
         eventSchemaMapper.insert(eventSchema);
+        auditLogService.createAuditLog(eventSchema.getSceneCode(), BIZ_TYPE_EVENT_SCHEMA,
+                buildEventSchemaBizCode(eventSchema.getSceneCode(), eventSchema.getEventCode()), ACTION_CREATE,
+                null, eventSchemaMapper.selectById(eventSchema.getId()), "新增事件定义 " + eventSchema.getEventCode());
         return eventSchema.getId();
     }
 
@@ -43,6 +53,9 @@ public class EventSchemaServiceImpl implements EventSchemaService {
         updateObj.setEventCode(eventSchema.getEventCode());
         updateObj.setVersion(eventSchema.getVersion() == null ? 1 : eventSchema.getVersion() + 1);
         eventSchemaMapper.updateById(updateObj);
+        auditLogService.createAuditLog(eventSchema.getSceneCode(), BIZ_TYPE_EVENT_SCHEMA,
+                buildEventSchemaBizCode(eventSchema.getSceneCode(), eventSchema.getEventCode()), ACTION_UPDATE,
+                eventSchema, eventSchemaMapper.selectById(eventSchema.getId()), "修改事件定义 " + eventSchema.getEventCode());
     }
 
     @Override
@@ -82,6 +95,10 @@ public class EventSchemaServiceImpl implements EventSchemaService {
         if (id == null || !id.equals(eventSchema.getId())) {
             throw ServiceExceptionUtil.exception(EVENT_SCHEMA_CODE_DUPLICATE);
         }
+    }
+
+    private String buildEventSchemaBizCode(String sceneCode, String eventCode) {
+        return sceneCode + ':' + eventCode;
     }
 
 }

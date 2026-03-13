@@ -7,6 +7,9 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.auditlog.vo.AuditLogResp
 
 public interface AuditLogService {
 
+    void createAuditLog(String sceneCode, String bizType, String bizCode, String actionType,
+                        Object beforePayload, Object afterPayload, String remark);
+
     PageResult<AuditLogRespVO> getAuditLogPage(AuditLogPageReqVO pageReqVO);
 
     AuditLogDetailRespVO getAuditLog(Long id);

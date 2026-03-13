@@ -19,6 +19,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.eventfield.EventFieldMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.feature.FeatureDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.rule.RuleDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import cn.liboshuai.pulsix.module.risk.service.expression.RiskExpressionValidationService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,10 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.RULE_EXPR
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.RULE_HIT_REASON_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.RULE_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_RULE;
 
 @Service
 public class RuleServiceImpl implements RuleService {
@@ -58,6 +63,9 @@ public class RuleServiceImpl implements RuleService {
     @Resource
     private RiskExpressionValidationService expressionValidationService;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createRule(RuleSaveReqVO createReqVO) {
@@ -68,6 +76,8 @@ public class RuleServiceImpl implements RuleService {
         RuleDefDO rule = buildRuleDef(createReqVO, createReqVO.getSceneCode().trim(), createReqVO.getRuleCode().trim());
         rule.setVersion(1);
         ruleDefMapper.insert(rule);
+        auditLogService.createAuditLog(rule.getSceneCode(), BIZ_TYPE_RULE, rule.getRuleCode(), ACTION_CREATE,
+                null, buildRespVO(ruleDefMapper.selectById(rule.getId())), "新增规则 " + rule.getRuleCode());
         return rule.getId();
     }
 
@@ -83,6 +93,8 @@ public class RuleServiceImpl implements RuleService {
         updateRule.setId(rule.getId());
         updateRule.setVersion(rule.getVersion() == null ? 1 : rule.getVersion() + 1);
         ruleDefMapper.updateById(updateRule);
+        auditLogService.createAuditLog(rule.getSceneCode(), BIZ_TYPE_RULE, rule.getRuleCode(), ACTION_UPDATE,
+                buildRespVO(rule), buildRespVO(ruleDefMapper.selectById(rule.getId())), "修改规则 " + rule.getRuleCode());
     }
 
     @Override
@@ -90,6 +102,8 @@ public class RuleServiceImpl implements RuleService {
     public void deleteRule(Long id) {
         RuleDefDO rule = validateRuleExists(id);
         ruleDefMapper.deleteById(rule.getId());
+        auditLogService.createAuditLog(rule.getSceneCode(), BIZ_TYPE_RULE, rule.getRuleCode(), ACTION_DELETE,
+                buildRespVO(rule), null, "删除规则 " + rule.getRuleCode());
     }
 
     @Override

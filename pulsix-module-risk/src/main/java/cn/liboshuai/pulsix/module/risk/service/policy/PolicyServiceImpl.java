@@ -29,6 +29,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.rule.RuleDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import cn.liboshuai.pulsix.module.risk.enums.policy.RiskPolicyDecisionModeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.policy.RiskPolicyScoreCalcModeEnum;
+import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +49,11 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.POLICY_NO
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.POLICY_RULE_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.POLICY_SCORE_BAND_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_DELETE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_SORT;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_UPDATE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_POLICY;
 
 @Service
 public class PolicyServiceImpl implements PolicyService {
@@ -71,6 +77,9 @@ public class PolicyServiceImpl implements PolicyService {
     @Resource
     private SceneMapper sceneMapper;
 
+    @Resource
+    private AuditLogService auditLogService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createPolicy(PolicySaveReqVO createReqVO) {
@@ -87,6 +96,8 @@ public class PolicyServiceImpl implements PolicyService {
         policyDefMapper.insert(policy);
         replacePolicyRuleRefs(sceneCode, policyCode, ruleCodes, decisionMode, Collections.emptyMap());
         replacePolicyScoreBands(sceneCode, policyCode, scoreBands);
+        auditLogService.createAuditLog(sceneCode, BIZ_TYPE_POLICY, policyCode, ACTION_CREATE,
+                null, getPolicy(policy.getId()), "新增策略 " + policyCode);
         return policy.getId();
     }
 
@@ -94,6 +105,7 @@ public class PolicyServiceImpl implements PolicyService {
     @Transactional(rollbackFor = Exception.class)
     public void updatePolicy(PolicySaveReqVO updateReqVO) {
         PolicyDefDO policy = validatePolicyExists(updateReqVO.getId());
+        PolicyRespVO beforePayload = getPolicy(policy.getId());
         String decisionMode = resolveDecisionMode(updateReqVO.getDecisionMode());
         List<String> ruleCodes = validateAndNormalizeRuleCodes(policy.getSceneCode(), updateReqVO.getRuleCodes());
         List<PolicyScoreBandDO> scoreBands = buildScoreBandDOs(policy.getSceneCode(), policy.getPolicyCode(), updateReqVO.getScoreBands(), decisionMode);
@@ -107,15 +119,20 @@ public class PolicyServiceImpl implements PolicyService {
         policyDefMapper.updateById(updatePolicy);
         replacePolicyRuleRefs(policy.getSceneCode(), policy.getPolicyCode(), ruleCodes, decisionMode, existingRefMap);
         replacePolicyScoreBands(policy.getSceneCode(), policy.getPolicyCode(), scoreBands);
+        auditLogService.createAuditLog(policy.getSceneCode(), BIZ_TYPE_POLICY, policy.getPolicyCode(), ACTION_UPDATE,
+                beforePayload, getPolicy(policy.getId()), "修改策略 " + policy.getPolicyCode());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deletePolicy(Long id) {
+        PolicyRespVO beforePayload = getPolicy(id);
         PolicyDefDO policy = validatePolicyExists(id);
         policyRuleRefMapper.deleteBySceneAndPolicyCode(policy.getSceneCode(), policy.getPolicyCode());
         policyScoreBandMapper.deleteBySceneAndPolicyCode(policy.getSceneCode(), policy.getPolicyCode());
         policyDefMapper.deleteById(policy.getId());
+        auditLogService.createAuditLog(policy.getSceneCode(), BIZ_TYPE_POLICY, policy.getPolicyCode(), ACTION_DELETE,
+                beforePayload, null, "删除策略 " + policy.getPolicyCode());
     }
 
     @Override
@@ -158,6 +175,7 @@ public class PolicyServiceImpl implements PolicyService {
     @Transactional(rollbackFor = Exception.class)
     public void sortPolicyRules(PolicySortReqVO reqVO) {
         PolicyDefDO policy = validatePolicyExists(reqVO.getId());
+        PolicyRespVO beforePayload = getPolicy(policy.getId());
         List<String> ruleCodes = validateAndNormalizeRuleCodes(policy.getSceneCode(), reqVO.getRuleCodes());
         Map<String, PolicyRuleRefDO> existingRefMap = policyRuleRefMapper.selectListBySceneAndPolicyCode(policy.getSceneCode(), policy.getPolicyCode())
                 .stream()
@@ -168,6 +186,8 @@ public class PolicyServiceImpl implements PolicyService {
         updatePolicy.setId(policy.getId());
         updatePolicy.setVersion(policy.getVersion() == null ? 1 : policy.getVersion() + 1);
         policyDefMapper.updateById(updatePolicy);
+        auditLogService.createAuditLog(policy.getSceneCode(), BIZ_TYPE_POLICY, policy.getPolicyCode(), ACTION_SORT,
+                beforePayload, getPolicy(policy.getId()), "调整策略规则顺序 " + policy.getPolicyCode());
     }
 
     @Override
