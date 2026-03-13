@@ -11,6 +11,7 @@ import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
 import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
+import cn.liboshuai.pulsix.access.ingest.service.metrics.IngestMetricsService;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -60,6 +61,9 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private IngestMetricsService ingestMetricsService;
 
     @Override
     public AccessIngestResponseDTO ingest(AccessIngestRequestDTO request) {
@@ -126,7 +130,12 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
         }
 
         try {
+            long produceStartTime = System.currentTimeMillis();
             IngestKafkaSendResult sendResult = eventProducer.sendStandardEvent(runtimeConfig.getSource(), standardEventJson);
+            long endTime = System.currentTimeMillis();
+            long processTimeMillis = endTime - startTime;
+            long produceLatencyMillis = endTime - produceStartTime;
+            ingestMetricsService.recordAccepted(sourceCode, processTimeMillis, produceLatencyMillis);
             return AccessIngestResponseDTO.builder()
                     .requestId(requestId)
                     .traceId(readStringValue(standardEventJson, "traceId", traceId))
@@ -135,7 +144,7 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
                     .code(GlobalErrorCodeConstants.SUCCESS.getCode())
                     .message("accepted")
                     .standardTopicName(sendResult.getTopicName())
-                    .processTimeMillis(System.currentTimeMillis() - startTime)
+                    .processTimeMillis(processTimeMillis)
                     .build();
         } catch (ServiceException ex) {
             return reject(requestId, readStringValue(standardEventJson, "traceId", traceId),
@@ -175,6 +184,8 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
         } catch (Exception ex) {
             log.warn("[reject][写入 ingest_error_log 失败 requestId={}, stage={}, errorCode={}]", requestId, stage, errorCode, ex);
         }
+        long processTimeMillis = System.currentTimeMillis() - startTime;
+        ingestMetricsService.recordRejected(sourceCode, stage, processTimeMillis);
         return AccessIngestResponseDTO.builder()
                 .requestId(requestId)
                 .traceId(traceId)
@@ -183,7 +194,7 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
                 .code(code)
                 .message(message)
                 .standardTopicName(standardTopicName)
-                .processTimeMillis(System.currentTimeMillis() - startTime)
+                .processTimeMillis(processTimeMillis)
                 .build();
     }
 

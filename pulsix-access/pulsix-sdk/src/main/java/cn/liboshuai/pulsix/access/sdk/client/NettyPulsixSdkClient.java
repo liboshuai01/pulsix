@@ -2,6 +2,8 @@ package cn.liboshuai.pulsix.access.sdk.client;
 
 import cn.hutool.core.util.StrUtil;
 import cn.liboshuai.pulsix.access.sdk.buffer.BufferedSdkRequest;
+import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkHealthSnapshot;
+import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkMetricsSnapshot;
 import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkSendRequest;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -42,6 +44,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import static cn.liboshuai.pulsix.access.sdk.enums.ErrorCodeConstants.SDK_BUFFER_FULL;
 import static cn.liboshuai.pulsix.access.sdk.enums.ErrorCodeConstants.SDK_CLIENT_NOT_STARTED;
@@ -60,6 +64,17 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
     private final ConcurrentMap<String, BufferedSdkRequest> inflightRequests = new ConcurrentHashMap<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean pumping = new AtomicBoolean(false);
+    private final LongAdder submittedCount = new LongAdder();
+    private final LongAdder sentCount = new LongAdder();
+    private final LongAdder ackCount = new LongAdder();
+    private final LongAdder failedCount = new LongAdder();
+    private final LongAdder retryCount = new LongAdder();
+    private final LongAdder connectSuccessCount = new LongAdder();
+    private final LongAdder connectFailureCount = new LongAdder();
+    private final AtomicLong lastConnectedAtMillis = new AtomicLong(0L);
+    private final AtomicLong lastDisconnectedAtMillis = new AtomicLong(0L);
+    private final AtomicLong lastAckAtMillis = new AtomicLong(0L);
+    private final AtomicLong lastErrorAtMillis = new AtomicLong(0L);
 
     private volatile NioEventLoopGroup eventLoopGroup;
     private volatile Bootstrap bootstrap;
@@ -98,32 +113,77 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
     }
 
     @Override
+    public PulsixSdkMetricsSnapshot getMetricsSnapshot() {
+        return PulsixSdkMetricsSnapshot.builder()
+                .sourceCode(options.getSourceCode())
+                .connectionStatus(currentConnectionStatus())
+                .started(running.get())
+                .connected(isChannelReady())
+                .autoReconnect(options.getAutoReconnect())
+                .submittedCount(submittedCount.sum())
+                .sentCount(sentCount.sum())
+                .ackCount(ackCount.sum())
+                .failedCount(failedCount.sum())
+                .retryCount(retryCount.sum())
+                .connectSuccessCount(connectSuccessCount.sum())
+                .connectFailureCount(connectFailureCount.sum())
+                .bufferSize(bufferQueue.size())
+                .inflightSize(inflightRequests.size())
+                .lastConnectedAtMillis(zeroToNull(lastConnectedAtMillis.get()))
+                .lastDisconnectedAtMillis(zeroToNull(lastDisconnectedAtMillis.get()))
+                .lastAckAtMillis(zeroToNull(lastAckAtMillis.get()))
+                .lastErrorAtMillis(zeroToNull(lastErrorAtMillis.get()))
+                .build();
+    }
+
+    @Override
+    public PulsixSdkHealthSnapshot healthCheck() {
+        boolean started = running.get();
+        boolean connected = isChannelReady();
+        boolean autoReconnect = Boolean.TRUE.equals(options.getAutoReconnect());
+        String status = connected ? "UP" : (started && autoReconnect ? "DEGRADED" : "DOWN");
+        return PulsixSdkHealthSnapshot.builder()
+                .status(status)
+                .sourceCode(options.getSourceCode())
+                .connectionStatus(currentConnectionStatus())
+                .started(started)
+                .connected(connected)
+                .autoReconnect(options.getAutoReconnect())
+                .bufferSize(bufferQueue.size())
+                .inflightSize(inflightRequests.size())
+                .lastConnectedAtMillis(zeroToNull(lastConnectedAtMillis.get()))
+                .lastAckAtMillis(zeroToNull(lastAckAtMillis.get()))
+                .build();
+    }
+
+    @Override
     public CompletableFuture<AccessIngestResponseDTO> sendAsync(PulsixSdkSendRequest request) {
         try {
             return sendAsync(convertRequest(request));
         } catch (RuntimeException ex) {
-            return CompletableFuture.failedFuture(ex);
+            return failedFuture(ex);
         }
     }
 
     @Override
     public CompletableFuture<AccessIngestResponseDTO> sendAsync(AccessIngestRequestDTO request) {
         if (!running.get()) {
-            return CompletableFuture.failedFuture(exception(SDK_CLIENT_NOT_STARTED));
+            return failedFuture(exception(SDK_CLIENT_NOT_STARTED));
         }
         if (!isChannelReady() && Boolean.FALSE.equals(options.getAutoReconnect())) {
-            return CompletableFuture.failedFuture(exception(SDK_TRANSPORT_NOT_READY));
+            return failedFuture(exception(SDK_TRANSPORT_NOT_READY));
         }
         final AccessIngestRequestDTO actualRequest;
         try {
             actualRequest = normalizeRequest(request);
         } catch (RuntimeException ex) {
-            return CompletableFuture.failedFuture(ex);
+            return failedFuture(ex);
         }
         BufferedSdkRequest bufferedRequest = new BufferedSdkRequest(actualRequest);
         if (!bufferQueue.offerLast(bufferedRequest)) {
-            return CompletableFuture.failedFuture(exception(SDK_BUFFER_FULL));
+            return failedFuture(exception(SDK_BUFFER_FULL));
         }
+        submittedCount.increment();
         if (isChannelReady()) {
             pumpSafely();
         }
@@ -211,12 +271,18 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
             connectFuture.awaitUninterruptibly(options.getConnectTimeoutMillis());
             if (connectFuture.isSuccess() && connectFuture.channel() != null && connectFuture.channel().isActive()) {
                 channel = connectFuture.channel();
+                connectSuccessCount.increment();
+                lastConnectedAtMillis.set(System.currentTimeMillis());
                 return true;
             }
+            connectFailureCount.increment();
+            lastErrorAtMillis.set(System.currentTimeMillis());
             if (connectFuture.channel() != null) {
                 connectFuture.channel().close().awaitUninterruptibly();
             }
         } catch (RuntimeException ex) {
+            connectFailureCount.increment();
+            lastErrorAtMillis.set(System.currentTimeMillis());
             log.debug("[connectIfNecessary][SDK 重连失败 host={} port={}]", options.getHost(), options.getPort(), ex);
         }
         return false;
@@ -268,7 +334,7 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
             try {
                 payloads.add(new AbstractMap.SimpleImmutableEntry<>(request, objectMapper.writeValueAsString(request.getRequest())));
             } catch (Exception ex) {
-                request.getFuture().completeExceptionally(exception(SDK_SEND_FAILED));
+                completeFailure(request, exception(SDK_SEND_FAILED));
             }
         }
         if (payloads.isEmpty()) {
@@ -279,6 +345,7 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
             AbstractMap.SimpleImmutableEntry<BufferedSdkRequest, String> payload = payloads.get(index);
             BufferedSdkRequest request = payload.getKey();
             request.markSent(now);
+            sentCount.increment();
             inflightRequests.put(request.getRequestId(), request);
             ChannelFuture future = index == payloads.size() - 1
                     ? activeChannel.writeAndFlush(payload.getValue())
@@ -337,28 +404,29 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
             return;
         }
         if (!running.get()) {
-            request.getFuture().completeExceptionally(failure);
+            completeFailure(request, failure);
             return;
         }
         if (!Boolean.TRUE.equals(options.getAutoReconnect()) && !isChannelReady()) {
-            request.getFuture().completeExceptionally(failure);
+            completeFailure(request, failure);
             return;
         }
         if (request.canRetry(options.getMaxRetryCount())) {
             if (bufferQueue.offerFirst(request)) {
+                retryCount.increment();
                 return;
             }
-            request.getFuture().completeExceptionally(exception(SDK_BUFFER_FULL));
+            completeFailure(request, exception(SDK_BUFFER_FULL));
             return;
         }
-        request.getFuture().completeExceptionally(exception(SDK_RETRY_EXHAUSTED));
+        completeFailure(request, exception(SDK_RETRY_EXHAUSTED));
     }
 
     private void requeueBatchToFront(List<BufferedSdkRequest> batch) {
         for (int index = batch.size() - 1; index >= 0; index--) {
             BufferedSdkRequest request = batch.get(index);
             if (!request.getFuture().isDone() && !bufferQueue.offerFirst(request)) {
-                request.getFuture().completeExceptionally(exception(SDK_BUFFER_FULL));
+                completeFailure(request, exception(SDK_BUFFER_FULL));
             }
         }
     }
@@ -367,14 +435,14 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
         List<BufferedSdkRequest> requests = new ArrayList<>(inflightRequests.values());
         inflightRequests.clear();
         for (BufferedSdkRequest request : requests) {
-            request.getFuture().completeExceptionally(failure);
+            completeFailure(request, failure);
         }
     }
 
     private void failBuffered(RuntimeException failure) {
         BufferedSdkRequest request;
         while ((request = bufferQueue.pollFirst()) != null) {
-            request.getFuture().completeExceptionally(failure);
+            completeFailure(request, failure);
         }
     }
 
@@ -382,6 +450,7 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
         Channel activeChannel = channel;
         channel = null;
         if (activeChannel != null) {
+            lastDisconnectedAtMillis.set(System.currentTimeMillis());
             ChannelFuture closeFuture = activeChannel.close();
             if (!activeChannel.eventLoop().inEventLoop()) {
                 closeFuture.awaitUninterruptibly();
@@ -459,6 +528,36 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
         return StrUtil.isBlank(value) ? defaultValue : StrUtil.trim(value);
     }
 
+    private CompletableFuture<AccessIngestResponseDTO> failedFuture(RuntimeException exception) {
+        failedCount.increment();
+        lastErrorAtMillis.set(System.currentTimeMillis());
+        return CompletableFuture.failedFuture(exception);
+    }
+
+    private void completeFailure(BufferedSdkRequest request, RuntimeException exception) {
+        if (request.getFuture().completeExceptionally(exception)) {
+            failedCount.increment();
+            lastErrorAtMillis.set(System.currentTimeMillis());
+        }
+    }
+
+    private String currentConnectionStatus() {
+        if (isChannelReady()) {
+            return "CONNECTED";
+        }
+        if (running.get() && Boolean.TRUE.equals(options.getAutoReconnect())) {
+            return "RECONNECTING";
+        }
+        if (running.get()) {
+            return "DISCONNECTED";
+        }
+        return "STOPPED";
+    }
+
+    private Long zeroToNull(long value) {
+        return value <= 0L ? null : value;
+    }
+
     private static ObjectMapper createObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -475,7 +574,10 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
             String requestId = StrUtil.trim(response.getRequestId());
             BufferedSdkRequest request = requestId == null ? null : inflightRequests.remove(requestId);
             if (request != null) {
-                request.getFuture().complete(response);
+                if (request.getFuture().complete(response)) {
+                    ackCount.increment();
+                    lastAckAtMillis.set(System.currentTimeMillis());
+                }
                 return;
             }
             log.debug("[channelRead0][收到未知 requestId 的 SDK 响应 requestId={}]", requestId);
@@ -484,6 +586,7 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
         @Override
         public void channelInactive(ChannelHandlerContext context) {
             channel = null;
+            lastDisconnectedAtMillis.set(System.currentTimeMillis());
             recoverRequests(new ArrayList<>(inflightRequests.values()), exception(SDK_TRANSPORT_NOT_READY));
         }
 
@@ -491,6 +594,7 @@ public class NettyPulsixSdkClient implements PulsixSdkClient {
         public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
             log.warn("[exceptionCaught][SDK 客户端连接异常]", cause);
             channel = null;
+            lastErrorAtMillis.set(System.currentTimeMillis());
             recoverRequests(new ArrayList<>(inflightRequests.values()), exception(SDK_SEND_FAILED));
             context.close();
         }

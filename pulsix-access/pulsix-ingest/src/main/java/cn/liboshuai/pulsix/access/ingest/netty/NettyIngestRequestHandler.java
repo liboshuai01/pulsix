@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.access.ingest.netty;
 
 import cn.hutool.core.util.StrUtil;
 import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
+import cn.liboshuai.pulsix.access.ingest.service.metrics.IngestMetricsService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.enums.AccessAckStatusEnum;
@@ -30,10 +31,20 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
 
     private final IngestPipelineService ingestPipelineService;
     private final ObjectMapper objectMapper;
+    private final IngestMetricsService ingestMetricsService;
 
-    public NettyIngestRequestHandler(IngestPipelineService ingestPipelineService, ObjectMapper objectMapper) {
+    public NettyIngestRequestHandler(IngestPipelineService ingestPipelineService,
+                                     ObjectMapper objectMapper,
+                                     IngestMetricsService ingestMetricsService) {
         this.ingestPipelineService = ingestPipelineService;
         this.objectMapper = objectMapper;
+        this.ingestMetricsService = ingestMetricsService;
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext context) throws Exception {
+        ingestMetricsService.recordNettyConnectionOpened();
+        super.channelActive(context);
     }
 
     @Override
@@ -51,6 +62,12 @@ public class NettyIngestRequestHandler extends SimpleChannelInboundHandler<Strin
             log.warn("[channelRead0][SDK 请求处理异常 requestId={}]", requestId, ex);
             writeResponse(context, reject(requestId, GlobalErrorCodeConstants.INTERNAL_SERVER_ERROR.getCode(), "SDK 服务端处理失败"), false);
         }
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext context) throws Exception {
+        ingestMetricsService.recordNettyConnectionClosed();
+        super.channelInactive(context);
     }
 
     @Override

@@ -4,6 +4,7 @@ import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.liboshuai.pulsix.access.ingest.service.metrics.InMemoryIngestMetricsService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -46,7 +47,7 @@ class NettyIngestRequestHandlerTest {
                 new StringDecoder(StandardCharsets.UTF_8),
                 new LengthFieldPrepender(4),
                 new StringEncoder(StandardCharsets.UTF_8),
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper)
+                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService())
         );
 
         String requestJson = objectMapper.writeValueAsString(AccessIngestRequestDTO.builder()
@@ -85,7 +86,7 @@ class NettyIngestRequestHandlerTest {
                 new StringDecoder(StandardCharsets.UTF_8),
                 new LengthFieldPrepender(4),
                 new StringEncoder(StandardCharsets.UTF_8),
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper)
+                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService())
         );
 
         channel.writeInbound(frame("not-json"));

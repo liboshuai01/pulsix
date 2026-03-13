@@ -11,6 +11,7 @@ import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
 import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
+import cn.liboshuai.pulsix.access.ingest.service.metrics.InMemoryIngestMetricsService;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -46,6 +47,7 @@ class DefaultIngestPipelineServiceTest {
     private IngestEventProducer eventProducer;
     private IngestErrorLogWriter errorLogWriter;
     private DefaultIngestPipelineService service;
+    private InMemoryIngestMetricsService ingestMetricsService;
 
     @BeforeEach
     void setUp() {
@@ -60,6 +62,8 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(errorEventFactory, "clock", Clock.fixed(Instant.parse("2026-03-13T02:31:00Z"), ZoneId.of("Asia/Shanghai")));
         ReflectionTestUtils.setField(errorEventFactory, "properties", properties);
 
+        ingestMetricsService = new InMemoryIngestMetricsService();
+
         service = new DefaultIngestPipelineService();
         ReflectionTestUtils.setField(service, "configService", configService);
         ReflectionTestUtils.setField(service, "authService", authService);
@@ -68,6 +72,7 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(service, "errorEventFactory", errorEventFactory);
         ReflectionTestUtils.setField(service, "errorLogWriter", errorLogWriter);
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
+        ReflectionTestUtils.setField(service, "ingestMetricsService", ingestMetricsService);
     }
 
     @Test
@@ -110,6 +115,8 @@ class DefaultIngestPipelineServiceTest {
         assertThat(response.getEventId()).isEqualTo("E_9101");
         assertThat(response.getStandardTopicName()).isEqualTo("pulsix.event.standard");
         verify(eventProducer).sendStandardEvent(runtimeConfig.getSource(), normalizeResult.getStandardEventJson());
+        assertThat(ingestMetricsService.snapshot().getAcceptedCount()).isEqualTo(1L);
+        assertThat(ingestMetricsService.snapshot().getSourceMetrics()).containsKey("http_none_demo");
     }
 
     @Test
@@ -148,6 +155,7 @@ class DefaultIngestPipelineServiceTest {
         assertThat(response.getMessage()).contains("eventTime,userId");
         verify(eventProducer).sendErrorEvent(any(IngestErrorEvent.class));
         verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
+        assertThat(ingestMetricsService.snapshot().getRejectedCount()).isGreaterThanOrEqualTo(1L);
     }
 
     @Test
@@ -188,6 +196,7 @@ class DefaultIngestPipelineServiceTest {
         assertThat(errorEvent.getErrorTopicName()).isEqualTo("pulsix.event.dlq");
         assertThat(errorEvent.getRawPayloadJson()).isEqualTo("{\"event_id\":\"raw_trade_bad_8103\",\"uid\":\"U8103\"}");
         verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
+        assertThat(ingestMetricsService.snapshot().getRejectedCount()).isGreaterThanOrEqualTo(1L);
     }
 
     @Test

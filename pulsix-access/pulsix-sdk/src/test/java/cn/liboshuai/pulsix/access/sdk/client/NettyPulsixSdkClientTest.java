@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.access.sdk.client;
 
 import cn.liboshuai.pulsix.access.sdk.callback.PulsixSdkAckCallback;
+import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkMetricsSnapshot;
 import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkSendRequest;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -70,6 +71,13 @@ class NettyPulsixSdkClientTest {
                 assertThat(request.getMetadata()).containsEntry("sceneCode", "TRADE_RISK");
                 assertThat(request.getMetadata()).containsEntry("eventCode", "TRADE_EVENT");
                 assertThat(request.getMetadata()).containsEntry("authorization", "Bearer token-demo-001");
+
+                PulsixSdkMetricsSnapshot metrics = client.getMetricsSnapshot();
+                assertThat(metrics.getConnectionStatus()).isEqualTo("CONNECTED");
+                assertThat(metrics.getSubmittedCount()).isEqualTo(1L);
+                assertThat(metrics.getSentCount()).isEqualTo(1L);
+                assertThat(metrics.getAckCount()).isEqualTo(1L);
+                assertThat(client.healthCheck().getStatus()).isEqualTo("UP");
             } finally {
                 client.close();
             }
@@ -106,6 +114,12 @@ class NettyPulsixSdkClientTest {
                 List<AccessIngestRequestDTO> requests = server.awaitRequests(3, 5, TimeUnit.SECONDS);
                 assertThat(requests).extracting(AccessIngestRequestDTO::getRequestId)
                         .containsExactly("REQ_SDK_B1", "REQ_SDK_B2", "REQ_SDK_B3");
+
+                PulsixSdkMetricsSnapshot metrics = client.getMetricsSnapshot();
+                assertThat(metrics.getSubmittedCount()).isEqualTo(3L);
+                assertThat(metrics.getAckCount()).isEqualTo(3L);
+                assertThat(metrics.getConnectFailureCount()).isGreaterThanOrEqualTo(1L);
+                assertThat(client.healthCheck().getStatus()).isEqualTo("UP");
             }
         } finally {
             client.close();
@@ -134,6 +148,11 @@ class NettyPulsixSdkClientTest {
                 List<AccessIngestRequestDTO> requests = server.awaitRequests(2, 5, TimeUnit.SECONDS);
                 assertThat(requests).extracting(AccessIngestRequestDTO::getRequestId)
                         .containsExactly("REQ_SDK_RETRY", "REQ_SDK_RETRY");
+
+                PulsixSdkMetricsSnapshot metrics = client.getMetricsSnapshot();
+                assertThat(metrics.getRetryCount()).isGreaterThanOrEqualTo(1L);
+                assertThat(metrics.getConnectSuccessCount()).isGreaterThanOrEqualTo(2L);
+                assertThat(metrics.getAckCount()).isEqualTo(1L);
             } finally {
                 client.close();
             }
@@ -164,6 +183,8 @@ class NettyPulsixSdkClientTest {
                     .hasCauseInstanceOf(ServiceException.class)
                     .hasMessageContaining("SDK 内存缓冲已满");
             assertThat(firstFuture).isNotCompleted();
+            assertThat(client.healthCheck().getStatus()).isEqualTo("DEGRADED");
+            assertThat(client.getMetricsSnapshot().getFailedCount()).isGreaterThanOrEqualTo(1L);
         } finally {
             client.close();
         }
@@ -180,6 +201,8 @@ class NettyPulsixSdkClientTest {
         assertThatThrownBy(future::join)
                 .hasCauseInstanceOf(ServiceException.class)
                 .hasMessageContaining("SDK 客户端尚未启动");
+        assertThat(client.healthCheck().getStatus()).isEqualTo("DOWN");
+        assertThat(client.getMetricsSnapshot().getFailedCount()).isEqualTo(1L);
     }
 
     private PulsixSdkSendRequest buildRequest(String requestId) {

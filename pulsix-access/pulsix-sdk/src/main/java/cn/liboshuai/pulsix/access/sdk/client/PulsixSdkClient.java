@@ -1,6 +1,8 @@
 package cn.liboshuai.pulsix.access.sdk.client;
 
 import cn.liboshuai.pulsix.access.sdk.callback.PulsixSdkAckCallback;
+import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkHealthSnapshot;
+import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkMetricsSnapshot;
 import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkSendRequest;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -15,6 +17,10 @@ public interface PulsixSdkClient extends AutoCloseable {
     void start();
 
     boolean isStarted();
+
+    PulsixSdkMetricsSnapshot getMetricsSnapshot();
+
+    PulsixSdkHealthSnapshot healthCheck();
 
     CompletableFuture<AccessIngestResponseDTO> sendAsync(AccessIngestRequestDTO request);
 

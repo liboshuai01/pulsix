@@ -5,6 +5,7 @@ import cn.liboshuai.pulsix.access.ingest.service.IngestPipelineService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cn.liboshuai.pulsix.access.ingest.service.metrics.InMemoryIngestMetricsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -48,7 +49,7 @@ class NettyIngestServerTest {
         properties.getNetty().setIdleTimeoutSeconds(30);
 
         NettyIngestServer server = new NettyIngestServer(properties,
-                new NettyIngestRequestHandler(ingestPipelineService, objectMapper));
+                new NettyIngestRequestHandler(ingestPipelineService, objectMapper, new InMemoryIngestMetricsService()));
         server.start();
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress("127.0.0.1", server.getBoundPort()), 3000);
