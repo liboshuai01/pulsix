@@ -24,6 +24,10 @@
             <artifactId>pulsix-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-spring-boot-starter-mybatis</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
