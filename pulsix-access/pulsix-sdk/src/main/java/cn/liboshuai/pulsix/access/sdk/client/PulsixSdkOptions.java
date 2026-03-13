@@ -38,6 +38,12 @@ public class PulsixSdkOptions implements Serializable {
     private Integer maxBufferSize = 1000;
 
     @Builder.Default
+    private Integer batchFlushIntervalMillis = 100;
+
+    @Builder.Default
+    private Integer maxRetryCount = 2;
+
+    @Builder.Default
     private Integer reconnectIntervalMillis = 3000;
 
     @Builder.Default
@@ -65,8 +71,17 @@ public class PulsixSdkOptions implements Serializable {
         if (maxBufferSize == null || maxBufferSize < maxBatchSize) {
             throw exception(SDK_OPTIONS_INVALID, "maxBufferSize 不能小于 maxBatchSize");
         }
+        if (batchFlushIntervalMillis == null || batchFlushIntervalMillis <= 0) {
+            throw exception(SDK_OPTIONS_INVALID, "batchFlushIntervalMillis 必须大于 0");
+        }
+        if (maxRetryCount == null || maxRetryCount < 0) {
+            throw exception(SDK_OPTIONS_INVALID, "maxRetryCount 不能小于 0");
+        }
         if (reconnectIntervalMillis == null || reconnectIntervalMillis <= 0) {
             throw exception(SDK_OPTIONS_INVALID, "reconnectIntervalMillis 必须大于 0");
+        }
+        if (autoReconnect == null) {
+            autoReconnect = Boolean.TRUE;
         }
         return this;
     }

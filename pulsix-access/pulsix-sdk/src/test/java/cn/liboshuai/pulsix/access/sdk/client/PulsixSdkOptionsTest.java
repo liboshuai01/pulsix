@@ -21,6 +21,8 @@ class PulsixSdkOptionsTest {
         assertThat(options.getRequestTimeoutMillis()).isEqualTo(5000);
         assertThat(options.getMaxBatchSize()).isEqualTo(100);
         assertThat(options.getMaxBufferSize()).isEqualTo(1000);
+        assertThat(options.getBatchFlushIntervalMillis()).isEqualTo(100);
+        assertThat(options.getMaxRetryCount()).isEqualTo(2);
         assertThat(options.getAutoReconnect()).isTrue();
     }
 

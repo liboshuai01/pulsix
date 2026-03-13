@@ -5,6 +5,9 @@ import cn.liboshuai.pulsix.access.sdk.model.PulsixSdkSendRequest;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface PulsixSdkClient extends AutoCloseable {
@@ -16,6 +19,29 @@ public interface PulsixSdkClient extends AutoCloseable {
     CompletableFuture<AccessIngestResponseDTO> sendAsync(AccessIngestRequestDTO request);
 
     CompletableFuture<AccessIngestResponseDTO> sendAsync(PulsixSdkSendRequest request);
+
+    default List<CompletableFuture<AccessIngestResponseDTO>> sendBatchAsync(List<PulsixSdkSendRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<CompletableFuture<AccessIngestResponseDTO>> futures = new ArrayList<>(requests.size());
+        for (PulsixSdkSendRequest request : requests) {
+            futures.add(sendAsync(request));
+        }
+        return futures;
+    }
+
+    default List<CompletableFuture<AccessIngestResponseDTO>> sendBatchAsync(List<PulsixSdkSendRequest> requests,
+                                                                             PulsixSdkAckCallback callback) {
+        if (requests == null || requests.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<CompletableFuture<AccessIngestResponseDTO>> futures = new ArrayList<>(requests.size());
+        for (PulsixSdkSendRequest request : requests) {
+            futures.add(sendAsync(request, callback));
+        }
+        return futures;
+    }
 
     default CompletableFuture<AccessIngestResponseDTO> sendAsync(AccessIngestRequestDTO request,
                                                                  PulsixSdkAckCallback callback) {
