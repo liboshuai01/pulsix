@@ -85,4 +85,7 @@ public interface ErrorCodeConstants {
     // ========== 决策日志 1-005-016-000 ==========
     ErrorCode DECISION_LOG_NOT_EXISTS = new ErrorCode(1_005_016_000, "决策日志不存在");
 
+    // ========== 接入异常 1-005-018-000 ==========
+    ErrorCode INGEST_ERROR_LOG_NOT_EXISTS = new ErrorCode(1_005_018_000, "接入异常记录不存在");
+
 }
