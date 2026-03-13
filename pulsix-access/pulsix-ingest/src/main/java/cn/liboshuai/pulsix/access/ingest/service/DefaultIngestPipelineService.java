@@ -10,6 +10,7 @@ import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthException;
 import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
+import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -53,6 +54,9 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
 
     @Resource
     private IngestErrorEventFactory errorEventFactory;
+
+    @Resource
+    private IngestErrorLogWriter errorLogWriter;
 
     @Resource
     private ObjectMapper objectMapper;
@@ -159,10 +163,17 @@ public class DefaultIngestPipelineService implements IngestPipelineService {
         IngestErrorEvent errorEvent = errorEventFactory.create(stage, errorCode, message,
                 sourceCode, sceneCode, eventCode, traceId, rawEventId, rawPayload, standardPayload,
                 runtimeConfig == null ? null : runtimeConfig.getSource());
+        String reprocessStatus = IngestErrorLogWriter.REPROCESS_STATUS_PENDING;
         try {
             eventProducer.sendErrorEvent(errorEvent);
         } catch (Exception ex) {
+            reprocessStatus = IngestErrorLogWriter.REPROCESS_STATUS_RETRY_FAILED;
             log.warn("[reject][发送 DLQ 失败 requestId={}, stage={}, errorCode={}]", requestId, stage, errorCode, ex);
+        }
+        try {
+            errorLogWriter.write(errorEvent, reprocessStatus);
+        } catch (Exception ex) {
+            log.warn("[reject][写入 ingest_error_log 失败 requestId={}, stage={}, errorCode={}]", requestId, stage, errorCode, ex);
         }
         return AccessIngestResponseDTO.builder()
                 .requestId(requestId)

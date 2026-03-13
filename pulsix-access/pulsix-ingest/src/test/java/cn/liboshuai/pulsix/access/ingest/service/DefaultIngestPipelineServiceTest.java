@@ -10,6 +10,7 @@ import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthException;
 import cn.liboshuai.pulsix.access.ingest.service.auth.IngestAuthService;
 import cn.liboshuai.pulsix.access.ingest.service.config.IngestDesignConfigService;
 import cn.liboshuai.pulsix.access.ingest.service.error.IngestErrorEventFactory;
+import cn.liboshuai.pulsix.access.ingest.service.errorlog.IngestErrorLogWriter;
 import cn.liboshuai.pulsix.access.ingest.service.normalize.StandardEventNormalizationService;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestRequestDTO;
 import cn.liboshuai.pulsix.framework.common.biz.risk.access.dto.AccessIngestResponseDTO;
@@ -43,6 +44,7 @@ class DefaultIngestPipelineServiceTest {
     private IngestAuthService authService;
     private StandardEventNormalizationService normalizationService;
     private IngestEventProducer eventProducer;
+    private IngestErrorLogWriter errorLogWriter;
     private DefaultIngestPipelineService service;
 
     @BeforeEach
@@ -51,6 +53,7 @@ class DefaultIngestPipelineServiceTest {
         authService = mock(IngestAuthService.class);
         normalizationService = mock(StandardEventNormalizationService.class);
         eventProducer = mock(IngestEventProducer.class);
+        errorLogWriter = mock(IngestErrorLogWriter.class);
 
         IngestErrorEventFactory errorEventFactory = new IngestErrorEventFactory();
         cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties properties = new cn.liboshuai.pulsix.access.ingest.config.PulsixIngestProperties();
@@ -63,6 +66,7 @@ class DefaultIngestPipelineServiceTest {
         ReflectionTestUtils.setField(service, "normalizationService", normalizationService);
         ReflectionTestUtils.setField(service, "eventProducer", eventProducer);
         ReflectionTestUtils.setField(service, "errorEventFactory", errorEventFactory);
+        ReflectionTestUtils.setField(service, "errorLogWriter", errorLogWriter);
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
     }
 
@@ -143,6 +147,7 @@ class DefaultIngestPipelineServiceTest {
         assertThat(response.getCode()).isEqualTo(1_006_001_013);
         assertThat(response.getMessage()).contains("eventTime,userId");
         verify(eventProducer).sendErrorEvent(any(IngestErrorEvent.class));
+        verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
     }
 
     @Test
@@ -182,6 +187,41 @@ class DefaultIngestPipelineServiceTest {
         assertThat(errorEvent.getEventCode()).isEqualTo("TRADE_EVENT");
         assertThat(errorEvent.getErrorTopicName()).isEqualTo("pulsix.event.dlq");
         assertThat(errorEvent.getRawPayloadJson()).isEqualTo("{\"event_id\":\"raw_trade_bad_8103\",\"uid\":\"U8103\"}");
+        verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_PENDING));
+    }
+
+    @Test
+    void shouldWriteRetryFailedWhenDlqSendFails() {
+        IngestRuntimeConfig runtimeConfig = IngestRuntimeConfig.builder()
+                .sourceCode("http_none_demo")
+                .sceneCode("TRADE_RISK")
+                .eventCode("TRADE_EVENT")
+                .source(IngestSourceConfig.builder().sourceCode("http_none_demo").authType("NONE")
+                        .errorTopicName("pulsix.event.dlq").build())
+                .build();
+        StandardEventNormalizeResult normalizeResult = new StandardEventNormalizeResult();
+        normalizeResult.setStandardEventJson(new LinkedHashMap<>(Map.of(
+                "eventId", "raw_trade_bad_8102",
+                "traceId", "TRACE-S18-8102",
+                "sceneCode", "TRADE_RISK"
+        )));
+        normalizeResult.setMissingRequiredFields(List.of("eventTime"));
+
+        when(configService.getConfig("http_none_demo", "TRADE_RISK", "TRADE_EVENT")).thenReturn(runtimeConfig);
+        doNothing().when(authService).authenticate(any(), eq(runtimeConfig));
+        when(normalizationService.normalize(eq("http_none_demo"), eq("TRADE_RISK"), eq("TRADE_EVENT"), any()))
+                .thenReturn(normalizeResult);
+        doThrow(new RuntimeException("kafka down")).when(eventProducer).sendErrorEvent(any(IngestErrorEvent.class));
+
+        AccessIngestResponseDTO response = service.ingest(AccessIngestRequestDTO.builder()
+                .requestId("REQ_1004")
+                .sourceCode("http_none_demo")
+                .payload("{\"event_id\":\"raw_trade_bad_8102\",\"req\":{\"traceId\":\"TRACE-S18-8102\"}}")
+                .metadata(Map.of("sceneCode", "TRADE_RISK", "eventCode", "TRADE_EVENT"))
+                .build());
+
+        assertThat(response.getStatus()).isEqualTo(AccessAckStatusEnum.REJECTED.getStatus());
+        verify(errorLogWriter).write(any(IngestErrorEvent.class), eq(IngestErrorLogWriter.REPROCESS_STATUS_RETRY_FAILED));
     }
 
 }
