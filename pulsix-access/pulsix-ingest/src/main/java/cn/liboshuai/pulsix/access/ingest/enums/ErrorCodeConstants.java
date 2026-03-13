@@ -12,6 +12,7 @@ public interface ErrorCodeConstants {
     ErrorCode INGEST_EVENT_FIELDS_NOT_CONFIGURED = new ErrorCode(1_006_001_004, "事件字段未配置：sceneCode={}, eventCode={}");
     ErrorCode INGEST_TRANSPORT_UNSUPPORTED = new ErrorCode(1_006_001_005, "接入协议暂不支持：{}");
     ErrorCode INGEST_PAYLOAD_INVALID = new ErrorCode(1_006_001_006, "接入报文不合法：{}");
-    ErrorCode INGEST_KAFKA_SEND_FAILED = new ErrorCode(1_006_001_007, "标准事件投递 Kafka 失败");
+    ErrorCode INGEST_KAFKA_SEND_FAILED = new ErrorCode(1_006_001_007, "标准事件投递 Kafka 失败：topic={}");
+    ErrorCode INGEST_KAFKA_ERROR_SEND_FAILED = new ErrorCode(1_006_001_009, "异常事件投递 Kafka 失败：topic={}");
 
 }

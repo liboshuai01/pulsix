@@ -19,6 +19,8 @@ class PulsixIngestPropertiesTest {
                     "pulsix.access.ingest.http.max-payload-bytes=4096",
                     "pulsix.access.ingest.netty.port=29091",
                     "pulsix.access.ingest.kafka.standard-topic-name=pulsix.event.standard.test",
+                    "pulsix.access.ingest.kafka.send-max-attempts=5",
+                    "pulsix.access.ingest.kafka.send-backoff-millis=50",
                     "pulsix.access.ingest.config-cache.refresh-interval-seconds=45"
             );
 
@@ -37,6 +39,8 @@ class PulsixIngestPropertiesTest {
             assertThat(properties.getHttp().getMaxPayloadBytes()).isEqualTo(4096);
             assertThat(properties.getNetty().getPort()).isEqualTo(29091);
             assertThat(properties.getKafka().getStandardTopicName()).isEqualTo("pulsix.event.standard.test");
+            assertThat(properties.getKafka().getSendMaxAttempts()).isEqualTo(5);
+            assertThat(properties.getKafka().getSendBackoffMillis()).isEqualTo(50L);
             assertThat(properties.getConfigCache().getRefreshIntervalSeconds()).isEqualTo(45);
             assertThat(clock.getZone()).isEqualTo(ZoneId.of("UTC"));
         });

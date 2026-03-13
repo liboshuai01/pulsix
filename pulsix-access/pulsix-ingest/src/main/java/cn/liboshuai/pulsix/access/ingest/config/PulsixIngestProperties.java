@@ -97,6 +97,14 @@ public class PulsixIngestProperties {
         @Min(value = 1, message = "Kafka 发送超时必须大于 0")
         private Integer sendTimeoutMillis = 5000;
 
+        @NotNull(message = "Kafka 发送重试次数不能为空")
+        @Min(value = 1, message = "Kafka 发送重试次数必须大于 0")
+        private Integer sendMaxAttempts = 3;
+
+        @NotNull(message = "Kafka 重试退避时间不能为空")
+        @Min(value = 0, message = "Kafka 重试退避时间不能小于 0")
+        private Long sendBackoffMillis = 200L;
+
     }
 
     @Data
