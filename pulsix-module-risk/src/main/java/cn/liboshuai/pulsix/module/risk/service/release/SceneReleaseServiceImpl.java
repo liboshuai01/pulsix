@@ -22,8 +22,6 @@ import cn.liboshuai.pulsix.engine.model.SceneSnapshot;
 import cn.liboshuai.pulsix.engine.model.SceneSpec;
 import cn.liboshuai.pulsix.engine.model.StreamFeatureSpec;
 import cn.liboshuai.pulsix.engine.model.WindowType;
-import cn.liboshuai.pulsix.engine.runtime.RuntimeCompiler;
-import cn.liboshuai.pulsix.engine.script.DefaultScriptCompiler;
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.util.monitor.TracerUtils;
 import cn.liboshuai.pulsix.framework.security.core.util.SecurityFrameworkUtils;
@@ -172,6 +170,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
     @Resource
     private FeatureDerivedService featureDerivedService;
 
+    private final SceneReleaseRuntimePreviewService runtimePreviewService = new SceneReleaseRuntimePreviewService();
+
     @Override
     public PageResult<SceneReleaseRespVO> getSceneReleasePage(SceneReleasePageReqVO pageReqVO) {
         PageResult<SceneReleaseDO> pageResult = sceneReleaseMapper.selectPage(pageReqVO);
@@ -196,7 +196,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
 
         CompileContext context = loadCompileContext(scene);
         SceneSnapshot snapshot = buildSnapshot(scene, nextVersionNo, context);
-        Map<String, Object> validationReport = buildValidationReport(scene, snapshot, context);
+        SceneReleaseRuntimePreviewResult runtimePreview = runtimePreviewService.preview(snapshot);
+        Map<String, Object> validationReport = buildValidationReport(scene, snapshot, context, runtimePreview);
         boolean valid = VALIDATION_STATUS_PASSED.equals(validationReport.get("validationStatus"));
         snapshot.setStatus(valid ? SNAPSHOT_STATUS_VALIDATED : SNAPSHOT_STATUS_DRAFT);
         snapshot.setChecksum(null);
@@ -204,7 +205,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         snapshot.setChecksum(checksum);
         Map<String, Object> snapshotJson = JsonUtils.parseObject(EngineJson.write(snapshot), new TypeReference<Map<String, Object>>() {
         });
-        Map<String, Object> dependencyDigest = buildDependencyDigest(scene, context);
+        Map<String, Object> dependencyDigest = buildDependencyDigest(scene, context, runtimePreview);
         long compileDurationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
         SceneReleaseDO release = new SceneReleaseDO();
@@ -217,8 +218,8 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         release.setValidationReportJson(validationReport);
         release.setDependencyDigestJson(dependencyDigest);
         release.setCompileDurationMs(compileDurationMs);
-        release.setCompiledFeatureCount(totalCompiledFeatures(snapshot));
-        release.setCompiledRuleCount(CollUtil.size(snapshot.getRules()));
+        release.setCompiledFeatureCount(runtimePreview.isValid() ? runtimePreview.getFeatureCodes().size() : totalCompiledFeatures(snapshot));
+        release.setCompiledRuleCount(runtimePreview.isValid() ? runtimePreview.getOrderedRuleCount() : CollUtil.size(snapshot.getRules()));
         release.setCompiledPolicyCount(snapshot.getPolicy() == null ? 0 : 1);
         release.setRemark(trimToNull(reqVO.getRemark()));
         sceneReleaseMapper.insert(release);
@@ -515,7 +516,10 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         return snapshot;
     }
 
-    private Map<String, Object> buildValidationReport(SceneDO scene, SceneSnapshot snapshot, CompileContext context) {
+    private Map<String, Object> buildValidationReport(SceneDO scene,
+                                                      SceneSnapshot snapshot,
+                                                      CompileContext context,
+                                                      SceneReleaseRuntimePreviewResult runtimePreview) {
         List<Map<String, Object>> checks = new ArrayList<>();
         List<Map<String, Object>> warnings = new ArrayList<>();
 
@@ -548,12 +552,9 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         validateRules(context, checks);
         validatePolicy(scene, context, checks);
 
-        try {
-            new RuntimeCompiler(new DefaultScriptCompiler()).compile(snapshot);
-            checks.add(check("SNAPSHOT", snapshot.getSnapshotId(), CHECK_PASS, "运行时快照编译通过"));
-        } catch (RuntimeException exception) {
-            checks.add(check("SNAPSHOT", snapshot.getSnapshotId(), CHECK_FAIL, rootMessage(exception)));
-        }
+        checks.add(check("SNAPSHOT", snapshot.getSnapshotId(),
+                runtimePreview.isValid() ? CHECK_PASS : CHECK_FAIL,
+                runtimePreview.summaryMessage()));
 
         long passCount = checks.stream().filter(item -> CHECK_PASS.equals(item.get("result"))).count();
         long failCount = checks.stream().filter(item -> CHECK_FAIL.equals(item.get("result"))).count();
@@ -567,6 +568,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         report.put("validationStatus", failCount == 0 ? VALIDATION_STATUS_PASSED : VALIDATION_STATUS_FAILED);
         report.put("checks", checks);
         report.put("warnings", warnings);
+        report.put("runtimeCompilePreview", runtimePreview.toValidationPreviewMap());
         report.put("summary", summary);
         return report;
     }
@@ -709,7 +711,9 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         }
     }
 
-    private Map<String, Object> buildDependencyDigest(SceneDO scene, CompileContext context) {
+    private Map<String, Object> buildDependencyDigest(SceneDO scene,
+                                                      CompileContext context,
+                                                      SceneReleaseRuntimePreviewResult runtimePreview) {
         Map<String, ListSetDO> listPrefixMap = buildListPrefixMap(context.listSets);
         Map<String, Object> digest = new LinkedHashMap<>();
         digest.put("sceneCode", scene.getSceneCode());
@@ -810,6 +814,7 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
         counts.put("policyRuleRefCount", context.policyRuleRefs.size());
         counts.put("policyScoreBandCount", context.policyScoreBands.size());
         digest.put("counts", counts);
+        digest.put("runtimePreview", runtimePreview.toDependencyPreviewMap());
         return digest;
     }
 
@@ -1136,18 +1141,6 @@ public class SceneReleaseServiceImpl implements SceneReleaseService {
 
     private String trimToNull(String text) {
         return StrUtil.emptyToNull(StrUtil.trim(text));
-    }
-
-    private String rootMessage(Throwable throwable) {
-        Throwable current = throwable;
-        String message = null;
-        while (current != null) {
-            if (StrUtil.isNotBlank(current.getMessage())) {
-                message = current.getMessage();
-            }
-            current = current.getCause();
-        }
-        return StrUtil.blankToDefault(message, "发布预检失败");
     }
 
     private <T> List<T> defaultList(Collection<T> list) {

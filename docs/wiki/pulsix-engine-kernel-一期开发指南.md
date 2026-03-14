@@ -126,9 +126,9 @@ standard RiskEvent
 
 1. `9A`：发布预检 / 快照预览复用 `RuntimeCompiler`
 2. `9B`：仿真报告模型与页面展示字段对齐
-3. `9C`：回放 diff / golden case 报告模型对齐
-4. `10A`：`HTTP -> Kafka -> Engine` 固定样例联调
-5. `10B`：`Beacon -> Kafka -> Engine` 固定样例联调
+3. `9C`：回放 diff / golden case 报告模型与页面字段对齐（已完成，Golden Case 生成/校验闭环已接通）
+4. `10A`：`HTTP -> Kafka -> Engine` 固定样例联调（已完成，固定 smoke 脚本与 kernel 对齐验收口径已落地）
+5. `10B`：`Beacon -> Kafka -> Engine` 固定样例联调（已完成，Beacon smoke 与 engine 包装脚本已落地）
 6. `10C`：`SDK -> Kafka -> Engine` 固定样例联调
 7. `11A`：`DecisionResult / DecisionLogRecord / EngineErrorRecord` 下沉字段冻结
 8. `11B`：`traceId / eventId` 查询页与数据模型收口

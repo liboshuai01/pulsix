@@ -33,7 +33,7 @@
 
   <ContentWrap>
     <el-alert
-      title="S21 回放对比：当前支持 DECISION_LOG_EXPORT、FILE、KAFKA_EXPORT 三种输入源；可直接使用 classpath 样例完成演示。"
+      title="S21 回放对比：当前支持 DECISION_LOG_EXPORT、FILE、KAFKA_EXPORT；候选版本 Golden Case 可直接在列表动作中生成/校验。"
       type="info"
       :closable="false"
       class="mb-16px"
@@ -68,7 +68,7 @@
       <el-table-column label="备注" align="center" prop="remark" min-width="260" show-overflow-tooltip>
         <template #default="scope">{{ scope.row.remark || '-' }}</template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="180" fixed="right">
+      <el-table-column label="操作" align="center" width="320" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="openDetail(scope.row.id)" v-hasPermi="['risk:replay:get']">详情</el-button>
           <el-button
@@ -79,6 +79,24 @@
             v-hasPermi="['risk:replay:execute']"
           >
             执行
+          </el-button>
+          <el-button
+            link
+            type="warning"
+            :disabled="scope.row.jobStatus === 'RUNNING'"
+            @click="captureGolden(scope.row)"
+            v-hasPermi="['risk:replay:execute']"
+          >
+            生成 Golden
+          </el-button>
+          <el-button
+            link
+            type="warning"
+            :disabled="scope.row.jobStatus === 'RUNNING'"
+            @click="verifyGolden(scope.row)"
+            v-hasPermi="['risk:replay:execute']"
+          >
+            校验 Golden
           </el-button>
         </template>
       </el-table-column>
@@ -292,6 +310,10 @@ const openDetail = (id?: number) => {
   detailRef.value.open(id)
 }
 
+const openDetailWithData = (data: ReplayApi.ReplayJobDetailVO) => {
+  detailRef.value.openWithData(data)
+}
+
 const executeReplay = async (id?: number) => {
   if (!id) {
     return
@@ -299,7 +321,44 @@ const executeReplay = async (id?: number) => {
   const data = await ReplayApi.executeReplayJob({ id })
   message.success('回放执行完成')
   await getList()
-  detailRef.value.openWithData(data)
+  openDetailWithData(data)
+}
+
+const captureGolden = async (row: ReplayApi.ReplayJobVO) => {
+  if (!row.id) {
+    return
+  }
+  try {
+    await message.confirm(`确认基于候选版本 v${row.targetVersionNo} 生成 Golden Case 吗？`)
+  } catch {
+    return
+  }
+  const data = await ReplayApi.captureReplayGoldenCase({ id: row.id })
+  const caseId = String(data.goldenCase?.caseId || '')
+  message.success(caseId ? `Golden Case 已生成：${caseId}` : 'Golden Case 已生成')
+  await getList()
+  openDetailWithData(data)
+}
+
+const verifyGolden = async (row: ReplayApi.ReplayJobVO) => {
+  if (!row.id) {
+    return
+  }
+  try {
+    await message.confirm(`确认校验候选版本 v${row.targetVersionNo} 的 Golden Case 吗？`)
+  } catch {
+    return
+  }
+  const data = await ReplayApi.verifyReplayGoldenCase({ id: row.id })
+  const matched = data.goldenVerification?.matched !== false
+  const error = String(data.goldenVerification?.error || '')
+  if (matched) {
+    message.success('Golden 校验通过')
+  } else {
+    message.warning(error ? `Golden 校验未通过：${error}` : 'Golden 校验未通过，请查看详情')
+  }
+  await getList()
+  openDetailWithData(data)
 }
 
 onMounted(() => {

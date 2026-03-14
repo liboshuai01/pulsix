@@ -1,3 +1,5 @@
+import type { SimulationReportVO } from '@/api/risk/simulation'
+
 export const simulationVersionSelectModeOptions = [
   { label: '最新已发布', value: 'LATEST' },
   { label: '固定版本', value: 'FIXED' }
@@ -64,23 +66,24 @@ const getObject = (value: any): Record<string, any> => {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 }
 
-export const extractSimulationFinalResult = (resultJson?: Record<string, any>) => {
-  return getObject(resultJson?.finalResult)
+const getArray = (value: any): any[] => {
+  return Array.isArray(value) ? value : []
 }
 
-export const extractSimulationFinalAction = (resultJson?: Record<string, any>) => {
-  const finalResult = extractSimulationFinalResult(resultJson)
-  const value = finalResult.finalAction ?? resultJson?.finalAction
+export const extractSimulationFinalResult = (report?: Partial<SimulationReportVO>) => {
+  return getObject(report?.finalResult ?? report?.resultJson?.finalResult)
+}
+
+export const extractSimulationFinalAction = (report?: Partial<SimulationReportVO>) => {
+  const finalResult = extractSimulationFinalResult(report)
+  const value = report?.finalAction ?? finalResult.finalAction ?? report?.resultJson?.finalAction
   return value == null ? '' : String(value)
 }
 
-export const extractSimulationMatchedRules = (resultJson?: Record<string, any>) => {
-  const finalResult = extractSimulationFinalResult(resultJson)
-  const value = finalResult.hitRules ?? resultJson?.hitRules
-  if (!Array.isArray(value)) {
-    return []
-  }
-  return value
+export const extractSimulationMatchedRules = (report?: Partial<SimulationReportVO>) => {
+  const finalResult = extractSimulationFinalResult(report)
+  const value = report?.hitRules ?? finalResult.hitRules ?? report?.resultJson?.hitRules
+  return getArray(value)
     .map((item) => {
       if (item && typeof item === 'object' && !Array.isArray(item)) {
         return item
@@ -90,24 +93,21 @@ export const extractSimulationMatchedRules = (resultJson?: Record<string, any>) 
     .filter((item) => item.ruleCode)
 }
 
-export const extractSimulationHitRuleCodes = (resultJson?: Record<string, any>) => {
-  return extractSimulationMatchedRules(resultJson)
+export const extractSimulationHitRuleCodes = (report?: Partial<SimulationReportVO>) => {
+  return extractSimulationMatchedRules(report)
     .map((item) => item.ruleCode)
     .filter(Boolean)
 }
 
-export const extractSimulationFeatureSnapshot = (resultJson?: Record<string, any>) => {
-  return getObject(extractSimulationFinalResult(resultJson).featureSnapshot)
+export const extractSimulationFeatureSnapshot = (report?: Partial<SimulationReportVO>) => {
+  return getObject(report?.featureSnapshot ?? extractSimulationFinalResult(report).featureSnapshot)
 }
 
-export const extractSimulationTrace = (resultJson?: Record<string, any>) => {
-  const value = extractSimulationFinalResult(resultJson).trace
-  if (!Array.isArray(value)) {
-    return []
-  }
-  return value.map((item) => String(item)).filter(Boolean)
+export const extractSimulationTrace = (report?: Partial<SimulationReportVO>) => {
+  const value = report?.trace ?? extractSimulationFinalResult(report).trace
+  return getArray(value).map((item) => String(item)).filter(Boolean)
 }
 
-export const extractSimulationResults = (resultJson?: Record<string, any>) => {
-  return Array.isArray(resultJson?.results) ? resultJson?.results : []
+export const extractSimulationResults = (report?: Partial<SimulationReportVO>) => {
+  return getArray(report?.results ?? report?.resultJson?.results)
 }

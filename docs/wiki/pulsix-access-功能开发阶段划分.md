@@ -94,10 +94,12 @@ pulsix-access
 - 场景：`TRADE_RISK`
 - 事件：`TRADE_EVENT`
 - HTTP 接入源：`trade_http_demo`
+- Beacon 接入源：`trade_beacon_demo`
 - SDK 接入源：`trade_sdk_demo`
 - HTTP 原始样例：`event_sample.sample_code = TRADE_RAW_HTTP`
+- Beacon smoke 默认复用与 HTTP 相同的业务报文结构，只切换接入源、入口路径与鉴权方式
 
-`trade_http_demo` 的关键映射口径：
+`trade_http_demo / trade_beacon_demo` 的关键映射口径：
 
 - `$.event_id -> eventId`
 - `$.occur_time_ms -> eventTime`，转换类型 `TIME_MILLIS_TO_DATETIME`

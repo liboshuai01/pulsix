@@ -84,4 +84,18 @@ public class ReplayJobController {
         return success(replayJobService.executeReplayJob(reqVO));
     }
 
+    @PostMapping("/golden/capture")
+    @Operation(summary = "生成回放 Golden Case")
+    @PreAuthorize("@ss.hasPermission('risk:replay:execute')")
+    public CommonResult<ReplayJobDetailRespVO> captureReplayGoldenCase(@Valid @RequestBody ReplayJobExecuteReqVO reqVO) {
+        return success(replayJobService.captureReplayGoldenCase(reqVO));
+    }
+
+    @PostMapping("/golden/verify")
+    @Operation(summary = "校验回放 Golden Case")
+    @PreAuthorize("@ss.hasPermission('risk:replay:execute')")
+    public CommonResult<ReplayJobDetailRespVO> verifyReplayGoldenCase(@Valid @RequestBody ReplayJobExecuteReqVO reqVO) {
+        return success(replayJobService.verifyReplayGoldenCase(reqVO));
+    }
+
 }

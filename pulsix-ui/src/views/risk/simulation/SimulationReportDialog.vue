@@ -13,8 +13,14 @@
         <el-descriptions-item label="用例编码">{{ detailData.caseCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="用例名称">{{ detailData.caseName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="执行版本">{{ formatVersion(detailData.versionNo) }}</el-descriptions-item>
+        <el-descriptions-item label="快照 ID">{{ detailData.snapshotId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="链路号">{{ detailData.traceId || finalResult.traceId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="耗时">{{ detailData.durationMs ?? '-' }} ms</el-descriptions-item>
+        <el-descriptions-item label="使用版本">{{ formatVersion(detailData.usedVersion || detailData.versionNo) }}</el-descriptions-item>
+        <el-descriptions-item label="事件数">{{ detailData.eventCount ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="覆盖注入">
+          {{ detailData.overridesApplied == null ? '-' : detailData.overridesApplied ? '是' : '否' }}
+        </el-descriptions-item>
         <el-descriptions-item label="最终动作">
           <el-tag :type="getRiskActionTag(finalAction)" effect="plain">
             {{ getRiskActionLabel(finalAction) }}
@@ -28,6 +34,7 @@
         <el-descriptions-item label="报告时间">
           {{ detailData.createTime ? formatDate(detailData.createTime) : '-' }}
         </el-descriptions-item>
+        <el-descriptions-item label="Checksum" :span="2">{{ detailData.checksum || '-' }}</el-descriptions-item>
         <el-descriptions-item label="最终分数">{{ finalResult.finalScore ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="累计分数">{{ finalResult.totalScore ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="最终原因">{{ finalResult.reason || '-' }}</el-descriptions-item>
@@ -145,21 +152,27 @@ const ensureObject = (value: unknown): Record<string, any> => {
 const normalizeReportData = (data?: Partial<SimulationApi.SimulationReportVO>): SimulationApi.SimulationReportVO => ({
   ...createDefaultDetailData(),
   ...data,
-  resultJson: ensureObject(data?.resultJson)
+  resultJson: ensureObject(data?.resultJson),
+  finalResult: ensureObject(data?.finalResult),
+  results: Array.isArray(data?.results) ? data?.results : [],
+  hitRules: Array.isArray(data?.hitRules) ? data?.hitRules : [],
+  hitReasons: Array.isArray(data?.hitReasons) ? data?.hitReasons : [],
+  featureSnapshot: ensureObject(data?.featureSnapshot),
+  trace: Array.isArray(data?.trace) ? data?.trace : []
 })
 
 const detailData = ref<SimulationApi.SimulationReportVO>(createDefaultDetailData())
 
 const resultJson = computed(() => ensureObject(detailData.value.resultJson))
-const finalResult = computed(() => extractSimulationFinalResult(resultJson.value))
-const finalAction = computed(() => extractSimulationFinalAction(resultJson.value))
-const matchedRules = computed(() => extractSimulationMatchedRules(resultJson.value))
-const hitRuleCodes = computed(() => extractSimulationHitRuleCodes(resultJson.value))
-const featureSnapshot = computed(() => extractSimulationFeatureSnapshot(resultJson.value))
-const traceLines = computed(() => extractSimulationTrace(resultJson.value))
-const resultsJson = computed(() => extractSimulationResults(resultJson.value))
+const finalResult = computed(() => extractSimulationFinalResult(detailData.value))
+const finalAction = computed(() => extractSimulationFinalAction(detailData.value))
+const matchedRules = computed(() => extractSimulationMatchedRules(detailData.value))
+const hitRuleCodes = computed(() => extractSimulationHitRuleCodes(detailData.value))
+const featureSnapshot = computed(() => extractSimulationFeatureSnapshot(detailData.value))
+const traceLines = computed(() => extractSimulationTrace(detailData.value))
+const resultsJson = computed(() => extractSimulationResults(detailData.value))
 const hitReasons = computed(() => {
-  const value = finalResult.value.hitReasons
+  const value = detailData.value.hitReasons?.length ? detailData.value.hitReasons : finalResult.value.hitReasons
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : []
 })
 

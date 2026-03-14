@@ -48,6 +48,21 @@ export interface SimulationReportVO {
   versionNo: number
   traceId?: string
   resultJson?: Record<string, any>
+  snapshotId?: string
+  usedVersion?: number
+  checksum?: string
+  eventCount?: number
+  overridesApplied?: boolean
+  finalResult?: Record<string, any>
+  results?: Record<string, any>[]
+  finalAction?: string
+  finalScore?: number
+  totalScore?: number
+  reason?: string
+  hitRules?: Record<string, any>[]
+  hitReasons?: string[]
+  featureSnapshot?: Record<string, any>
+  trace?: string[]
   passFlag?: number
   durationMs?: number
   creator?: string

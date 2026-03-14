@@ -27,6 +27,8 @@ public final class RiskAuditConstants {
     public static final String ACTION_SYNC = "SYNC";
     public static final String ACTION_COMPILE = "COMPILE";
     public static final String ACTION_EXECUTE = "EXECUTE";
+    public static final String ACTION_CAPTURE = "CAPTURE";
+    public static final String ACTION_VERIFY = "VERIFY";
 
     private RiskAuditConstants() {
     }

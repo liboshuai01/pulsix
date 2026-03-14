@@ -17,4 +17,8 @@ public interface ReplayJobService {
 
     ReplayJobDetailRespVO executeReplayJob(ReplayJobExecuteReqVO reqVO);
 
+    ReplayJobDetailRespVO captureReplayGoldenCase(ReplayJobExecuteReqVO reqVO);
+
+    ReplayJobDetailRespVO verifyReplayGoldenCase(ReplayJobExecuteReqVO reqVO);
+
 }

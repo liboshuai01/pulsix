@@ -79,13 +79,28 @@ public final class SceneSnapshotEnvelopes {
             throw new IllegalArgumentException("scene release record must not be null");
         }
         SceneSnapshot snapshot = parseSnapshot(record.getSnapshotJson());
+        String sceneCode = requireNonBlank(mergeString("sceneCode", record.getSceneCode(), snapshot.getSceneCode()),
+                "snapshot sceneCode must not be blank");
+        Integer version = requirePositive(mergeInteger("version", record.getVersionNo(), snapshot.getVersion()),
+                "snapshot version must be positive");
+        String checksum = requireNonBlank(mergeString("checksum", record.getChecksum(), snapshot.getChecksum()),
+                "snapshot checksum must not be blank");
+        Instant publishedAt = preferInstant(record.getPublishedAt(), snapshot.getPublishedAt());
+        Instant effectiveFrom = preferInstant(record.getEffectiveFrom(), snapshot.getEffectiveFrom());
+
+        snapshot.setSceneCode(sceneCode);
+        snapshot.setVersion(version);
+        snapshot.setChecksum(checksum);
+        snapshot.setPublishedAt(publishedAt);
+        snapshot.setEffectiveFrom(effectiveFrom);
+
         SceneSnapshotEnvelope envelope = new SceneSnapshotEnvelope();
-        envelope.setSceneCode(record.getSceneCode());
-        envelope.setVersion(record.getVersionNo());
-        envelope.setChecksum(record.getChecksum());
+        envelope.setSceneCode(sceneCode);
+        envelope.setVersion(version);
+        envelope.setChecksum(checksum);
         envelope.setPublishType(resolvePublishType(record));
-        envelope.setPublishedAt(record.getPublishedAt());
-        envelope.setEffectiveFrom(record.getEffectiveFrom());
+        envelope.setPublishedAt(publishedAt);
+        envelope.setEffectiveFrom(effectiveFrom);
         envelope.setSnapshot(snapshot);
         return fromEnvelope(envelope);
     }
@@ -167,6 +182,10 @@ public final class SceneSnapshotEnvelopes {
             throw new IllegalArgumentException("snapshot " + fieldName + " conflict");
         }
         return preferred;
+    }
+
+    private static Instant preferInstant(Instant preferred, Instant fallback) {
+        return preferred == null ? fallback : preferred;
     }
 
     private static Integer requirePositive(Integer value, String message) {

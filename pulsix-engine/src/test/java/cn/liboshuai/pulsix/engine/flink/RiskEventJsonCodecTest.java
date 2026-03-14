@@ -33,6 +33,29 @@ class RiskEventJsonCodecTest {
     }
 
     @Test
+    void shouldReadRiskEventWithLocalDateTimeString() {
+        String payload = """
+                {
+                  "eventId": "E_RAW_9103",
+                  "traceId": "T_RAW_9103",
+                  "sceneCode": "TRADE_RISK",
+                  "eventType": "trade",
+                  "eventTime": "2026-03-12T11:45:00",
+                  "userId": "U9003",
+                  "deviceId": "D9003",
+                  "ip": "88.66.55.44",
+                  "amount": 2568,
+                  "result": "SUCCESS"
+                }
+                """;
+
+        RiskEvent event = RiskEventJsonCodec.read(payload);
+
+        assertEquals(Instant.parse("2026-03-12T03:45:00Z"), event.getEventTime());
+        assertEquals("TRADE_RISK", event.getSceneCode());
+    }
+
+    @Test
     void shouldRejectRiskEventWithoutSceneCode() {
         RiskEvent event = DemoFixtures.blacklistedEvent();
         event.setSceneCode(" ");

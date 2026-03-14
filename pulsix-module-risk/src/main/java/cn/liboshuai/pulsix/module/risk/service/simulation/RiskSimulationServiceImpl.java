@@ -77,6 +77,8 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
             InMemoryLookupService::new,
             new DecisionExecutor());
 
+    private final SimulationReportKernelViewBuilder simulationReportKernelViewBuilder = new SimulationReportKernelViewBuilder();
+
     @Resource
     private SimulationCaseMapper simulationCaseMapper;
 
@@ -364,6 +366,7 @@ public class RiskSimulationServiceImpl implements RiskSimulationService {
             respVO.setCaseCode(simulationCase.getCaseCode());
             respVO.setCaseName(simulationCase.getCaseName());
         }
+        simulationReportKernelViewBuilder.apply(respVO);
         return respVO;
     }
 

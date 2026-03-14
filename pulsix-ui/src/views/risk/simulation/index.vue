@@ -260,7 +260,7 @@ const handleExecute = async (row: SimulationApi.SimulationCaseVO) => {
   executingId.value = row.id
   try {
     const report = await SimulationApi.executeSimulation({ caseId: row.id })
-    const finalAction = extractSimulationFinalAction(report.resultJson)
+    const finalAction = extractSimulationFinalAction(report)
     if (report.passFlag === 1) {
       message.success(`仿真完成：最终动作 ${getRiskActionLabel(finalAction)}`)
     } else {

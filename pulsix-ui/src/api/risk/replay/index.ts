@@ -23,6 +23,17 @@ export interface ReplayJobVO {
 export interface ReplayJobDetailVO extends ReplayJobVO {
   summaryJson?: Record<string, any>
   sampleDiffJson?: Record<string, any>[]
+  eventCount?: number
+  changedEventCount?: number
+  changeRate?: number
+  baseline?: Record<string, any>
+  candidate?: Record<string, any>
+  baselineSummary?: Record<string, any>
+  candidateSummary?: Record<string, any>
+  differences?: Record<string, any>[]
+  topChangeTypes?: Record<string, number>
+  goldenCase?: Record<string, any>
+  goldenVerification?: Record<string, any>
 }
 
 export interface ReplayJobPageReqVO extends PageParam {
@@ -62,4 +73,12 @@ export const createReplayJob = (data: ReplayJobCreateReqVO) => {
 
 export const executeReplayJob = (data: ReplayJobExecuteReqVO) => {
   return request.post({ url: '/risk/replay/execute', data })
+}
+
+export const captureReplayGoldenCase = (data: ReplayJobExecuteReqVO) => {
+  return request.post({ url: '/risk/replay/golden/capture', data })
+}
+
+export const verifyReplayGoldenCase = (data: ReplayJobExecuteReqVO) => {
+  return request.post({ url: '/risk/replay/golden/verify', data })
 }

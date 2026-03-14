@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.engine.flink.snapshot;
 
+import java.io.Serializable;
 import java.nio.file.Path;
 
 public record SceneSnapshotSourceOptions(SceneSnapshotSourceType type,
@@ -18,7 +19,9 @@ public record SceneSnapshotSourceOptions(SceneSnapshotSourceType type,
                                          String cdcUsername,
                                          String cdcPassword,
                                          String cdcServerId,
-                                         String cdcServerTimeZone) {
+                                         String cdcServerTimeZone) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     public SceneSnapshotSourceOptions {
         type = type == null ? SceneSnapshotSourceType.DEMO : type;

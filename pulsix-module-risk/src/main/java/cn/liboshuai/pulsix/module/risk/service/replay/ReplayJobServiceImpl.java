@@ -26,6 +26,7 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.decisionlog.DecisionLogMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.release.SceneReleaseMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.replay.ReplayJobMapper;
 import cn.liboshuai.pulsix.module.risk.service.auditlog.AuditLogService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -54,8 +55,10 @@ import java.util.stream.Collectors;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.REPLAY_JOB_CONFIG_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.REPLAY_JOB_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_RELEASE_NOT_EXISTS;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CAPTURE;
 import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_CREATE;
 import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_EXECUTE;
+import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.ACTION_VERIFY;
 import static cn.liboshuai.pulsix.module.risk.enums.RiskAuditConstants.BIZ_TYPE_REPLAY;
 
 @Service
@@ -81,9 +84,14 @@ public class ReplayJobServiceImpl implements ReplayJobService {
     private static final String DEFAULT_DECISION_LOG_INPUT_REF = "LATEST_SCENE_DECISION_LOGS";
     private static final int DEFAULT_DECISION_LOG_LIMIT = 20;
     private static final int MAX_SAMPLE_DIFF_COUNT = 10;
+    private static final String SUMMARY_KEY_GOLDEN_CASE = "goldenCase";
+    private static final String SUMMARY_KEY_GOLDEN_VERIFICATION = "goldenVerification";
+    private static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     private final LocalSimulationRunner simulationRunner = new LocalSimulationRunner();
     private final LocalReplayRunner replayRunner = new LocalReplayRunner(simulationRunner);
+    private final ReplayJobKernelViewBuilder replayJobKernelViewBuilder = new ReplayJobKernelViewBuilder();
 
     @Resource
     private ReplayJobMapper replayJobMapper;
@@ -131,7 +139,9 @@ public class ReplayJobServiceImpl implements ReplayJobService {
 
     @Override
     public ReplayJobDetailRespVO getReplayJob(Long id) {
-        return BeanUtils.toBean(validateReplayJobExists(id), ReplayJobDetailRespVO.class);
+        ReplayJobDetailRespVO respVO = BeanUtils.toBean(validateReplayJobExists(id), ReplayJobDetailRespVO.class);
+        replayJobKernelViewBuilder.apply(respVO);
+        return respVO;
     }
 
     @Override
@@ -153,18 +163,73 @@ public class ReplayJobServiceImpl implements ReplayJobService {
             updateJobStatus(replayJob.getId(), JOB_STATUS_SUCCESS, startedAt, LocalDateTime.now(),
                     ObjectUtil.defaultIfNull(diffReport.getEventCount(), 0),
                     ObjectUtil.defaultIfNull(diffReport.getChangedEventCount(), 0),
-                    buildSummaryJson(diffReport),
+                    mergeReservedSummary(buildSummaryJson(diffReport), replayJob.getSummaryJson()),
                     buildSampleDiffJson(diffReport));
             ReplayJobDetailRespVO afterPayload = getReplayJob(replayJob.getId());
             auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_EXECUTE,
                     beforePayload, afterPayload, "执行回放任务 " + replayJob.getJobCode());
             return afterPayload;
         } catch (Exception exception) {
-            updateJobStatus(replayJob.getId(), JOB_STATUS_FAILED, startedAt, LocalDateTime.now(), 0, 0, Collections.emptyMap(), Collections.emptyList());
+            updateJobStatus(replayJob.getId(), JOB_STATUS_FAILED, startedAt, LocalDateTime.now(), null, null, null, null);
             auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_EXECUTE,
                     beforePayload, getReplayJob(replayJob.getId()), "执行回放任务失败 " + replayJob.getJobCode());
             throw exception;
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReplayJobDetailRespVO captureReplayGoldenCase(ReplayJobExecuteReqVO reqVO) {
+        ReplayJobDO replayJob = validateReplayJobExists(reqVO.getId());
+        ReplayJobDetailRespVO beforePayload = getReplayJob(replayJob.getId());
+        LocalReplayRunner.ReplayReport replayReport = buildCandidateReplayReport(replayJob);
+        LocalReplayRunner.ReplayGoldenCase goldenCase = replayRunner.captureGoldenCase(
+                resolveGoldenCaseId(replayJob),
+                resolveGoldenCaseDescription(replayJob),
+                replayReport);
+
+        Map<String, Object> summaryJson = copySummary(replayJob.getSummaryJson());
+        summaryJson.put("sceneCode", replayReport.getSceneCode());
+        summaryJson.put("eventCount", replayReport.getEventCount());
+        summaryJson.put("candidate", buildSnapshotSummary(toSnapshotRef(replayReport), replayReport.getSummary()));
+        summaryJson.put(SUMMARY_KEY_GOLDEN_CASE, toMap(goldenCase));
+        summaryJson.remove(SUMMARY_KEY_GOLDEN_VERIFICATION);
+        updateReplaySummary(replayJob.getId(), replayReport.getEventCount(), summaryJson);
+
+        ReplayJobDetailRespVO afterPayload = getReplayJob(replayJob.getId());
+        auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_CAPTURE,
+                beforePayload, afterPayload, "生成回放 Golden Case " + replayJob.getJobCode());
+        return afterPayload;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReplayJobDetailRespVO verifyReplayGoldenCase(ReplayJobExecuteReqVO reqVO) {
+        ReplayJobDO replayJob = validateReplayJobExists(reqVO.getId());
+        ReplayJobDetailRespVO beforePayload = getReplayJob(replayJob.getId());
+        LocalReplayRunner.ReplayReport replayReport = buildCandidateReplayReport(replayJob);
+        LocalReplayRunner.ReplayGoldenCase goldenCase = readReplayGoldenCase(replayJob);
+
+        Map<String, Object> summaryJson = copySummary(replayJob.getSummaryJson());
+        summaryJson.put("sceneCode", replayReport.getSceneCode());
+        summaryJson.put("eventCount", replayReport.getEventCount());
+        summaryJson.put("candidate", buildSnapshotSummary(toSnapshotRef(replayReport), replayReport.getSummary()));
+        summaryJson.put(SUMMARY_KEY_GOLDEN_CASE, toMap(goldenCase));
+
+        boolean matched = true;
+        try {
+            LocalReplayRunner.GoldenCaseVerification verification = replayRunner.verifyGoldenCase(replayReport, goldenCase);
+            summaryJson.put(SUMMARY_KEY_GOLDEN_VERIFICATION, toMap(verification));
+        } catch (Exception exception) {
+            matched = false;
+            summaryJson.put(SUMMARY_KEY_GOLDEN_VERIFICATION, buildFailedGoldenVerification(goldenCase, replayReport, exception));
+        }
+        updateReplaySummary(replayJob.getId(), replayReport.getEventCount(), summaryJson);
+
+        ReplayJobDetailRespVO afterPayload = getReplayJob(replayJob.getId());
+        auditLogService.createAuditLog(replayJob.getSceneCode(), BIZ_TYPE_REPLAY, replayJob.getJobCode(), ACTION_VERIFY,
+                beforePayload, afterPayload, (matched ? "校验回放 Golden Case 通过 " : "校验回放 Golden Case 未通过 ") + replayJob.getJobCode());
+        return afterPayload;
     }
 
     private void updateJobStatus(Long id, String jobStatus, LocalDateTime startedAt, LocalDateTime finishedAt,
@@ -472,6 +537,104 @@ public class ReplayJobServiceImpl implements ReplayJobService {
 
     private SceneSnapshot buildReleaseSnapshot(SceneReleaseDO release) {
         return EngineJson.read(EngineJson.write(release.getSnapshotJson()), SceneSnapshot.class);
+    }
+
+    private void updateReplaySummary(Long id, Integer eventTotalCount, Map<String, Object> summaryJson) {
+        ReplayJobDO updateObj = new ReplayJobDO();
+        updateObj.setId(id);
+        if (eventTotalCount != null) {
+            updateObj.setEventTotalCount(eventTotalCount);
+        }
+        updateObj.setSummaryJson(summaryJson == null ? new LinkedHashMap<>() : new LinkedHashMap<>(summaryJson));
+        replayJobMapper.updateById(updateObj);
+    }
+
+    private LocalReplayRunner.ReplayReport buildCandidateReplayReport(ReplayJobDO replayJob) {
+        SceneReleaseDO targetRelease = validateSceneReleaseExists(replayJob.getSceneCode(), replayJob.getTargetVersionNo());
+        List<RiskEvent> events = loadReplayEvents(replayJob);
+        return replayRunner.replay(SceneSnapshotEnvelopes.fromSnapshot(buildReleaseSnapshot(targetRelease)), events);
+    }
+
+    private LocalReplayRunner.ReplayGoldenCase readReplayGoldenCase(ReplayJobDO replayJob) {
+        Map<String, Object> summaryJson = replayJob.getSummaryJson() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(replayJob.getSummaryJson());
+        Object goldenCasePayload = summaryJson.get(SUMMARY_KEY_GOLDEN_CASE);
+        if (goldenCasePayload == null) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "回放任务尚未生成 Golden Case");
+        }
+        try {
+            return EngineJson.read(EngineJson.write(goldenCasePayload), LocalReplayRunner.ReplayGoldenCase.class);
+        } catch (Exception exception) {
+            throw ServiceExceptionUtil.exception(REPLAY_JOB_CONFIG_INVALID, "Golden Case 数据损坏：" + firstMeaningfulMessage(exception));
+        }
+    }
+
+    private String resolveGoldenCaseId(ReplayJobDO replayJob) {
+        Map<String, Object> summaryJson = replayJob.getSummaryJson() == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(replayJob.getSummaryJson());
+        if (summaryJson.get(SUMMARY_KEY_GOLDEN_CASE) instanceof Map<?, ?> goldenCase) {
+            Object caseId = goldenCase.get("caseId");
+            if (caseId != null && StrUtil.isNotBlank(String.valueOf(caseId))) {
+                return String.valueOf(caseId).trim();
+            }
+        }
+        return replayJob.getJobCode() + "_TARGET_V" + replayJob.getTargetVersionNo();
+    }
+
+    private String resolveGoldenCaseDescription(ReplayJobDO replayJob) {
+        String remark = trimToNull(replayJob.getRemark());
+        if (remark != null) {
+            return remark;
+        }
+        return "回放任务 " + replayJob.getJobCode() + " 候选版本 Golden Case";
+    }
+
+    private Map<String, Object> copySummary(Map<String, Object> summaryJson) {
+        return summaryJson == null ? new LinkedHashMap<>() : new LinkedHashMap<>(summaryJson);
+    }
+
+    private Map<String, Object> mergeReservedSummary(Map<String, Object> baseSummary, Map<String, Object> existingSummary) {
+        Map<String, Object> merged = baseSummary == null ? new LinkedHashMap<>() : new LinkedHashMap<>(baseSummary);
+        if (existingSummary == null || existingSummary.isEmpty()) {
+            return merged;
+        }
+        if (existingSummary.get(SUMMARY_KEY_GOLDEN_CASE) != null) {
+            merged.put(SUMMARY_KEY_GOLDEN_CASE, existingSummary.get(SUMMARY_KEY_GOLDEN_CASE));
+        }
+        if (existingSummary.get(SUMMARY_KEY_GOLDEN_VERIFICATION) != null) {
+            merged.put(SUMMARY_KEY_GOLDEN_VERIFICATION, existingSummary.get(SUMMARY_KEY_GOLDEN_VERIFICATION));
+        }
+        return merged;
+    }
+
+    private Map<String, Object> buildFailedGoldenVerification(LocalReplayRunner.ReplayGoldenCase goldenCase,
+                                                              LocalReplayRunner.ReplayReport replayReport,
+                                                              Exception exception) {
+        Map<String, Object> verification = new LinkedHashMap<>();
+        verification.put("caseId", goldenCase.getCaseId());
+        verification.put("matched", false);
+        verification.put("sceneCode", replayReport.getSceneCode());
+        verification.put("version", replayReport.getVersion());
+        verification.put("checksum", replayReport.getChecksum());
+        verification.put("eventCount", replayReport.getEventCount());
+        verification.put("actualSummary", toMap(replayReport.getSummary()));
+        verification.put("error", firstMeaningfulMessage(exception));
+        return verification;
+    }
+
+    private LocalReplayRunner.SnapshotRef toSnapshotRef(LocalReplayRunner.ReplayReport report) {
+        LocalReplayRunner.SnapshotRef snapshotRef = new LocalReplayRunner.SnapshotRef();
+        snapshotRef.setSnapshotId(report.getSnapshotId());
+        snapshotRef.setVersion(report.getVersion());
+        snapshotRef.setChecksum(report.getChecksum());
+        return snapshotRef;
+    }
+
+    private Map<String, Object> toMap(Object value) {
+        if (value == null) {
+            return new LinkedHashMap<>();
+        }
+        return JsonUtils.parseObject(EngineJson.write(value), MAP_TYPE_REFERENCE);
     }
 
     private Map<String, Object> buildSummaryJson(LocalReplayRunner.ReplayDiffReport diffReport) {

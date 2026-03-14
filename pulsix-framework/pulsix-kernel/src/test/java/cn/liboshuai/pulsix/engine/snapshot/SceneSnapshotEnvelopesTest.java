@@ -47,6 +47,25 @@ class SceneSnapshotEnvelopesTest {
     }
 
     @Test
+    void shouldPreferReleaseRowTimelineFieldsWhenSnapshotPayloadDiffers() {
+        SceneSnapshot snapshot = DemoFixtures.demoSnapshot();
+        SceneReleaseRecord record = new SceneReleaseRecord();
+        record.setSceneCode(snapshot.getSceneCode());
+        record.setVersionNo(snapshot.getVersion());
+        record.setChecksum(snapshot.getChecksum());
+        record.setPublishedAt(snapshot.getPublishedAt().plusSeconds(120));
+        record.setEffectiveFrom(snapshot.getEffectiveFrom().plusSeconds(120));
+        record.setSnapshotJson(snapshot);
+
+        SceneSnapshotEnvelope envelope = SceneSnapshotEnvelopes.fromReleaseRecord(record);
+
+        assertEquals(record.getPublishedAt(), envelope.getPublishedAt());
+        assertEquals(record.getEffectiveFrom(), envelope.getEffectiveFrom());
+        assertEquals(record.getPublishedAt(), envelope.getSnapshot().getPublishedAt());
+        assertEquals(record.getEffectiveFrom(), envelope.getSnapshot().getEffectiveFrom());
+    }
+
+    @Test
     void shouldRejectChecksumConflictBetweenReleaseRowAndSnapshotPayload() {
         SceneSnapshot snapshot = DemoFixtures.demoSnapshot();
         SceneReleaseRecord record = new SceneReleaseRecord();
