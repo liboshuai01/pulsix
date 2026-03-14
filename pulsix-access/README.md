@@ -32,12 +32,21 @@ MYSQL_PWD='pulsix_123' mysql --host='127.0.0.1' --port='3306' --user='pulsix' --
 
 `docs/sql/pulsix-access-smoke.sql` 只做一件事：给 `trade_sdk_demo` 补齐最小字段映射，便于 SDK smoke 复用 `TRADE_EVENT` 的最小原始样例。
 
-3. 启动 `pulsix-ingest`：
+3. 启动 `pulsix-ingest`（从仓库根目录执行）：
 
 ```bash
-cd /home/lbs/project/mine/pulsix/pulsix-access/pulsix-ingest
-mvn -q spring-boot:run -Dspring-boot.run.arguments="--server.port=8080 --spring.datasource.dynamic.primary=master --spring.datasource.dynamic.datasource.master.url=jdbc:mysql://127.0.0.1:3306/pulsix?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true --spring.datasource.dynamic.datasource.master.username=pulsix --spring.datasource.dynamic.datasource.master.password=pulsix_123 --spring.kafka.bootstrap-servers=127.0.0.1:29092"
+cd /home/lbs/project/mine/pulsix
+mvn -q -pl pulsix-access/pulsix-ingest -am package -DskipTests
+java -jar pulsix-access/pulsix-ingest/target/pulsix-ingest.jar \
+  --server.port=8080 \
+  --spring.datasource.dynamic.primary=master \
+  '--spring.datasource.dynamic.datasource.master.url=jdbc:mysql://127.0.0.1:3306/pulsix?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true' \
+  --spring.datasource.dynamic.datasource.master.username=pulsix \
+  --spring.datasource.dynamic.datasource.master.password=pulsix_123 \
+  --spring.kafka.bootstrap-servers=127.0.0.1:29092
 ```
+
+`pulsix-ingest` 已内置 `pulsix.info.base-package` 与 Kafka JSON 序列化默认值，因此独立运行时不需要再额外补这两项参数。
 
 默认对外端口：HTTP `8080`，Netty `19100`。
 

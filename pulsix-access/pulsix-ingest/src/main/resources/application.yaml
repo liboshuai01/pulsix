@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: pulsix-ingest
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+pulsix:
+  info:
+    base-package: cn.liboshuai.pulsix

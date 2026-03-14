@@ -1,10 +1,10 @@
 package cn.liboshuai.pulsix.framework.mybatis.core.handler;
 
 import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
-import cn.liboshuai.pulsix.framework.security.core.util.SecurityFrameworkUtils;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -16,6 +16,8 @@ import java.util.Objects;
  * @author hexiaowu
  */
 public class DefaultDBFieldHandler implements MetaObjectHandler {
+
+    private static final Method GET_LOGIN_USER_ID_METHOD = resolveGetLoginUserIdMethod();
 
     @Override
     @SuppressWarnings("PatternVariableCanBeUsed")
@@ -33,7 +35,7 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
                 baseDO.setUpdateTime(current);
             }
 
-            Long userId = SecurityFrameworkUtils.getLoginUserId();
+            Long userId = getLoginUserId();
             // 当前登录用户不为空，创建人为空，则当前登录用户为创建人
             if (Objects.nonNull(userId) && Objects.isNull(baseDO.getCreator())) {
                 baseDO.setCreator(userId.toString());
@@ -55,9 +57,36 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
 
         // 当前登录用户不为空，更新人为空，则当前登录用户为更新人
         Object modifier = getFieldValByName("updater", metaObject);
-        Long userId = SecurityFrameworkUtils.getLoginUserId();
+        Long userId = getLoginUserId();
         if (Objects.nonNull(userId) && Objects.isNull(modifier)) {
             setFieldValByName("updater", userId.toString(), metaObject);
         }
     }
+    private static Method resolveGetLoginUserIdMethod() {
+        try {
+            return Class.forName("cn.liboshuai.pulsix.framework.security.core.util.SecurityFrameworkUtils")
+                    .getMethod("getLoginUserId");
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private Long getLoginUserId() {
+        if (GET_LOGIN_USER_ID_METHOD == null) {
+            return null;
+        }
+        try {
+            Object userId = GET_LOGIN_USER_ID_METHOD.invoke(null);
+            if (userId == null) {
+                return null;
+            }
+            if (userId instanceof Long longValue) {
+                return longValue;
+            }
+            return Long.valueOf(String.valueOf(userId));
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            return null;
+        }
+    }
+
 }

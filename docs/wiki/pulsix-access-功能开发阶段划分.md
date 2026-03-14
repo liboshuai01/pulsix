@@ -352,6 +352,12 @@ pulsix-access
 - 已同步文档口径：`pulsix-access/README.md` 与本追踪文档都已更新，避免后续 AI 继续把这些项误判为“配置已声明但未生效”。
 - 当前结论：`12.3 P2` 已完成。
 
+#### 12.3.2 真机 smoke 收口补记（2026-03-14）
+
+- 已补齐 `pulsix-ingest` standalone 默认运行参数：模块内置 `pulsix.info.base-package=cn.liboshuai.pulsix` 与 Kafka `JsonSerializer` 默认配置，仓库根目录可直接 `package + java -jar` 启动。
+- 已消除 `ingest_error_log` 落库的安全模块硬依赖：`DefaultDBFieldHandler` 不再在运行期强依赖 `SecurityFrameworkUtils`，standalone `pulsix-ingest` 的 reject / error-log 路径可正常工作。
+- 已完成真机 smoke 复验：HTTP 主链路 `ACCEPTED`、HTTP reject + `ingest_error_log` 深验收、SDK 主链路 + Kafka 深验收均已跑通。
+
 ## 13. 给后续 AI 的执行建议
 
 - **不要再把当前状态误判为“只有骨架”。** 现在的问题重心已经不是补全主链路，而是收口尾项。
