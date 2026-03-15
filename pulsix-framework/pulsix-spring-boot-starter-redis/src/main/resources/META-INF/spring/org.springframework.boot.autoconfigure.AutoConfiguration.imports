@@ -1,0 +1,2 @@
+cn.liboshuai.pulsix.framework.redis.config.PulsixRedisAutoConfiguration
+cn.liboshuai.pulsix.framework.redis.config.PulsixCacheAutoConfiguration

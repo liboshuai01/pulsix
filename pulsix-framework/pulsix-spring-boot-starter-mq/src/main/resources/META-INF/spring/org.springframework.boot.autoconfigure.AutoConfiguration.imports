@@ -1,0 +1,3 @@
+cn.liboshuai.pulsix.framework.mq.redis.config.PulsixRedisMQProducerAutoConfiguration
+cn.liboshuai.pulsix.framework.mq.redis.config.PulsixRedisMQConsumerAutoConfiguration
+cn.liboshuai.pulsix.framework.mq.rabbitmq.config.PulsixRabbitMQAutoConfiguration

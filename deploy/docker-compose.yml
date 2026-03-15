@@ -1,0 +1,253 @@
+name: ${COMPOSE_PROJECT_NAME:-pulsix}
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4.8}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pulsix_root_123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-pulsix}
+      MYSQL_USER: ${MYSQL_USER:-pulsix}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pulsix_123}
+    command:
+      - --character-set-server=${MYSQL_CHARACTER_SET:-utf8mb4}
+      - --collation-server=${MYSQL_COLLATION:-utf8mb4_0900_ai_ci}
+      - --skip-name-resolve
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ../docs/sql/pulsix-system-infra.sql:/opt/pulsix/init/pulsix-system-infra.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - pulsix
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4.7}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-pulsix_redis_123}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-pulsix_redis_123}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - pulsix
+
+  redis-init:
+    image: ${REDIS_IMAGE:-redis:7.4.7}
+    restart: "no"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-pulsix_redis_123}
+      REDIS_DATABASE: ${REDIS_DATABASE:-0}
+      REDIS_INIT_MARKER_KEY: ${REDIS_INIT_MARKER_KEY:-pulsix:meta:seed:redis:v1}
+      REDIS_INIT_MAX_ATTEMPTS: ${REDIS_INIT_MAX_ATTEMPTS:-30}
+      REDIS_INIT_RETRY_INTERVAL_SECONDS: ${REDIS_INIT_RETRY_INTERVAL_SECONDS:-2}
+      REDIS_INIT_FORCE: ${REDIS_INIT_FORCE:-false}
+    entrypoint:
+      - /bin/sh
+      - /opt/pulsix/init/01-init-redis.sh
+    volumes:
+      - ./redis/init:/opt/pulsix/init:ro
+    networks:
+      - pulsix
+
+  kafka:
+    image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID:-1}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:${KAFKA_EXTERNAL_PORT:-29092}
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID:-1}@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-1}
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-29092}:29092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/127.0.0.1/9092'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks:
+      - pulsix
+
+  kafka-init:
+    image: ${KAFKA_IMAGE:-apache/kafka:3.9.1}
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KAFKA_INIT_TOPIC_SPECS: "${KAFKA_INIT_TOPIC_SPECS:-pulsix.event.standard:6:1,pulsix.decision.result:3:1,pulsix.decision.log:3:1,pulsix.engine.error:1:1,pulsix.event.dlq:1:1,pulsix.ingest.error:1:1}"
+      KAFKA_DEFAULT_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-1}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}
+    entrypoint:
+      - /bin/bash
+      - /opt/pulsix/init/01-create-topics.sh
+    volumes:
+      - ./kafka/init:/opt/pulsix/init:ro
+    networks:
+      - pulsix
+
+  doris-fe:
+    image: ${DORIS_FE_IMAGE:-apache/doris:fe-3.1.4}
+    hostname: doris-fe
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FE_SERVERS: fe1:${DORIS_FE_IP:-172.28.0.21}:9010
+      FE_ID: ${DORIS_FE_ID:-1}
+    ports:
+      - "${DORIS_FE_HTTP_PORT:-8030}:8030"
+      - "${DORIS_FE_QUERY_PORT:-9030}:9030"
+    volumes:
+      - doris-fe-meta:/opt/apache-doris/fe/doris-meta
+      - doris-fe-log:/opt/apache-doris/fe/log
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/${DORIS_FE_IP:-172.28.0.21}/9010 && echo > /dev/tcp/127.0.0.1/9030'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+    ulimits:
+      nofile:
+        soft: ${DORIS_NOFILE_SOFT:-1048576}
+        hard: ${DORIS_NOFILE_HARD:-1048576}
+    networks:
+      pulsix:
+        ipv4_address: ${DORIS_FE_IP:-172.28.0.21}
+
+  doris-be:
+    image: ${DORIS_BE_IMAGE:-apache/doris:be-3.1.4}
+    hostname: doris-be
+    restart: unless-stopped
+    depends_on:
+      doris-fe:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      FE_SERVERS: fe1:${DORIS_FE_IP:-172.28.0.21}:9010
+      BE_ADDR: ${DORIS_BE_IP:-172.28.0.22}:9050
+    ports:
+      - "${DORIS_BE_HTTP_PORT:-8040}:8040"
+    volumes:
+      - doris-be-storage:/opt/apache-doris/be/storage
+      - doris-be-log:/opt/apache-doris/be/log
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -ec 'echo > /dev/tcp/127.0.0.1/8040 && echo > /dev/tcp/${DORIS_BE_IP:-172.28.0.22}/9050'"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 150s
+    ulimits:
+      nofile:
+        soft: ${DORIS_NOFILE_SOFT:-1048576}
+        hard: ${DORIS_NOFILE_HARD:-1048576}
+    networks:
+      pulsix:
+        ipv4_address: ${DORIS_BE_IP:-172.28.0.22}
+
+  doris-init:
+    image: ${MYSQL_IMAGE:-mysql:8.4.8}
+    restart: "no"
+    depends_on:
+      doris-fe:
+        condition: service_healthy
+      doris-be:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      DORIS_HOST: doris-fe
+      DORIS_PORT: 9030
+      DORIS_USER: ${DORIS_USER:-root}
+      DORIS_PASSWORD: ${DORIS_PASSWORD:-}
+      DORIS_DATABASE: ${DORIS_DATABASE:-pulsix_olap}
+      DORIS_INIT_SQL_FILE: /opt/pulsix/sql/01-pulsix-olap.sql
+      DORIS_INIT_MAX_ATTEMPTS: ${DORIS_INIT_MAX_ATTEMPTS:-30}
+      DORIS_INIT_RETRY_INTERVAL_SECONDS: ${DORIS_INIT_RETRY_INTERVAL_SECONDS:-5}
+    entrypoint:
+      - /bin/bash
+      - /opt/pulsix/init/01-init-doris.sh
+    volumes:
+      - ./doris/init:/opt/pulsix/init:ro
+      - ./doris/sql:/opt/pulsix/sql:ro
+    networks:
+      - pulsix
+
+volumes:
+  mysql-data:
+  redis-data:
+  kafka-data:
+  doris-fe-meta:
+  doris-fe-log:
+  doris-be-storage:
+  doris-be-log:
+
+networks:
+  pulsix:
+    name: ${PULSIX_NETWORK_NAME:-pulsix}
+    ipam:
+      config:
+        - subnet: ${PULSIX_SUBNET:-172.28.0.0/24}

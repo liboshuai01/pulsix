@@ -1,0 +1,3 @@
+cn.liboshuai.pulsix.framework.security.config.PulsixSecurityAutoConfiguration
+cn.liboshuai.pulsix.framework.security.config.PulsixWebSecurityConfigurerAdapter
+cn.liboshuai.pulsix.framework.operatelog.config.PulsixOperateLogConfiguration

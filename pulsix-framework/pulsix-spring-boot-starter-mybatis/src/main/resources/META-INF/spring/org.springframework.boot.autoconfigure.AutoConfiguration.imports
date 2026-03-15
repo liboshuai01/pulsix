@@ -1,0 +1,3 @@
+cn.liboshuai.pulsix.framework.datasource.config.PulsixDataSourceAutoConfiguration
+cn.liboshuai.pulsix.framework.mybatis.config.PulsixMybatisAutoConfiguration
+cn.liboshuai.pulsix.framework.translate.config.PulsixTranslateAutoConfiguration

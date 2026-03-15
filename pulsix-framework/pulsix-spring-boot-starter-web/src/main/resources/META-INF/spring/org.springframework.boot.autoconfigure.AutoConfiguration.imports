@@ -1,0 +1,7 @@
+cn.liboshuai.pulsix.framework.apilog.config.PulsixApiLogAutoConfiguration
+cn.liboshuai.pulsix.framework.jackson.config.PulsixJacksonAutoConfiguration
+cn.liboshuai.pulsix.framework.swagger.config.PulsixSwaggerAutoConfiguration
+cn.liboshuai.pulsix.framework.web.config.PulsixWebAutoConfiguration
+cn.liboshuai.pulsix.framework.xss.config.PulsixXssAutoConfiguration
+cn.liboshuai.pulsix.framework.banner.config.PulsixBannerAutoConfiguration
+cn.liboshuai.pulsix.framework.encrypt.config.PulsixApiEncryptAutoConfiguration
