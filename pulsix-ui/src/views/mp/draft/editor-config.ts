@@ -1,9 +1,17 @@
+import type { UppyFile } from '@uppy/core'
 import { IEditorConfig } from '@wangeditor-next/editor'
 import { getAccessToken, getTenantId } from '@/utils/auth'
 
 const message = useMessage()
 
-type InsertFnType = (url: string, alt: string, href: string) => void
+type EditorUploadFile = UppyFile<Record<string, unknown>, Record<string, unknown>>
+type UploadFilesType = Record<string, EditorUploadFile>
+type InsertFnType = (
+  src: string,
+  poster?: string,
+  alt?: string,
+  href?: string
+) => void | Promise<void>
 
 export const createEditorConfig = (
   server: string,
@@ -17,6 +25,8 @@ export const createEditorConfig = (
         maxFileSize: 5 * 1024 * 1024,
         // 最多可上传几个文件，默认为 100
         maxNumberOfFiles: 10,
+        // 小于该大小的图片会转成 base64；这里禁用该行为，统一走后端上传
+        base64LimitSize: 0,
         // 选择文件时的类型限制，默认为 ['image/*'] 。如不想限制，则设置为 []
         allowedFileTypes: ['image/*'],
 
@@ -29,10 +39,19 @@ export const createEditorConfig = (
         metaWithUrl: true,
 
         // 自定义增加 http  header
-        headers: {
-          Accept: '*',
-          Authorization: 'Bearer ' + getAccessToken(),
-          'tenant-id': getTenantId()
+        headers: () => {
+          const headers = new Headers({ Accept: '*/*' })
+          const accessToken = getAccessToken()
+          const tenantId = getTenantId()
+
+          if (accessToken) {
+            headers.set('Authorization', `Bearer ${accessToken}`)
+          }
+          if (tenantId !== undefined && tenantId !== null) {
+            headers.set('tenant-id', String(tenantId))
+          }
+
+          return headers
         },
 
         // 跨域是否传递 cookie ，默认为 false
@@ -45,23 +64,23 @@ export const createEditorConfig = (
         fieldName: 'file',
 
         // 上传之前触发
-        onBeforeUpload(file: File) {
-          console.log(file)
-          return file
+        onBeforeUpload(files: UploadFilesType) {
+          console.log(Object.values(files))
+          return files
         },
         // 上传进度的回调函数
         onProgress(progress: number) {
           // progress 是 0-100 的数字
           console.log('progress', progress)
         },
-        onSuccess(file: File, res: any) {
+        onSuccess(file: EditorUploadFile, res: any) {
           console.log('onSuccess', file, res)
         },
-        onFailed(file: File, res: any) {
+        onFailed(file: EditorUploadFile, res: any) {
           message.alertError(res.message)
           console.log('onFailed', file, res)
         },
-        onError(file: File, err: any, res: any) {
+        onError(file: EditorUploadFile, err: any, res: any) {
           message.alertError(err.message)
           console.error('onError', file, err, res)
         },
