@@ -230,7 +230,7 @@ const getProject = async () => {
       color: '#6DB33F'
     },
     {
-      name: 'yudao-ui-admin-vue3',
+      name: 'pulsix-ui',
       icon: 'ep:element-plus',
       message: 'github.com/yudaocode/yudao-ui-admin-vue3',
       personal: 'Vue3 + element-plus 管理后台',
