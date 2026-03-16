@@ -43,6 +43,7 @@ public class SceneServiceImpl implements SceneService {
         validateSceneCodeImmutable(scene, updateReqVO.getSceneCode());
 
         SceneDO updateObj = SceneConvert.INSTANCE.convert(updateReqVO);
+        updateObj.setStatus(scene.getStatus());
         sceneMapper.updateById(updateObj);
     }
 

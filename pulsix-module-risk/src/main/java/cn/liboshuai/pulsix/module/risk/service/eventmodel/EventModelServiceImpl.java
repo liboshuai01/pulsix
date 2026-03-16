@@ -85,6 +85,7 @@ public class EventModelServiceImpl implements EventModelService {
         EventSchemaDO updateObj = EventModelConvert.INSTANCE.convert(updateReqVO);
         updateObj.setTopicName(defaultTopicName(updateReqVO.getTopicName()));
         updateObj.setVersion(schema.getVersion() == null ? 1 : schema.getVersion() + 1);
+        updateObj.setStatus(schema.getStatus());
         eventSchemaMapper.updateById(updateObj);
 
         eventFieldDefMapper.deleteByEventCode(schema.getEventCode());

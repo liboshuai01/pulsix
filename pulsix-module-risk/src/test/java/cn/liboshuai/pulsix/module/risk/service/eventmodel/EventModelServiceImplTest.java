@@ -101,6 +101,24 @@ class EventModelServiceImplTest {
     }
 
     @Test
+    void updateEventModel_preservesExistingStatus() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setId(10L);
+        reqVO.setStatus(1);
+        EventSchemaDO schema = createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT");
+        schema.setStatus(0);
+        when(eventSchemaMapper.selectById(10L)).thenReturn(schema);
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(schema);
+
+        eventModelService.updateEventModel(reqVO);
+
+        ArgumentCaptor<EventSchemaDO> captor = ArgumentCaptor.forClass(EventSchemaDO.class);
+        verify(eventSchemaMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(0);
+        assertThat(captor.getValue().getVersion()).isEqualTo(2);
+    }
+
+    @Test
     void createEventModel_duplicateField_rejected() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
         reqVO.getFields().add(createField("eventId", "重复事件ID", "STRING", 1, null, "E_TRADE_0009", 99));
@@ -210,6 +228,7 @@ class EventModelServiceImplTest {
         schema.setSceneCode(sceneCode);
         schema.setEventCode(eventCode);
         schema.setVersion(1);
+        schema.setStatus(0);
         return schema;
     }
 

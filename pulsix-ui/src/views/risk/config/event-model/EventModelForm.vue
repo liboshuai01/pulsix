@@ -58,7 +58,7 @@
             </el-row>
             <el-row :gutter="18">
               <el-col :span="12">
-                <el-form-item label="状态" prop="status">
+                <el-form-item v-if="formType === 'create'" label="状态" prop="status">
                   <el-radio-group v-model="formData.status">
                     <el-radio
                       v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
@@ -68,6 +68,9 @@
                       {{ dict.label }}
                     </el-radio>
                   </el-radio-group>
+                </el-form-item>
+                <el-form-item v-else label="状态">
+                  <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -218,9 +221,9 @@
                     :image-size="60"
                   />
                   <el-alert
-                    v-for="message in previewResult.validationMessages"
-                    :key="message"
-                    :title="message"
+                    v-for="validationMessage in previewResult.validationMessages"
+                    :key="validationMessage"
+                    :title="validationMessage"
                     type="warning"
                     :closable="false"
                     class="mb-8px"
