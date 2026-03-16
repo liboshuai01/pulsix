@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import dayjs from 'dayjs'
 
 export interface OrderVO {
   id: number
@@ -29,6 +30,7 @@ export interface OrderVO {
 }
 
 export interface OrderPageReqVO extends PageParam {
+  no?: string
   merchantId?: number
   appId?: number
   channelId?: number
@@ -42,18 +44,19 @@ export interface OrderPageReqVO extends PageParam {
   channelFeeRate?: number
   channelFeeAmount?: number
   status?: number
-  expireTime?: Date[]
-  successTime?: Date[]
-  notifyTime?: Date[]
+  expireTime?: dayjs.ConfigType[]
+  successTime?: dayjs.ConfigType[]
+  notifyTime?: dayjs.ConfigType[]
   successExtensionId?: number
   refundStatus?: number
   refundTimes?: number
   channelUserId?: string
   channelOrderNo?: string
-  createTime?: Date[]
+  createTime?: dayjs.ConfigType[]
 }
 
 export interface OrderExportReqVO {
+  no?: string
   merchantId?: number
   appId?: number
   channelId?: number
@@ -67,15 +70,15 @@ export interface OrderExportReqVO {
   channelFeeRate?: number
   channelFeeAmount?: number
   status?: number
-  expireTime?: Date[]
-  successTime?: Date[]
-  notifyTime?: Date[]
+  expireTime?: dayjs.ConfigType[]
+  successTime?: dayjs.ConfigType[]
+  notifyTime?: dayjs.ConfigType[]
   successExtensionId?: number
   refundStatus?: number
   refundTimes?: number
   channelUserId?: string
   channelOrderNo?: string
-  createTime?: Date[]
+  createTime?: dayjs.ConfigType[]
 }
 
 // 查询列表支付订单

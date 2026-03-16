@@ -6,7 +6,7 @@
       <el-descriptions-item label="商品标题">{{ payOrder.subject }}</el-descriptions-item>
       <el-descriptions-item label="商品内容">{{ payOrder.body }}</el-descriptions-item>
       <el-descriptions-item label="支付金额">
-        ￥{{ (payOrder.price / 100.0).toFixed(2) }}
+        ￥{{ ((payOrder.price || 0) / 100.0).toFixed(2) }}
       </el-descriptions-item>
       <el-descriptions-item label="创建时间">
         {{ formatDate(payOrder.createTime) }}
@@ -120,6 +120,7 @@ import * as PayOrderApi from '@/api/pay/order'
 import { PayChannelEnum, PayDisplayModeEnum, PayOrderStatusEnum } from '@/utils/constants'
 import { formatDate } from '@/utils/formatTime'
 import { useTagsViewStore } from '@/store/modules/tagsView'
+import type { LocationQueryValue } from 'vue-router'
 
 // 导入图标
 import svg_alipay_pc from '@/assets/svgs/pay/icon/alipay_pc.svg'
@@ -137,15 +138,25 @@ import svg_mock from '@/assets/svgs/pay/icon/mock.svg'
 
 defineOptions({ name: 'PayCashier' })
 
+type PayCashierOrder = Partial<PayOrderApi.OrderVO> & {
+  price?: number
+}
+
+type PaySubmitRespVO = {
+  status?: number
+  displayMode?: string | number
+  displayContent: string
+}
+
 const message = useMessage() // 消息弹窗
 const route = useRoute() // 路由
 const { push, currentRoute } = useRouter() // 路由
 const { delView } = useTagsViewStore() // 视图操作
 
-const id = ref(undefined) // 支付单号
-const returnUrl = ref<string | undefined>(undefined) // 支付完的回调地址
+const id = ref<number>() // 支付单号
+const returnUrl = ref<string>() // 支付完的回调地址
 const loading = ref(false) // 支付信息的 loading
-const payOrder = ref({}) // 支付信息
+const payOrder = ref<PayCashierOrder>({}) // 支付信息
 const channelsAlipay = [
   {
     name: '支付宝 PC 网站支付',
@@ -214,7 +225,7 @@ const channelsMock = [
 ]
 
 const submitLoading = ref(false) // 提交支付的 loading
-const interval = ref<any>(undefined) // 定时任务，轮询是否完成支付
+const interval = ref<ReturnType<typeof setInterval>>() // 定时任务，轮询是否完成支付
 const qrCode = ref({
   // 展示形式：二维码
   url: '',
@@ -259,7 +270,7 @@ const getDetail = async () => {
 }
 
 /** 提交支付 */
-const submit = (channelCode) => {
+const submit = (channelCode: string) => {
   // 条形码支付，需要特殊处理
   if (channelCode === PayChannelEnum.ALIPAY_BAR.code) {
     barCode.value = {
@@ -294,7 +305,7 @@ const submit = (channelCode) => {
   submit0(channelCode)
 }
 
-const submit0 = async (channelCode) => {
+const submit0 = async (channelCode: string) => {
   submitLoading.value = true
   try {
     const formData = {
@@ -329,7 +340,7 @@ const submit0 = async (channelCode) => {
 }
 
 /** 构建提交支付的额外参数 */
-const buildSubmitParam = (channelCode) => {
+const buildSubmitParam = (channelCode: string) => {
   // ① 支付宝 BarCode 支付时，需要传递 authCode 条形码
   if (channelCode === PayChannelEnum.ALIPAY_BAR.code) {
     return {
@@ -350,13 +361,13 @@ const buildSubmitParam = (channelCode) => {
 }
 
 /** 提交支付后，URL 的展示形式 */
-const displayUrl = (_channelCode, data) => {
+const displayUrl = (_channelCode: string, data: PaySubmitRespVO) => {
   location.href = data.displayContent
   submitLoading.value = false
 }
 
 /** 提交支付后（扫码支付） */
-const displayQrCode = (channelCode, data) => {
+const displayQrCode = (channelCode: string, data: PaySubmitRespVO) => {
   let title = '请使用手机浏览器“扫一扫”'
   if (channelCode === PayChannelEnum.ALIPAY_WAP.code) {
     // 考虑到 WAP 测试，所以引导手机浏览器搞
@@ -374,7 +385,7 @@ const displayQrCode = (channelCode, data) => {
 }
 
 /** 提交支付后（App） */
-const displayApp = (channelCode) => {
+const displayApp = (channelCode: string) => {
   if (channelCode === PayChannelEnum.ALIPAY_APP.code) {
     message.error('支付宝 App 支付：无法在网页支付！')
   }
@@ -386,11 +397,12 @@ const displayApp = (channelCode) => {
 
 /** 轮询查询任务 */
 const createQueryInterval = () => {
-  if (interval.value) {
+  const currentId = id.value
+  if (!currentId || interval.value) {
     return
   }
   interval.value = setInterval(async () => {
-    const data = await PayOrderApi.getOrder(id.value)
+    const data = await PayOrderApi.getOrder(currentId)
     // 已支付
     if (data.status === PayOrderStatusEnum.SUCCESS.status) {
       clearQueryInterval()
@@ -427,7 +439,7 @@ const clearQueryInterval = () => {
  *                  ② cancel：取消支付
  *                  ③ close：支付已关闭
  */
-const goReturnUrl = (payResult) => {
+const goReturnUrl = (payResult: 'success' | 'cancel' | 'close') => {
   // 清理任务
   clearQueryInterval()
 
@@ -452,11 +464,23 @@ const goReturnUrl = (payResult) => {
   }
 }
 
+const getSingleQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined) => {
+  return Array.isArray(value) ? value[0] : value
+}
+
 /** 初始化 */
 onMounted(() => {
-  id.value = route.query.id
-  if (route.query.returnUrl) {
-    returnUrl.value = decodeURIComponent(route.query.returnUrl)
+  const idQuery = getSingleQueryValue(route.query.id)
+  if (idQuery) {
+    const parsedId = Number(idQuery)
+    if (!Number.isNaN(parsedId)) {
+      id.value = parsedId
+    }
+  }
+
+  const returnUrlQuery = getSingleQueryValue(route.query.returnUrl)
+  if (returnUrlQuery) {
+    returnUrl.value = decodeURIComponent(returnUrlQuery)
   }
   getDetail()
 })

@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import dayjs from 'dayjs'
 
 export interface RefundVO {
   id: number
@@ -30,6 +31,7 @@ export interface RefundVO {
 }
 
 export interface RefundPageReqVO extends PageParam {
+  merchantRefundId?: string
   merchantId?: number
   appId?: number
   channelId?: number
@@ -51,13 +53,14 @@ export interface RefundPageReqVO extends PageParam {
   channelErrorCode?: string
   channelErrorMsg?: string
   channelExtras?: string
-  expireTime?: Date[]
-  successTime?: Date[]
-  notifyTime?: Date[]
-  createTime?: Date[]
+  expireTime?: dayjs.ConfigType[]
+  successTime?: dayjs.ConfigType[]
+  notifyTime?: dayjs.ConfigType[]
+  createTime?: dayjs.ConfigType[]
 }
 
 export interface PayRefundExportReqVO {
+  merchantRefundId?: string
   merchantId?: number
   appId?: number
   channelId?: number
@@ -79,10 +82,10 @@ export interface PayRefundExportReqVO {
   channelErrorCode?: string
   channelErrorMsg?: string
   channelExtras?: string
-  expireTime?: Date[]
-  successTime?: Date[]
-  notifyTime?: Date[]
-  createTime?: Date[]
+  expireTime?: dayjs.ConfigType[]
+  successTime?: dayjs.ConfigType[]
+  notifyTime?: dayjs.ConfigType[]
+  createTime?: dayjs.ConfigType[]
 }
 
 // 查询列表退款订单

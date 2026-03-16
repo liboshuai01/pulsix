@@ -27,9 +27,7 @@
         </div>
       </div>
     </el-radio-group>
-    <div v-else>
-      除了UserTask以外节点的多实例待实现
-    </div>
+    <div v-else> 除了UserTask以外节点的多实例待实现 </div>
     <!-- 与Simple设计器配置合并，保留以前的代码 -->
     <el-form label-width="90px" style="display: none">
       <el-form-item label="快捷配置">
@@ -128,8 +126,8 @@ const defaultLoopInstanceForm = ref({
   exclusive: false
 })
 const loopInstanceForm = ref<any>({})
-const bpmnElement = ref(null)
-const multiLoopInstance = ref(null)
+const bpmnElement = ref<any>(null)
+const multiLoopInstance = ref<any>(null)
 const bpmnInstances = () => (window as any)?.bpmnInstances
 
 const getElementLoop = (businessObject) => {
@@ -167,6 +165,7 @@ const getElementLoop = (businessObject) => {
       businessObject.loopCharacteristics.extensionElements.values[0].body
   }
 }
+void getElementLoop
 
 const changeLoopCharacteristicsType = (type) => {
   // this.loopInstanceForm = { ...this.defaultLoopInstanceForm }; // 切换类型取消原表单配置

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "dist",
+    "target",
+    "node_modules",
+    "src/components/Tinyflow/ui/index.js",
+    "src/components/Tinyflow/ui/index.umd.js"
+  ]
+}

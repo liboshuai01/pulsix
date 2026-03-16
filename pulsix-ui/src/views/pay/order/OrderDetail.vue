@@ -10,10 +10,16 @@
       <el-descriptions-item label="应用编号">{{ detailData.appId }}</el-descriptions-item>
       <el-descriptions-item label="应用名称">{{ detailData.appName }}</el-descriptions-item>
       <el-descriptions-item label="支付状态">
-        <dict-tag :type="DICT_TYPE.PAY_ORDER_STATUS" :value="detailData.status" size="small" />
+        <dict-tag
+          :type="DICT_TYPE.PAY_ORDER_STATUS"
+          :value="detailData.status ?? ''"
+          size="small"
+        />
       </el-descriptions-item>
       <el-descriptions-item label="支付金额">
-        <el-tag type="success" size="small">￥{{ ((detailData.price || 0) / 100.0).toFixed(2) }}</el-tag>
+        <el-tag type="success" size="small"
+          >￥{{ ((detailData.price || 0) / 100.0).toFixed(2) }}</el-tag
+        >
       </el-descriptions-item>
       <el-descriptions-item label="手续费">
         <el-tag type="warning" size="small">
@@ -42,17 +48,17 @@
       <el-descriptions-item label="商品标题">{{ detailData.subject }}</el-descriptions-item>
       <el-descriptions-item label="商品描述">{{ detailData.body }}</el-descriptions-item>
       <el-descriptions-item label="支付渠道">
-        <dict-tag :type="DICT_TYPE.PAY_CHANNEL_CODE" :value="detailData.channelCode" />
+        <dict-tag :type="DICT_TYPE.PAY_CHANNEL_CODE" :value="detailData.channelCode ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="支付 IP">{{ detailData.userIp }}</el-descriptions-item>
       <el-descriptions-item label="渠道单号">
-        <el-tag size="mini" type="success" v-if="detailData.channelOrderNo">
+        <el-tag size="small" type="success" v-if="detailData.channelOrderNo">
           {{ detailData.channelOrderNo }}
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="渠道用户">{{ detailData.channelUserId }}</el-descriptions-item>
       <el-descriptions-item label="退款金额">
-        <el-tag size="mini" type="danger">
+        <el-tag size="small" type="danger">
           ￥{{ ((detailData.refundPrice || 0) / 100.0).toFixed(2) }}
         </el-tag>
       </el-descriptions-item>
@@ -62,7 +68,7 @@
     <el-divider />
     <el-descriptions :column="1" label-class-name="desc-label" direction="vertical" border>
       <el-descriptions-item label="支付通道异步回调内容">
-        <el-text style="white-space: pre-wrap; word-break: break-word">
+        <el-text style="word-break: break-word; white-space: pre-wrap">
           {{ detailData.extension.channelNotifyData }}
         </el-text>
       </el-descriptions-item>
@@ -76,9 +82,21 @@ import { formatDate } from '@/utils/formatTime'
 
 defineOptions({ name: 'PayOrderDetail' })
 
+type PayOrderDetailData = Partial<OrderApi.OrderVO> & {
+  appName?: string
+  no?: string
+  price?: number
+  refundPrice?: number
+  channelFeePrice?: number
+  updateTime?: string | number | Date
+  extension: {
+    channelNotifyData?: string
+  }
+}
+
 const dialogVisible = ref(false) // 弹窗的是否展示
 const detailLoading = ref(false) // 表单的加载中
-const detailData = ref({
+const detailData = ref<PayOrderDetailData>({
   extension: {}
 })
 
@@ -88,9 +106,9 @@ const open = async (id: number) => {
   // 设置数据
   detailLoading.value = true
   try {
-    detailData.value = await OrderApi.getOrderDetail(id)
-    if (!detailData.value.extension) {
-      detailData.value.extension = {}
+    detailData.value = {
+      extension: {},
+      ...(await OrderApi.getOrderDetail(id))
     }
   } finally {
     detailLoading.value = false

@@ -191,6 +191,7 @@
 import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE, getDictOptions } from '@/utils/dict'
 import * as ChannelApi from '@/api/pay/channel'
+import type { FormInstance, UploadProps } from 'element-plus'
 
 defineOptions({ name: 'AlipayChannelForm' })
 
@@ -239,7 +240,7 @@ const formRules = {
   'config.encryptKey': [{ required: true, message: '请输入接口内容加密密钥', trigger: 'blur' }]
 }
 const fileAccept = '.crt'
-const formRef = ref() // 表单 Ref
+const formRef = ref<FormInstance>() // 表单 Ref
 
 /** 打开弹窗 */
 const open = async (appId, code) => {
@@ -260,11 +261,15 @@ const open = async (appId, code) => {
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 
+const close = () => {
+  formRef.value?.resetFields()
+}
+
 /** 提交表单 */
 const emit = defineEmits(['success']) // 定义 success 事件，用于操作成功后的回调
 const submitForm = async () => {
   // 校验表单
-  if (!formRef) return
+  if (!formRef.value) return
   const valid = await formRef.value.validate()
   if (!valid) return
   // 提交请求
@@ -312,40 +317,42 @@ const resetForm = (appId, code) => {
   formRef.value?.resetFields()
 }
 
-const fileBeforeUpload = (file) => {
-  let format = '.' + file.name.split('.')[1]
+const fileBeforeUpload: UploadProps['beforeUpload'] = (file) => {
+  const extension = file.name.split('.').pop()
+  const format = extension ? `.${extension}` : ''
   if (format !== fileAccept) {
     message.error(`请上传指定格式"${fileAccept}"文件`)
     return false
   }
-  let isRightSize = file.size / 1024 / 1024 < 2
+  const isRightSize = file.size / 1024 / 1024 < 2
   if (!isRightSize) {
     message.error('文件大小超过 2MB')
   }
   return isRightSize
 }
 
-const appCertUpload = (event) => {
-  const readFile = new FileReader()
-  readFile.onload = (e: any) => {
-    formData.value.config.appCertContent = e.target.result
+const readCertificateFile = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const readFile = new FileReader()
+    readFile.onload = () => {
+      resolve(typeof readFile.result === 'string' ? readFile.result : '')
+    }
+    readFile.onerror = () => {
+      reject(readFile.error ?? new Error('文件读取失败'))
+    }
+    readFile.readAsText(file)
+  })
+
+const createCertUploadHandler = (
+  field: 'appCertContent' | 'alipayPublicCertContent' | 'rootCertContent'
+): UploadProps['httpRequest'] => {
+  return async (options) => {
+    formData.value.config[field] = await readCertificateFile(options.file)
+    options.onSuccess({ content: formData.value.config[field] })
   }
-  readFile.readAsText(event.file)
 }
 
-const alipayPublicCertUpload = (event) => {
-  const readFile = new FileReader()
-  readFile.onload = (e: any) => {
-    formData.value.config.alipayPublicCertContent = e.target.result
-  }
-  readFile.readAsText(event.file)
-}
-
-const rootCertUpload = (event) => {
-  const readFile = new FileReader()
-  readFile.onload = (e: any) => {
-    formData.value.config.rootCertContent = e.target.result
-  }
-  readFile.readAsText(event.file)
-}
+const appCertUpload = createCertUploadHandler('appCertContent')
+const alipayPublicCertUpload = createCertUploadHandler('alipayPublicCertContent')
+const rootCertUpload = createCertUploadHandler('rootCertContent')
 </script>

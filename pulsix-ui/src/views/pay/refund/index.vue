@@ -126,12 +126,12 @@
       />
       <el-table-column label="支付金额" align="center" prop="payPrice" width="100">
         <template #default="scope">
-          ￥{{ parseFloat(scope.row.payPrice / 100).toFixed(2) }}
+          ￥{{ (scope.row.payPrice / 100).toFixed(2) }}
         </template>
       </el-table-column>
       <el-table-column label="退款金额" align="center" prop="refundPrice" width="100">
         <template #default="scope">
-          ￥{{ parseFloat(scope.row.refundPrice / 100).toFixed(2) }}
+          ￥{{ (scope.row.refundPrice / 100).toFixed(2) }}
         </template>
       </el-table-column>
       <el-table-column label="退款订单号" align="left" width="300">
@@ -214,12 +214,24 @@ import download from '@/utils/download'
 
 defineOptions({ name: 'PayRefund' })
 
+type PayRefundItem = RefundApi.RefundVO & {
+  appName?: string
+  merchantRefundId?: string
+  no?: string
+  payPrice: number
+  refundPrice: number
+}
+
+type PayRefundQueryParams = Omit<RefundApi.RefundPageReqVO, 'createTime'> & {
+  createTime: string[]
+}
+
 const message = useMessage() // 消息弹窗
 
 const loading = ref(false) // 列表遮罩层
 const total = ref(0) // 列表的总页数
-const list = ref([]) // 列表的数据
-const queryParams = reactive({
+const list = ref<PayRefundItem[]>([]) // 列表的数据
+const queryParams = reactive<PayRefundQueryParams>({
   pageNo: 1,
   pageSize: 10,
   merchantId: undefined,
@@ -228,16 +240,13 @@ const queryParams = reactive({
   merchantOrderId: undefined,
   merchantRefundId: undefined,
   status: undefined,
-  payPrice: undefined,
-  refundPrice: undefined,
   channelOrderNo: undefined,
   channelRefundNo: undefined,
-  createTime: [],
-  successTime: []
+  createTime: []
 })
 const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出等待
-const appList = ref([]) // 支付应用列表集合
+const appList = ref<AppApi.AppVO[]>([]) // 支付应用列表集合
 
 /** 搜索按钮操作 */
 const handleQuery = () => {
@@ -281,7 +290,7 @@ const handleExport = async () => {
 /** 预览详情 */
 const detailRef = ref()
 const openDetail = (id: number) => {
-  detailRef.value.open(id)
+  detailRef.value?.open(id)
 }
 
 /** 初始化 **/

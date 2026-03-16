@@ -1,0 +1,4482 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-16T04:36:54.100Z",
+  "command": "/home/lbs/.nvm/versions/node/v24.14.0/bin/node --max_old_space_size=8192 ./node_modules/vue-tsc/bin/vue-tsc --noEmit -p tsconfig.typecheck.json",
+  "summary": {
+    "totalErrors": 943,
+    "totalFiles": 244,
+    "totalSignatures": 745
+  },
+  "entries": [
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2322",
+      "message": "Type 'unknown[]' is not assignable to type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2339",
+      "message": "Property 'permission' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2339",
+      "message": "Property 'title' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/custom-config/components/UserTaskCustomConfig.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'any' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'changeFieldTypeType' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'openFieldForm' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'openFieldOptionForm' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'option' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'removeField' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'removeFieldOptionItem' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'saveField' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'saveFieldOption' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'updateElementBusinessKey' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/form/ElementForm.vue",
+      "code": "TS6133",
+      "message": "'width' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/task/task-components/UserTask.vue",
+      "code": "TS2322",
+      "message": "Type 'any' is not assignable to type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/task/task-components/UserTask.vue",
+      "code": "TS2322",
+      "message": "Type 'CandidateStrategy.START_USER' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/task/task-components/UserTask.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'EpPropMergeType<(ObjectConstructor | NumberConstructor | BooleanConstructor | StringConstructor)[], unknown, unknown>'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/task/task-components/UserTask.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/bpmnProcessDesigner/package/penal/task/task-components/UserTask.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DeptSelectForm/index.vue",
+      "code": "TS6133",
+      "message": "'checked' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DeptSelectForm/index.vue",
+      "code": "TS6133",
+      "message": "'data' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/FloatingActionButton/index.vue",
+      "code": "TS2339",
+      "message": "Property 'handleActive' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly property: FloatingActionButtonProperty; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (arg...'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/HotZone/index.vue",
+      "code": "TS6133",
+      "message": "'props' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/ProductList/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'number | undefined' is not assignable to parameter of type 'string | number'. Type 'undefined' is not assignable to type 'string | number'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/PromotionArticle/property.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'string | number | boolean'. Property 'id' does not exist on type 'string'.",
+      "count": 2
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/PromotionArticle/property.vue",
+      "code": "TS2339",
+      "message": "Property 'title' does not exist on type 'string | number | boolean'. Property 'title' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiyEditor/components/mobile/PromotionArticle/property.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'never[]' is not assignable to parameter of type 'ArticleVO'. Type 'never[]' is missing the following properties from type 'ArticleVO': id, categoryId, title, author, and 8 more.",
+      "count": 1
+    },
+    {
+      "file": "src/components/FormCreate/src/components/AreaSelect.vue",
+      "code": "TS6133",
+      "message": "'handleTree' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/FormCreate/src/components/IframeComponent.vue",
+      "code": "TS6133",
+      "message": "'ref' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/FormCreate/src/components/IframeComponent.vue",
+      "code": "TS6133",
+      "message": "'watch' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleProcessDesignerV2/src/nodes-config/RouterNodeConfig.vue",
+      "code": "TS2322",
+      "message": "Type 'Element | ComponentPublicInstance | null' is not assignable to type 'never'. Type 'null' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleProcessDesignerV2/src/nodes-config/RouterNodeConfig.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleProcessDesignerV2/src/SimpleProcessDesigner.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/components/UploadFile/src/UploadFile.vue",
+      "code": "TS2339",
+      "message": "Property 'data' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/UploadFile/src/UploadImgs.vue",
+      "code": "TS2339",
+      "message": "Property 'data' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/XButton/src/XButton.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ title: string; type: string; plain: boolean; link: boolean; modelValue: boolean; loading: boolean; circle: boolean; onClick: (...args: any[]) => any; round: boolean; preIcon: string; postIcon: string; }' is not assignable to parameter of type 'Partial<{ readonly link: boolean; readonly circle: boolean; readonly text: EpPropMergeType<BooleanConstructor, unknown, unknown>; readonly disabled: boolean; ... 10 more ...; readonly loadingIcon: EpPropMergeType<...>; }> & Omit<...> & Record<...>'. Type '{ title: string; type: string; plain: boolean; link: boolean; modelValue: boolean; loading: boolean; circle: boolean; onClick: (...args: any[]) => any; round: boolean; preIcon: string; postIcon: string; }' is not assignable to type 'Partial<{ readonly link: boolean; readonly circle: boolean; readonly text: EpPropMergeType<BooleanConstructor, unknown, unknown>; readonly disabled: boolean; ... 10 more ...; readonly loadingIcon: EpPropMergeType<...>; }>'. Types of property 'type' are incompatible. Type 'string' is not assignable to type 'EpPropMergeType<StringConstructor, \"\" | \"default\" | \"primary\" | \"success\" | \"warning\" | \"danger\" | \"info\" | \"text\", unknown> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/components/XButton/src/XTextButton.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ title: string; type: string; plain: boolean; modelValue: boolean; loading: boolean; circle: boolean; onClick: (...args: any[]) => any; round: boolean; preIcon: string; postIcon: string; link: true; }' is not assignable to parameter of type 'Partial<{ readonly link: boolean; readonly circle: boolean; readonly text: EpPropMergeType<BooleanConstructor, unknown, unknown>; readonly disabled: boolean; ... 10 more ...; readonly loadingIcon: EpPropMergeType<...>; }> & Omit<...> & Record<...>'. Type '{ title: string; type: string; plain: boolean; modelValue: boolean; loading: boolean; circle: boolean; onClick: (...args: any[]) => any; round: boolean; preIcon: string; postIcon: string; link: true; }' is not assignable to type 'Partial<{ readonly link: boolean; readonly circle: boolean; readonly text: EpPropMergeType<BooleanConstructor, unknown, unknown>; readonly disabled: boolean; ... 10 more ...; readonly loadingIcon: EpPropMergeType<...>; }>'. Types of property 'type' are incompatible. Type 'string' is not assignable to type 'EpPropMergeType<StringConstructor, \"\" | \"default\" | \"primary\" | \"success\" | \"warning\" | \"danger\" | \"info\" | \"text\", unknown> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/AppView.vue",
+      "code": "TS6133",
+      "message": "'fixedHeader' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/AppView.vue",
+      "code": "TS6133",
+      "message": "'layout' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/AppView.vue",
+      "code": "TS6133",
+      "message": "'tagsView' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/Menu/src/Menu.vue",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/TagsView/src/TagsView.vue",
+      "code": "TS6133",
+      "message": "'canShowIcon' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/TagsView/src/TagsView.vue",
+      "code": "TS6133",
+      "message": "'onMounted' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/layout/components/UserInfo/src/components/LockPage.vue",
+      "code": "TS6133",
+      "message": "'resetRouter' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS1345",
+      "message": "An expression of type 'void' cannot be tested for truthiness.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS18048",
+      "message": "'a.createTime' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS18048",
+      "message": "'b.createTime' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS18048",
+      "message": "'conversation.createTime' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'number' is not assignable to parameter of type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS2362",
+      "message": "The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS2363",
+      "message": "The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.",
+      "count": 2
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS6133",
+      "message": "'e' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationList.vue",
+      "code": "TS6133",
+      "message": "'oldValue' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/conversation/ConversationUpdateForm.vue",
+      "code": "TS2322",
+      "message": "Type '{}' is not assignable to type '{ id: undefined; systemMessage: undefined; modelId: undefined; temperature: undefined; maxTokens: undefined; maxContexts: undefined; } | { id: undefined; systemMessage: undefined; modelId: undefined; temperature: undefined; maxTokens: undefined; maxContexts: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/chat/index/components/role/RoleRepository.vue",
+      "code": "TS6133",
+      "message": "'e' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS18048",
+      "message": "'__VLS_ctx.detail' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS18048",
+      "message": "'newVal' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS18048",
+      "message": "'props.detail' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS2322",
+      "message": "Type 'ImageMidjourneyButtonsVO' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'ImageVO | undefined' is not assignable to parameter of type 'ImageVO'. Type 'undefined' is not assignable to type 'ImageVO'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS2352",
+      "message": "Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+      "count": 2
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS2769",
+      "message": "No overload matches this call. The last overload gave the following error. Argument of type 'Ref<ImageVO | undefined, ImageVO | undefined> | undefined' is not assignable to parameter of type 'object'. Type 'undefined' is not assignable to type 'object'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/ImageCard.vue",
+      "code": "TS6133",
+      "message": "'oldVal' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/midjourney/index.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ prompt: string; modelId: number; width: string; height: string; version: any; referImageUrl: any; }' to type 'ImageMidjourneyImagineReqVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Property 'base64Array' is missing in type '{ prompt: string; modelId: number; width: string; height: string; version: any; referImageUrl: any; }' but required in type 'ImageMidjourneyImagineReqVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/index/components/stableDiffusion/index.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ modelId: number; prompt: string; width: number; height: number; options: { seed: number; steps: number; scale: number; sampler: string; clipGuidancePreset: string; stylePreset: string; }; }' to type 'ImageDrawReqVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Property 'style' is missing in type '{ modelId: number; prompt: string; width: number; height: number; options: { seed: number; steps: number; scale: number; sampler: string; clipGuidancePreset: string; stylePreset: string; }; }' but required in type 'ImageDrawReqVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/image/manager/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/mindmap/index/index.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'error'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/model/chatRole/ChatRoleForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/model/chatRole/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/model/tool/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/audioBar/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'EpPropMergeType<(new (...args: any[]) => number | number[]) | (() => Arrayable<number>) | ((new (...args: any[]) => number | number[]) | (() => Arrayable<number>))[], unknown, unknown> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/audioBar/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/audioBar/index.vue",
+      "code": "TS2339",
+      "message": "Property 'play' does not exist on type 'HTMLElement'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/audioBar/index.vue",
+      "code": "TS2339",
+      "message": "Property 'singer' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/audioBar/index.vue",
+      "code": "TS2551",
+      "message": "Property 'pause' does not exist on type 'HTMLElement'. Did you mean 'onpause'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songCard/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songInfo/index.vue",
+      "code": "TS2339",
+      "message": "Property 'date' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songInfo/index.vue",
+      "code": "TS2339",
+      "message": "Property 'desc' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songInfo/index.vue",
+      "code": "TS2339",
+      "message": "Property 'imageUrl' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songInfo/index.vue",
+      "code": "TS2339",
+      "message": "Property 'lyric' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/index/list/songInfo/index.vue",
+      "code": "TS2339",
+      "message": "Property 'title' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/music/manager/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS18046",
+      "message": "'e' is of type 'unknown'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS18046",
+      "message": "'err' is of type 'unknown'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2339",
+      "message": "Property 'description' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2339",
+      "message": "Property 'disabled' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2339",
+      "message": "Property 'key' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2339",
+      "message": "Property 'trim' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2339",
+      "message": "Property 'value' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ key: any; value: any; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/workflow/form/WorkflowDesign.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ key: string; value: string; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/ai/write/manager/index.vue",
+      "code": "TS6133",
+      "message": "'router' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/category/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/form/index.vue",
+      "code": "TS2322",
+      "message": "Type '(type: string, id?: number) => void' is not assignable to type '(evt: MouseEvent) => any'. Types of parameters 'type' and 'evt' are incompatible. Type 'MouseEvent' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/model/form/FormDesign.vue",
+      "code": "TS18046",
+      "message": "'form' is of type 'unknown'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/bpm/model/form/FormDesign.vue",
+      "code": "TS6133",
+      "message": "'props' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/model/form/PrintTemplate/module/utils/dom.ts",
+      "code": "TS2307",
+      "message": "Cannot find module 'dom7' or its corresponding type declarations.",
+      "count": 2
+    },
+    {
+      "file": "src/views/bpm/oa/leave/create.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 7
+    },
+    {
+      "file": "src/views/bpm/oa/leave/create.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/oa/leave/create.vue",
+      "code": "TS2339",
+      "message": "Property 'startUserSelectAssignees' does not exist on type 'LeaveVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processExpression/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processExpression/ProcessExpressionForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processInstance/detail/ProcessInstanceTaskList.vue",
+      "code": "TS18048",
+      "message": "'fApi.value' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processInstance/detail/ProcessInstanceTaskList.vue",
+      "code": "TS2339",
+      "message": "Property 'fapi' does not exist on type 'ApiAttrs'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/bpm/processInstance/manager/index.vue",
+      "code": "TS2339",
+      "message": "Property 'code' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/bpm/processInstance/manager/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processInstance/manager/index.vue",
+      "code": "TS6133",
+      "message": "'cancelProcessInstanceByAdmin' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processListener/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/bpm/processListener/ProcessListenerForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/backlog/components/ContractRemindList.vue",
+      "code": "TS6133",
+      "message": "'fenToYuanFormat' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2339",
+      "message": "Property 'disabled' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly onSuccess?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => inf...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/BusinessForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS18048",
+      "message": "'formData.value.status' is possibly 'undefined'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS2339",
+      "message": "Property 'percent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/BusinessUpdateStatusForm.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessList.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'businessPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'products' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ products: undefined; disabled: false; }>, \"disabled\" | \"products\">' was reduced to 'never' because property 'products' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/components/BusinessProductForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnit: undefined; productNo: undefined; productPrice: undefined; businessPrice: undefined; count: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/detail/index.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'boolean | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/BusinessStatusForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ name: string; percent: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/BusinessStatusForm.vue",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/BusinessStatusForm.vue",
+      "code": "TS2769",
+      "message": "No overload matches this call. Overload 1 of 2, '(...items: ConcatArray<never>[]): never[]', gave the following error. Argument of type '{ endStatus: number; key: string; name: string; percent: number; }[]' is not assignable to parameter of type 'ConcatArray<never>'. Overload 2 of 2, '(...items: ConcatArray<never>[]): never[]', gave the following error. Argument of type '{ endStatus: number; key: string; name: string; percent: number; }[]' is not assignable to parameter of type 'ConcatArray<never>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/index.vue",
+      "code": "TS6133",
+      "message": "'deleteBusinessStatus' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/index.vue",
+      "code": "TS6133",
+      "message": "'download' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/business/status/index.vue",
+      "code": "TS6133",
+      "message": "'resetQuery' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/clue/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contact/ContactForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contact/ContactForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contact/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractList.vue",
+      "code": "TS2339",
+      "message": "Property 'businessId' does not exist on type '{ pageNo: number; pageSize: number; customerId: unknown; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'contractPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'products' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ products: undefined; disabled: false; }>, \"disabled\" | \"products\">' was reduced to 'never' because property 'products' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/components/ContractProductForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnit: undefined; productNo: undefined; productPrice: undefined; contractPrice: undefined; count: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2339",
+      "message": "Property 'disabled' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly onSuccess?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => inf...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type '{ id: undefined; no: undefined; name: undefined; customerId: undefined; businessId: undefined; orderDate: undefined; startTime: undefined; endTime: undefined; signUserId: undefined; signContactId: undefined; ... 4 more ...; products: never[]; }'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/contract/ContractForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/contract/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/limitConfig/CustomerLimitConfigForm.vue",
+      "code": "TS2307",
+      "message": "Cannot find module '../../../../../dist-prod/assets/index-9eac537b' or its corresponding type declarations.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/limitConfig/CustomerLimitConfigForm.vue",
+      "code": "TS6133",
+      "message": "'aw' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/limitConfig/CustomerLimitConfigForm.vue",
+      "code": "TS6133",
+      "message": "'cloneDeep' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/pool/CustomerDistributeForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/pool/CustomerDistributeForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/pool/CustomerDistributeForm.vue",
+      "code": "TS6133",
+      "message": "'distributeCustomer' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/pool/CustomerDistributeForm.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/customer/pool/index.vue",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/components/FollowUpRecordBusinessForm.vue",
+      "code": "TS2339",
+      "message": "Property 'businesses' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ businesses: undefined; }>, \"businesses\">' was reduced to 'never' because property 'businesses' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/components/FollowUpRecordContactForm.vue",
+      "code": "TS2339",
+      "message": "Property 'contacts' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ contacts: undefined; }>, \"contacts\">' was reduced to 'never' because property 'contacts' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/components/FollowUpRecordContactForm.vue",
+      "code": "TS2339",
+      "message": "Property 'openDetail' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly contacts: undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, ...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type '{ bizType: undefined; bizId: undefined; businesses: never[]; contacts: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'fileUrls' does not exist on type '{ bizType: undefined; bizId: undefined; businesses: never[]; contacts: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'nextTime' does not exist on type '{ bizType: undefined; bizId: undefined; businesses: never[]; contacts: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'picUrls' does not exist on type '{ bizType: undefined; bizId: undefined; businesses: never[]; contacts: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2339",
+      "message": "Property 'type' does not exist on type '{ bizType: undefined; bizId: undefined; businesses: never[]; contacts: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'BusinessVO' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'ContactVO' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS6133",
+      "message": "'businessId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS6133",
+      "message": "'contactId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/followup/FollowUpRecordForm.vue",
+      "code": "TS6133",
+      "message": "'dialogTitle' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/product/detail/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string | string[]' is not assignable to parameter of type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/product/detail/ProductDetailsHeader.vue",
+      "code": "TS2551",
+      "message": "Property 'emit' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly product: ProductVO; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, a...'. Did you mean '$emit'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/product/index.vue",
+      "code": "TS6133",
+      "message": "'currentRoute' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/detail/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | string[]' is not assignable to type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/detail/index.vue",
+      "code": "TS6133",
+      "message": "'params' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/plan/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/ReceivableForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'boolean | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/receivable/ReceivableForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'number | undefined' is not assignable to parameter of type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/funnel/components/BusinessInversionRateSummary.vue",
+      "code": "TS2322",
+      "message": "Type '{ type: \"value\"; name: string; axisTick: { alignWithLabel: true; lineStyle: { width: number; }; }; axisLabel: { color: string; formatter: string; }; axisLine: { lineStyle: { color: string; }; }; splitLine: { ...; }; }' is not assignable to type 'YAXisOption'. Types of property 'axisTick' are incompatible. Object literal may only specify known properties, and 'alignWithLabel' does not exist in type 'AxisTickOption'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractCountPerformance.vue",
+      "code": "TS2322",
+      "message": "Type '{ type: \"value\"; name: string; axisTick: { alignWithLabel: true; lineStyle: { width: number; }; }; axisLabel: { color: string; formatter: string; }; axisLine: { lineStyle: { color: string; }; }; splitLine: { ...; }; }' is not assignable to type 'YAXisOption'. Types of property 'axisTick' are incompatible. Object literal may only specify known properties, and 'alignWithLabel' does not exist in type 'AxisTickOption'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractCountPerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'label' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractCountPerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'prop' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractCountPerformance.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ label: string; prop: string; }' is not assignable to parameter of type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractPricePerformance.vue",
+      "code": "TS2322",
+      "message": "Type '{ type: \"value\"; name: string; axisTick: { alignWithLabel: true; lineStyle: { width: number; }; }; axisLabel: { color: string; formatter: string; }; axisLine: { lineStyle: { color: string; }; }; splitLine: { ...; }; }' is not assignable to type 'YAXisOption'. Types of property 'axisTick' are incompatible. Object literal may only specify known properties, and 'alignWithLabel' does not exist in type 'AxisTickOption'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractPricePerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'label' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractPricePerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'prop' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ContractPricePerformance.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ label: string; prop: string; }' is not assignable to parameter of type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ReceivablePricePerformance.vue",
+      "code": "TS2322",
+      "message": "Type '{ type: \"value\"; name: string; axisTick: { alignWithLabel: true; lineStyle: { width: number; }; }; axisLabel: { color: string; formatter: string; }; axisLine: { lineStyle: { color: string; }; }; splitLine: { ...; }; }' is not assignable to type 'YAXisOption'. Types of property 'axisTick' are incompatible. Object literal may only specify known properties, and 'alignWithLabel' does not exist in type 'AxisTickOption'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ReceivablePricePerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'label' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ReceivablePricePerformance.vue",
+      "code": "TS2339",
+      "message": "Property 'prop' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/crm/statistics/performance/components/ReceivablePricePerformance.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ label: string; prop: string; }' is not assignable to parameter of type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/crm/statistics/performance/index.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'Date'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/account/AccountForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: undefined; name: undefined; no: undefined; remark: undefined; status: undefined; sort: undefined; }' is not assignable to type '{ id: undefined; name: undefined; no: undefined; remark: undefined; status: undefined; sort: undefined; defaultStatus: undefined; } | { id: undefined; name: undefined; no: undefined; remark: undefined; status: undefined; sort: undefined; defaultStatus: undefined; }'. Property 'defaultStatus' is missing in type '{ id: undefined; name: undefined; no: undefined; remark: undefined; status: undefined; sort: undefined; }' but required in type '{ id: undefined; name: undefined; no: undefined; remark: undefined; status: undefined; sort: undefined; defaultStatus: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/account/index.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/account/index.vue",
+      "code": "TS6133",
+      "message": "'getIntDictOptions' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; supplierId: undefined; disabled: false; }>, \"disabled\" | \"items\" | \"supplierId\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'paymentPrice' does not exist on type 'PurchaseInVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'refundPrice' does not exist on type 'PurchaseReturnVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'supplierId' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; supplierId: undefined; disabled: false; }>, \"disabled\" | \"items\" | \"supplierId\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ bizId: number; bizType: number; bizNo: string; totalPrice: number; paidPrice: any; paymentPrice: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ bizId: number; bizType: number; bizNo: string; totalPrice: number; paidPrice: number; paymentPrice: any; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/components/FinancePaymentItemForm.vue",
+      "code": "TS6133",
+      "message": "'productList' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS2339",
+      "message": "Property 'paymentPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/payment/FinancePaymentForm.vue",
+      "code": "TS6133",
+      "message": "'erpPriceMultiply' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'customerId' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; customerId: undefined; disabled: false; }>, \"disabled\" | \"items\" | \"customerId\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; customerId: undefined; disabled: false; }>, \"disabled\" | \"items\" | \"customerId\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'receiptPrice' does not exist on type 'SaleOutVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'refundPrice' does not exist on type 'SaleReturnVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ bizId: number; bizType: number; bizNo: string; totalPrice: number; receiptedPrice: any; receiptPrice: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ bizId: number; bizType: number; bizNo: string; totalPrice: number; receiptedPrice: number; receiptPrice: any; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/components/FinanceReceiptItemForm.vue",
+      "code": "TS6133",
+      "message": "'productList' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/FinanceReceiptForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/FinanceReceiptForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/FinanceReceiptForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/FinanceReceiptForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/finance/receipt/FinanceReceiptForm.vue",
+      "code": "TS2339",
+      "message": "Property 'receiptPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/home/components/TimeSummaryChart.vue",
+      "code": "TS6133",
+      "message": "'formatDate' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/category/index.vue",
+      "code": "TS2339",
+      "message": "Property 'pageNo' does not exist on type '{ name: undefined; status: undefined; }'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/product/category/index.vue",
+      "code": "TS2339",
+      "message": "Property 'pageSize' does not exist on type '{ name: undefined; status: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/category/index.vue",
+      "code": "TS2339",
+      "message": "Property 'total' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{} & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, args_2: OnCleanup) => any : (ar...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/category/index.vue",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/product/ProductForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/unit/ProductUnitForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/product/unit/ProductUnitForm.vue",
+      "code": "TS2503",
+      "message": "Cannot find namespace 'ProductUnitApi'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'. Type 'undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'inCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInItemForm.vue",
+      "code": "TS6133",
+      "message": "'handleAdd' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/components/PurchaseInPaymentEnableList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'accountId' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'discountPercent' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'fileUrl' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'PurchaseOrderVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'orderId' does not exist on type '{ id: undefined; supplierId: undefined; accountId: undefined; inTime: undefined; remark: undefined; fileUrl: string; discountPercent: number; discountPrice: number; totalPrice: number; otherPrice: number; orderNo: undefined; items: never[]; no: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'supplierId' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/in/PurchaseInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderInEnableList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/components/PurchaseOrderReturnEnableList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/order/PurchaseOrderForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'inCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'onChangeWarehouse' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly disabled: false; readonly items: undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? ...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'returnCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnItemForm.vue",
+      "code": "TS6133",
+      "message": "'handleAdd' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/components/PurchaseReturnRefundEnableList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/index.vue",
+      "code": "TS2339",
+      "message": "Property 'inTime' does not exist on type '{ pageNo: number; pageSize: number; no: undefined; supplierId: undefined; productId: undefined; warehouseId: undefined; returnTime: never[]; orderNo: undefined; accountId: undefined; status: undefined; refundStatus: undefined; remark: undefined; creator: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'accountId' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'discountPercent' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'fileUrl' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'PurchaseOrderVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'orderId' does not exist on type '{ id: undefined; supplierId: undefined; accountId: undefined; returnTime: undefined; remark: undefined; fileUrl: string; discountPercent: number; discountPrice: number; totalPrice: number; otherPrice: number; orderNo: undefined; items: never[]; no: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'supplierId' does not exist on type 'PurchaseOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/return/PurchaseReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/supplier/index.vue",
+      "code": "TS6133",
+      "message": "'dateFormatter' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/purchase/supplier/SupplierForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/customer/CustomerForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/customer/index.vue",
+      "code": "TS6133",
+      "message": "'dateFormatter' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderOutEnableList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/components/SaleOrderReturnEnableList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/order/SaleOrderForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'onChangeWarehouse' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly disabled: false; readonly items: undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? ...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'outCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutItemForm.vue",
+      "code": "TS6133",
+      "message": "'handleAdd' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/components/SaleOutReceiptEnableList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'accountId' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'discountPercent' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'fileUrl' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'SaleOrderVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'orderId' does not exist on type '{ id: undefined; customerId: undefined; accountId: undefined; saleUserId: undefined; outTime: undefined; remark: undefined; fileUrl: string; discountPercent: number; discountPrice: number; totalPrice: number; otherPrice: number; orderNo: undefined; items: never[]; no: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'saleUserId' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/out/SaleOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'onChangeWarehouse' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly disabled: false; readonly items: undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? ...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'outCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'returnCount' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPercent' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'taxPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalProductPrice' does not exist on type 'never'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalProductPrice: undefined; taxPercent: undefined; taxPrice: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnItemForm.vue",
+      "code": "TS6133",
+      "message": "'handleAdd' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/components/SaleReturnRefundEnableList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/index.vue",
+      "code": "TS2339",
+      "message": "Property 'outTime' does not exist on type '{ pageNo: number; pageSize: number; no: undefined; customerId: undefined; productId: undefined; warehouseId: undefined; returnTime: never[]; orderNo: undefined; accountId: undefined; status: undefined; remark: undefined; creator: undefined; refundStatus: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS18048",
+      "message": "'discountPrice' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'accountId' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'discountPercent' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'fileUrl' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'SaleOrderVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'orderId' does not exist on type '{ id: undefined; customerId: undefined; accountId: undefined; saleUserId: undefined; returnTime: undefined; remark: undefined; fileUrl: string; discountPercent: number; discountPrice: number; ... 4 more ...; no: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'saleUserId' does not exist on type 'SaleOrderVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/sale/return/SaleReturnForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'actualCount' does not exist on type '{ inId: { required: boolean; message: string; trigger: string; }[]; warehouseId: { required: boolean; message: string; trigger: string; }[]; productId: { required: boolean; message: string; trigger: string; }[]; count: { ...; }[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'actualCount' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'stockCount' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; warehouseId: number; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; actualCount: undefined; count: undefined; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/components/StockCheckItemForm.vue",
+      "code": "TS6133",
+      "message": "'warehouseId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/StockCheckForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/StockCheckForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/StockCheckForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/check/StockCheckForm.vue",
+      "code": "TS2339",
+      "message": "Property 'no' does not exist on type '{ id: undefined; customerId: undefined; checkTime: undefined; remark: undefined; fileUrl: string; items: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; warehouseId: number; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/components/StockInItemForm.vue",
+      "code": "TS6133",
+      "message": "'warehouseId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/index.vue",
+      "code": "TS2339",
+      "message": "Property 'warehouseId' does not exist on type '{ pageNo: number; pageSize: number; no: undefined; productId: undefined; supplierId: undefined; inTime: never[]; status: undefined; remark: undefined; creator: undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/StockInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/StockInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/StockInForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/in/StockInForm.vue",
+      "code": "TS2339",
+      "message": "Property 'no' does not exist on type '{ id: undefined; supplierId: undefined; inTime: undefined; remark: undefined; fileUrl: string; items: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; fromWarehouseId: number; toWarehouseId: undefined; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/components/StockMoveItemForm.vue",
+      "code": "TS6133",
+      "message": "'warehouseId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/StockMoveForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/StockMoveForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/StockMoveForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/move/StockMoveForm.vue",
+      "code": "TS2339",
+      "message": "Property 'no' does not exist on type '{ id: undefined; customerId: undefined; moveTime: undefined; remark: undefined; fileUrl: string; items: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'SummaryMethodProps'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; } | undefined' is not assignable to type 'WarehouseVO | { id: number; name: string; address: string; sort: number; remark: string; principal: string; warehousePrice: number; truckagePrice: number; status: number; defaultStatus: boolean; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'count' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'items' does not exist on type 'never'. The intersection 'DefineProps<LooseRequired<{ items: undefined; disabled: false; }>, \"disabled\" | \"items\">' was reduced to 'never' because property 'items' has conflicting types in some constituents.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'productPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'totalPrice' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2339",
+      "message": "Property 'validate' does not exist on type 'never[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ id: undefined; warehouseId: number; productId: undefined; productUnitName: undefined; productBarCode: undefined; productPrice: undefined; stockCount: undefined; count: number; totalPrice: undefined; remark: undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'undefined' is not assignable to parameter of type 'WarehouseVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/components/StockOutItemForm.vue",
+      "code": "TS6133",
+      "message": "'warehouseId' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/index.vue",
+      "code": "TS6192",
+      "message": "All imports in import declaration are unused.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/StockOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/StockOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/StockOutForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/out/StockOutForm.vue",
+      "code": "TS2339",
+      "message": "Property 'no' does not exist on type '{ id: undefined; customerId: undefined; outTime: undefined; remark: undefined; fileUrl: string; items: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/record/index.vue",
+      "code": "TS2551",
+      "message": "Property 'deleteStockRecord' does not exist on type '{ getStockRecordPage: (params: any) => Promise<any>; getStockRecord: (id: number) => Promise<any>; exportStockRecord: (params: any) => Promise<any>; }'. Did you mean 'getStockRecord'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/record/index.vue",
+      "code": "TS6133",
+      "message": "'handleDelete' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/stock/index.vue",
+      "code": "TS2339",
+      "message": "Property 'deleteStock' does not exist on type '{ getStockPage: (params: any) => Promise<any>; getStock: (id: number) => Promise<any>; getStock2: (productId: number, warehouseId: number) => Promise<any>; getStockCount: (productId: number) => Promise<...>; exportStock: (params: any) => Promise<...>; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/stock/index.vue",
+      "code": "TS6133",
+      "message": "'handleDelete' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/erp/stock/warehouse/WarehouseForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/components/GenerateInfoForm.vue",
+      "code": "TS2339",
+      "message": "Property 'dataSourceConfigId' does not exist on type '{ templateType: null; frontType: null; scene: null; moduleName: string; businessName: string; className: string; classComment: string; parentMenuId: null; genPath: string; genType: string; masterTableId: undefined; subJoinColumnId: undefined; subJoinMany: undefined; treeParentColumnId: undefined; treeNameColumnId: u...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/components/GenerateInfoForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/components/GenerateInfoForm.vue",
+      "code": "TS2339",
+      "message": "Property 'tableComment' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/components/GenerateInfoForm.vue",
+      "code": "TS2339",
+      "message": "Property 'tableName' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/components/GenerateInfoForm.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/codegen/ImportTable.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'EpPropMergeType<(ObjectConstructor | NumberConstructor | BooleanConstructor | StringConstructor)[], unknown, unknown>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo02/index.vue",
+      "code": "TS2322",
+      "message": "Type 'any[]' is not assignable to type 'never[]'. Type 'any' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo02/index.vue",
+      "code": "TS2339",
+      "message": "Property 'pageNo' does not exist on type '{ name: null; parentId: null; createTime: never[]; }'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/infra/demo/demo02/index.vue",
+      "code": "TS2339",
+      "message": "Property 'pageSize' does not exist on type '{ name: null; parentId: null; createTime: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo02/index.vue",
+      "code": "TS2339",
+      "message": "Property 'total' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{} & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, args_2: OnCleanup) => any : (ar...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo02/index.vue",
+      "code": "TS2554",
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/erp/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/infra/demo/demo03/inner/components/Demo03GradeList.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'any' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/inner/Demo03StudentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/infra/demo/demo03/inner/Demo03StudentForm.vue",
+      "code": "TS2551",
+      "message": "Property 'demo03Courses' does not exist on type 'Demo03Student'. Did you mean 'demo03courses'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/inner/Demo03StudentForm.vue",
+      "code": "TS2551",
+      "message": "Property 'demo03Grade' does not exist on type 'Demo03Student'. Did you mean 'demo03grade'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/normal/components/Demo03GradeForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/normal/components/Demo03GradeForm.vue",
+      "code": "TS2339",
+      "message": "Property 'teacher' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/normal/Demo03StudentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/infra/demo/demo03/normal/Demo03StudentForm.vue",
+      "code": "TS2551",
+      "message": "Property 'demo03Courses' does not exist on type 'Demo03Student'. Did you mean 'demo03courses'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/demo/demo03/normal/Demo03StudentForm.vue",
+      "code": "TS2551",
+      "message": "Property 'demo03Grade' does not exist on type 'Demo03Student'. Did you mean 'demo03grade'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/infra/redis/index.vue",
+      "code": "TS2322",
+      "message": "Type '{ title: { text: string; left: string; }; tooltip: { trigger: string; formatter: string; }; legend: { type: string; orient: string; right: number; top: number; bottom: number; data: any[]; textStyle: { color: string; }; }; series: { ...; }[]; }' is not assignable to type 'EChartsOption'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/device/device/DeviceForm.vue",
+      "code": "TS6133",
+      "message": "'DeviceTypeEnum' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/home/components/ComparisonCard.vue",
+      "code": "TS6133",
+      "message": "'props' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/ota/firmware/detail/index.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/ota/task/OtaTaskDetail.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'string | number | boolean | unknown[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/ota/task/OtaTaskForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ name: string; deviceScope: 1; firmwareId: number; description: string; deviceIds: never[]; }' is not assignable to type 'OtaTask | { id?: number | undefined; name: string; description?: string | undefined; firmwareId?: number | undefined; status: number; deviceScope?: number | undefined; deviceIds?: number[] | undefined; deviceTotalCount?: number | undefined; deviceSuccessCount?: number | undefined; createTime?: Date | undefined; }'. Property 'status' is missing in type '{ name: string; deviceScope: 1; firmwareId: number; description: string; deviceIds: never[]; }' but required in type '{ id?: number | undefined; name: string; description?: string | undefined; firmwareId?: number | undefined; status: number; deviceScope?: number | undefined; deviceIds?: number[] | undefined; deviceTotalCount?: number | undefined; deviceSuccessCount?: number | undefined; createTime?: Date | undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/ota/task/OtaTaskForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ name: string; deviceScope: 1; firmwareId: number; description: string; deviceIds: never[]; }' is not assignable to parameter of type 'OtaTask'. Property 'status' is missing in type '{ name: string; deviceScope: 1; firmwareId: number; description: string; deviceIds: never[]; }' but required in type 'OtaTask'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/product/product/detail/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string | string[]' is not assignable to parameter of type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/iot/rule/data/sink/DataSinkForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ name: { required: boolean; message: string; trigger: string; }[]; status: { required: boolean; message: string; trigger: string; }[]; type: { required: boolean; message: string; trigger: string; }[]; 'config.url': { ...; }[]; ... 22 more ...; 'config.database': ({ ...; } | { ...; })[]; }' is not assignable to type 'Partial<Record<string, Arrayable<FormItemRule>>>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/rule/scene/form/inputs/JsonParamsInput.vue",
+      "code": "TS6133",
+      "message": "'noConfigMessage' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/rule/scene/form/RuleSceneForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ name: ({ required: boolean; message: string; trigger: string; type?: undefined; min?: undefined; max?: undefined; } | { type: string; min: number; max: number; message: string; trigger: string; required?: undefined; })[]; status: ({ ...; } | { ...; })[]; description: { ...; }[]; triggers: { ...; }[]; actions: { .....' is not assignable to type 'Partial<Record<string, Arrayable<FormItemRule>>>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/components/DataDefinition.vue",
+      "code": "TS18048",
+      "message": "'__VLS_ctx.data.property.dataSpecs' is possibly 'undefined'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/iot/thingmodel/components/DataDefinition.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"array\" | \"date\" | \"struct\"'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/components/DataDefinition.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"bool\" | \"enum\"'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/components/DataDefinition.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"float\" | \"double\" | \"int\"'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ dataType: \"int\"; }' is not assignable to type 'ThingModelProperty | { [x: string]: any; identifier: string; name: string; accessMode: string; required?: boolean | undefined; dataType: string; description?: string | undefined; dataSpecs?: ... | undefined; dataSpecsList?: ...[] | undefined; } | undefined'. Type '{ dataType: \"int\"; }' is missing the following properties from type '{ [x: string]: any; identifier: string; name: string; accessMode: string; required?: boolean | undefined; dataType: string; description?: string | undefined; dataSpecs?: ... | undefined; dataSpecsList?: ...[] | undefined; }': identifier, name, accessMode",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2322",
+      "message": "Type '{}' is not assignable to type 'ThingModelEvent | { [x: string]: any; identifier: string; name: string; required?: boolean | undefined; type: string; description?: string | undefined; outputParams?: { ...; }[] | undefined; method?: string | undefined; } | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2322",
+      "message": "Type '{}' is not assignable to type 'ThingModelService | { [x: string]: any; identifier: string; name: string; required?: boolean | undefined; callType: string; description?: string | undefined; inputParams?: { ...; }[] | undefined; outputParams?: { ...; }[] | undefined; method?: string | undefined; } | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{ dataType: \"int\"; }' is missing the following properties from type '{ [x: string]: any; identifier: string; name: string; accessMode: string; required?: boolean | undefined; dataType: string; description?: string | undefined; dataSpecs?: ... | undefined; dataSpecsList?: ...[] | undefined; }': identifier, name, accessMode",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{ dataType: \"int\"; }' is missing the following properties from type 'ThingModelProperty': identifier, name, accessMode",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type '{ [x: string]: any; identifier: string; name: string; required?: boolean | undefined; callType: string; description?: string | undefined; inputParams?: { identifier: string; name: string; direction: string; paraOrder?: number | undefined; dataType: string; dataSpecs?: { ...; } | undefined; dataSpecsList?: { ...; }[]...': identifier, name, callType",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type '{ [x: string]: any; identifier: string; name: string; required?: boolean | undefined; type: string; description?: string | undefined; outputParams?: { identifier: string; name: string; direction: string; paraOrder?: number | undefined; dataType: string; dataSpecs?: { ...; } | undefined; dataSpecsList?: { ...; }[] | ...': identifier, name, type",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type 'ThingModelEvent': identifier, name, type",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelForm.vue",
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type 'ThingModelService': identifier, name, callType",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS18048",
+      "message": "'__VLS_ctx.property.dataSpecs' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS18048",
+      "message": "'property.value.dataSpecs' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ dataType: \"bool\"; name: string; value: number; }' is not assignable to parameter of type 'ThingModelProperty'. Type '{ dataType: \"bool\"; name: string; value: number; }' is missing the following properties from type 'ThingModelProperty': identifier, accessMode",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ dataType: \"enum\"; name: string; value: undefined; }' is not assignable to parameter of type 'ThingModelProperty'. Type '{ dataType: \"enum\"; name: string; value: undefined; }' is missing the following properties from type 'ThingModelProperty': identifier, accessMode",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"float\" | \"double\" | \"int\"'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/iot/thingmodel/ThingModelProperty.vue",
+      "code": "TS2739",
+      "message": "Type '{}' is missing the following properties from type 'ThingModelProperty': identifier, name, accessMode, dataType",
+      "count": 1
+    },
+    {
+      "file": "src/views/Login/SocialLogin.vue",
+      "code": "TS2367",
+      "message": "This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/home/components/OperationDataCard.vue",
+      "code": "TS2339",
+      "message": "Property 'decimals' does not exist on type '{ name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { ...; } | { ...; } | { ...; } | { ...; }'. Property 'decimals' does not exist on type '{ name: string; value: number; routerName: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/home/components/OperationDataCard.vue",
+      "code": "TS2339",
+      "message": "Property 'prefix' does not exist on type '{ name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { name: string; value: number; routerName: string; } | { ...; } | { ...; } | { ...; } | { ...; }'. Property 'prefix' does not exist on type '{ name: string; value: number; routerName: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/home/components/TradeTrendCard.vue",
+      "code": "TS18048",
+      "message": "'eChartOptions.legend' is possibly 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/home/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number' is not assignable to type 'number | undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/home/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/product/brand/BrandForm.vue",
+      "code": "TS2339",
+      "message": "Property 'sort' does not exist on type '{ id: undefined; name: string; picUrl: string; status: number; description: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/comment/CommentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'undefined'. Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/comment/CommentForm.vue",
+      "code": "TS2322",
+      "message": "Type 'Sku' is not assignable to type '{ id: number; name: string; picUrl: string; } | { id: number; name: string; picUrl: string; }'. Type 'Sku' is not assignable to type '{ id: number; name: string; picUrl: string; }'. Types of property 'id' are incompatible. Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/comment/index.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/comment/ReplyForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'undefined'. Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/PropertyForm.vue",
+      "code": "TS2322",
+      "message": "Type 'PropertyVO' is not assignable to type '{ id: undefined; name: string; } | { id: undefined; name: string; }'. Type 'PropertyVO' is not assignable to type '{ id: undefined; name: string; }'. Types of property 'id' are incompatible. Type 'number | undefined' is not assignable to type 'undefined'. Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/PropertyForm.vue",
+      "code": "TS2339",
+      "message": "Property 'remark' does not exist on type '{ id: undefined; name: string; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/product/property/value/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'PropertyVO' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string | string[]' is not assignable to parameter of type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/ValueForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/ValueForm.vue",
+      "code": "TS2322",
+      "message": "Type 'PropertyValueVO' is not assignable to type '{ id: undefined; propertyId: undefined; name: string; remark: string; } | { id: undefined; propertyId: undefined; name: string; remark: string; }'. Type 'PropertyValueVO' is not assignable to type '{ id: undefined; propertyId: undefined; name: string; remark: string; }'. Types of property 'id' are incompatible. Type 'number | undefined' is not assignable to type 'undefined'. Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/property/value/ValueForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'boolean | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/components/SkuList.vue",
+      "code": "TS2322",
+      "message": "Type 'Property | Property[]' is not assignable to type 'Property'. Type 'Property[]' has no properties in common with type 'Property'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/components/SkuList.vue",
+      "code": "TS2488",
+      "message": "Type 'Property | Property[]' must have a '[Symbol.iterator]()' method that returns an iterator.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/components/SkuTableSelect.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'null' is not assignable to parameter of type 'number | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/components/SkuTableSelect.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/DeliveryForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/product/spu/form/DeliveryForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/InfoForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string[] | undefined' is not assignable to type 'string | string[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductAttributes.vue",
+      "code": "TS2322",
+      "message": "Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductAttributes.vue",
+      "code": "TS2532",
+      "message": "Object is possibly 'undefined'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductPropertyAddForm.vue",
+      "code": "TS2322",
+      "message": "Type 'unknown[]' is not assignable to type 'never[]'. Type 'unknown' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductPropertyAddForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductPropertyAddForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ values: never[]; name: string; id: any; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/form/ProductPropertyAddForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ values: never[]; name: string; id: number | undefined; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/product/spu/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | LocationQueryValue[]' is not assignable to type 'undefined'. Type 'string' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/article/ArticleForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/promotion/article/category/ArticleCategoryForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/promotion/article/category/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/activity/BargainActivityForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/activity/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/record/BargainRecordListDialog.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/record/index.vue",
+      "code": "TS2339",
+      "message": "Property 'handleExport' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{} & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, args_2: OnCleanup) => any : (ar...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/record/index.vue",
+      "code": "TS2339",
+      "message": "Property 'openForm' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{} & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, args_2: OnCleanup) => any : (ar...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/record/index.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/bargain/record/index.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/combination/activity/CombinationActivityForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/combination/components/CombinationShowcase.vue",
+      "code": "TS2339",
+      "message": "Property 'picUrl' does not exist on type '{ id?: number | undefined; name?: string | undefined; spuId?: number | undefined; totalLimitCount?: number | undefined; singleLimitCount?: number | undefined; startTime?: Date | undefined; ... 9 more ...; products: { ...; }[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/combination/components/CombinationTableSelect.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'null'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/components/SpuSelect.vue",
+      "code": "TS2322",
+      "message": "Type 'number[] | undefined' is not assignable to type 'string[] | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/coupon/components/CouponSelect.vue",
+      "code": "TS2322",
+      "message": "Type '(row: CouponTemplateVO) => number | \"不限制\"' is not assignable to type '(row: any, column: TableColumnCtx<any>, cellValue: any, index: number) => string | VNode<RendererNode, RendererElement, { [key: string]: any; }>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/coupon/components/CouponSendForm.vue",
+      "code": "TS2322",
+      "message": "Type '(row: CouponTemplateVO) => number | \"不限制\"' is not assignable to type '(row: any, column: TableColumnCtx<any>, cellValue: any, index: number) => string | VNode<RendererNode, RendererElement, { [key: string]: any; }>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/coupon/index.vue",
+      "code": "TS2352",
+      "message": "Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/coupon/template/index.vue",
+      "code": "TS2322",
+      "message": "Type '(row: CouponTemplateVO) => number | \"不限制\"' is not assignable to type '(row: any, column: TableColumnCtx<any>, cellValue: any, index: number) => string | VNode<RendererNode, RendererElement, { [key: string]: any; }>'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/promotion/discountActivity/index.vue",
+      "code": "TS6133",
+      "message": "'configList' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/discountActivity/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/discountActivity/index.vue",
+      "code": "TS6133",
+      "message": "'fenToYuanFormat' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/discountActivity/index.vue",
+      "code": "TS6133",
+      "message": "'formatSeckillPrice' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/point/components/PointShowcase.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type '{ id: number; spuId: number; status: number; stock: number; totalStock: number; remark?: string | undefined; sort: number; createTime: string; products: { id?: number | undefined; activityId?: number | undefined; ... 6 more ...; activityStatus?: number | undefined; }[]; ... 4 more ...; price: number; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/point/components/PointTableSelect.vue",
+      "code": "TS2749",
+      "message": "'CHANGE_EVENT' refers to a value, but is being used as a type here. Did you mean 'typeof CHANGE_EVENT'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/rewardActivity/components/RewardRuleCouponSelect.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string[]' is not assignable to parameter of type 'number[]'. Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/rewardActivity/RewardForm.vue",
+      "code": "TS2322",
+      "message": "Type 'Date[] | undefined' is not assignable to type 'EpPropMergeType<(new (...args: any[]) => string | number | Date | string[] | [DateModelType, DateModelType]) | (() => ModelValueType | null) | ((new (...args: any[]) => string | ... 3 more ... | [...]) | (() => ModelValueType | null))[], unknown, unknown> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/rewardActivity/RewardForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number[] | undefined' is not assignable to type 'number | number[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/index.vue",
+      "code": "TS2339",
+      "message": "Property 'endTime' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/index.vue",
+      "code": "TS2339",
+      "message": "Property 'startTime' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/SeckillActivityForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/activity/SeckillActivityForm.vue",
+      "code": "TS2741",
+      "message": "Property 'spuId' is missing in type '{ skuId: number; stock: number; seckillPrice: number; }' but required in type 'SeckillProductVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/components/SeckillShowcase.vue",
+      "code": "TS2339",
+      "message": "Property 'picUrl' does not exist on type '{ id?: number | undefined; spuId?: number | undefined; name?: string | undefined; status?: number | undefined; remark?: string | undefined; startTime?: Date | undefined; endTime?: Date | undefined; ... 10 more ...; products?: { ...; }[] | undefined; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/components/SeckillTableSelect.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'null'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/index.vue",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/SeckillConfigForm.vue",
+      "code": "TS2322",
+      "message": "Type 'never[]' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/SeckillConfigForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/SeckillConfigForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'string | string[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/promotion/seckill/config/SeckillConfigForm.vue",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/statistics/member/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/statistics/product/components/ProductSummary.vue",
+      "code": "TS2322",
+      "message": "Type '({ name: string; type: \"line\"; smooth: true; itemStyle: { color: string; }; } | { name: string; type: \"bar\"; smooth: true; yAxisIndex: number; itemStyle: { color: string; }; })[]' is not assignable to type 'SeriesOption$1 | SeriesOption$1[] | undefined'. Type '({ name: string; type: \"line\"; smooth: true; itemStyle: { color: string; }; } | { name: string; type: \"bar\"; smooth: true; yAxisIndex: number; itemStyle: { color: string; }; })[]' is not assignable to type 'MapSeriesOption$1 | LineSeriesOption$1 | TreeSeriesOption$1 | CustomSeriesOption$1 | ... 19 more ... | SeriesOption$1[]'. Type '({ name: string; type: \"line\"; smooth: true; itemStyle: { color: string; }; } | { name: string; type: \"bar\"; smooth: true; yAxisIndex: number; itemStyle: { color: string; }; })[]' is not assignable to type 'SeriesOption$1[]'. Type '{ name: string; type: \"line\"; smooth: true; itemStyle: { color: string; }; } | { name: string; type: \"bar\"; smooth: true; yAxisIndex: number; itemStyle: { color: string; }; }' is not assignable to type 'SeriesOption$1'. Object literal may only specify known properties, and 'smooth' does not exist in type 'BarSeriesOption$1'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/statistics/product/components/ProductSummary.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/mall/statistics/product/components/ProductSummary.vue",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'textStyle' does not exist in type 'AxisLabelOption<\"value\"> | AxisLabelBaseOption | AxisLabelOption<\"log\"> | (AxisLabelOption<\"category\"> & { ...; }) | AxisLabelOption<...>'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/statistics/trade/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 13
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'applyDescription' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'applyPicUrls' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'applyReason' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'auditTime' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'createTime' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'deliveryType' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 4
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'no' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'orderItem' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'payChannelCode' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'payOrderId' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'receiverMobile' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'receiverName' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'refundPrice' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'remark' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'status' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 6
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'terminal' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'type' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'type' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'user' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'userRemark' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'userType' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'way' does not exist on type '{ order: {}; logs: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'any' is not assignable to parameter of type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/detail/index.vue",
+      "code": "TS2551",
+      "message": "Property 'orderNo' does not exist on type '{ order: {}; logs: never[]; }'. Did you mean 'order'?",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/form/AfterSaleDisagreeForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | null | undefined' is not assignable to type 'undefined'. Type 'null' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/form/AfterSaleDisagreeForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/index.vue",
+      "code": "TS2322",
+      "message": "Type 'TabPaneName | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/afterSale/index.vue",
+      "code": "TS2790",
+      "message": "The operand of a 'delete' operator must be optional.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/brokerage/user/BrokerageUserListDialog.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/brokerage/user/index.vue",
+      "code": "TS2304",
+      "message": "Cannot find name 'CreateUserForm'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/brokerage/withdraw/BrokerageWithdrawRejectForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/config/index.vue",
+      "code": "TS2339",
+      "message": "Property 'deliveryExpressFreePrice' does not exist on type 'ConfigVO'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/delivery/express/ExpressForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; code: string; name: string; logo: string; sort: number; status: number; }' to type 'DeliveryExpressVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Types of property 'id' are incompatible. Type 'undefined' is not comparable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/express/ExpressForm.vue",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'picUrl' does not exist in type '{ id: undefined; code: string; name: string; logo: string; sort: number; status: number; } | { id: undefined; code: string; name: string; logo: string; sort: number; status: number; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ areaIds: number[]; startCount: number; startPrice: number; extraCount: number; extraPrice: number; }' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2339",
+      "message": "Property 'charges' does not exist on type 'DeliveryExpressTemplateVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2339",
+      "message": "Property 'extraPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2339",
+      "message": "Property 'freePrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2339",
+      "message": "Property 'frees' does not exist on type 'DeliveryExpressTemplateVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2339",
+      "message": "Property 'startPrice' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ areaIds: never[]; freeCount: number; freePrice: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ areaIds: never[]; startCount: number; startPrice: number; extraCount: number; extraPrice: number; }' is not assignable to parameter of type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/expressTemplate/ExpressTemplateForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; name: string; chargeMode: number; sort: number; charges: never[]; frees: never[]; }' to type 'DeliveryExpressTemplateVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Type '{ id: undefined; name: string; chargeMode: number; sort: number; charges: never[]; frees: never[]; }' is missing the following properties from type 'DeliveryExpressTemplateVO': templateCharge, templateFree",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS18046",
+      "message": "'navigator.serial.requestPort' is of type 'unknown'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'cancel' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'close' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'getPorts' does not exist on type 'object & Record<\"requestPort\", unknown>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'open' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'read' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'readable' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpOrder/index.vue",
+      "code": "TS2339",
+      "message": "Property 'releaseLock' does not exist on type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpStore/components/StoreStaffTableSelect.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpStore/PickUpStoreForm.vue",
+      "code": "TS2322",
+      "message": "Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpStore/PickUpStoreForm.vue",
+      "code": "TS2339",
+      "message": "Property 'selectAddress' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpStore/PickUpStoreForm.vue",
+      "code": "TS2339",
+      "message": "Property 'selectAddress' does not exist on type 'Window'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/delivery/pickUpStore/PickUpStoreForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; name: string; phone: string; logo: string; detailAddress: string; introduction: string; areaId: number; openingTime: undefined; closingTime: undefined; latitude: undefined; longitude: undefined; status: number; }' to type 'DeliveryPickUpStoreVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Property 'verifyUserIds' is missing in type '{ id: undefined; name: string; phone: string; logo: string; detailAddress: string; introduction: string; areaId: number; openingTime: undefined; closingTime: undefined; latitude: undefined; longitude: undefined; status: number; }' but required in type 'DeliveryPickUpStoreVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'content' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'deliveryTime' does not exist on type '(date: string | number | Date | Dayjs | null | undefined, format?: string | undefined) => string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/detail/index.vue",
+      "code": "TS2339",
+      "message": "Property 'time' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderDeliveryForm.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderDeliveryForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderUpdatePriceForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderUpdatePriceForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderUpdatePriceForm.vue",
+      "code": "TS2790",
+      "message": "The operand of a 'delete' operator must be optional.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderUpdateRemarkForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number | null | undefined' is not assignable to type 'undefined'. Type 'null' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mall/trade/order/form/OrderUpdateRemarkForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | undefined' is not assignable to type 'string'. Type 'undefined' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/signin/record/index.vue",
+      "code": "TS6133",
+      "message": "'exportLoading' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/signin/record/index.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/tag/index.vue",
+      "code": "TS6133",
+      "message": "'download' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | string[]' is not assignable to type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 9
+    },
+    {
+      "file": "src/views/member/user/detail/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ userId: string | string[]; }' is not assignable to parameter of type 'PayWalletUserReqVO'. Types of property 'userId' are incompatible. Type 'string | string[]' is not assignable to type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/index.vue",
+      "code": "TS2345",
+      "message": "Argument of type 'string | string[]' is not assignable to parameter of type 'number'. Type 'string' is not assignable to type 'number'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/member/user/detail/UserAddressList.vue",
+      "code": "TS6133",
+      "message": "'total' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserAftersaleList.vue",
+      "code": "TS2790",
+      "message": "The operand of a 'delete' operator must be optional.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserBrokerageList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'null'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserCouponList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserCouponList.vue",
+      "code": "TS2352",
+      "message": "Conversion of type 'number' to type 'string' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserExperienceRecordList.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'null'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserFavoriteList.vue",
+      "code": "TS2339",
+      "message": "Property 'imagePreview' does not exist on type '{ $: ComponentInternalInstance; $data: {}; $props: Partial<{}> & Omit<{ readonly userId: number; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>; ... 11 more ...; $watch<T extends string | ((...args: any) => any)>(source: T, cb: T extends (...args: any) => infer R ? (args_0: R, args_1: R, args_...'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserFavoriteList.vue",
+      "code": "TS6133",
+      "message": "'message' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserFavoriteList.vue",
+      "code": "TS6133",
+      "message": "'resetQuery' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/detail/UserFavoriteList.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/member/user/index.vue",
+      "code": "TS2322",
+      "message": "Type 'null' is not assignable to type 'number | undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mp/draft/components/DraftTable.vue",
+      "code": "TS6133",
+      "message": "'index' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/editor-config.ts",
+      "code": "TS2322",
+      "message": "Type '(file: File, err: any, res: any) => void' is not assignable to type '(file: UppyFile<{}, {}>, error: any, res: any) => void'. Types of parameters 'file' and 'file' are incompatible. Type 'UppyFile<{}, {}>' is not assignable to type 'File'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/editor-config.ts",
+      "code": "TS2322",
+      "message": "Type '(file: File, res: any) => void' is not assignable to type '(file: UppyFile<{}, {}>, response: any) => void'. Types of parameters 'file' and 'file' are incompatible. Type 'UppyFile<{}, {}>' is missing the following properties from type 'File': lastModified, webkitRelativePath, arrayBuffer, slice, and 2 more.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/editor-config.ts",
+      "code": "TS2322",
+      "message": "Type '(file: File, res: any) => void' is not assignable to type '(file: UppyFile<{}, {}>, response: any) => void'. Types of parameters 'file' and 'file' are incompatible. Type 'UppyFile<{}, {}>' is not assignable to type 'File'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/editor-config.ts",
+      "code": "TS2322",
+      "message": "Type '(file: File) => File' is not assignable to type '(files: FilesType) => boolean | FilesType'. Types of parameters 'file' and 'files' are incompatible. Type 'FilesType' is missing the following properties from type 'File': lastModified, name, webkitRelativePath, size, and 5 more.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/editor-config.ts",
+      "code": "TS2353",
+      "message": "Object literal may only specify known properties, and 'Accept' does not exist in type 'Headers | ((file: UppyFile<Record<string, unknown>, Record<string, unknown>>) => Headers)'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/draft/index.vue",
+      "code": "TS2322",
+      "message": "Type '(onDone: () => {}) => Promise<void>' is not assignable to type 'DialogBeforeCloseFn'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/message/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string' is not assignable to type 'Date'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/mp/statistics/index.vue",
+      "code": "TS2322",
+      "message": "Type 'Date[]' is not assignable to type 'EpPropMergeType<(new (...args: any[]) => string | number | Date | string[] | [DateModelType, DateModelType]) | (() => ModelValueType | null) | ((new (...args: any[]) => string | ... 3 more ... | [...]) | (() => ModelValueType | null))[], unknown, unknown> | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/user/index.vue",
+      "code": "TS6133",
+      "message": "'t' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/user/UserForm.vue",
+      "code": "TS2339",
+      "message": "Property 'name' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/mp/user/UserForm.vue",
+      "code": "TS2339",
+      "message": "Property 'tagId' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/system/dict/data/DictDataForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; sort: undefined; label: string; value: string; dictType: string; status: number; colorType: string; cssClass: string; remark: string; }' to type 'DictDataVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Property 'createTime' is missing in type '{ id: undefined; sort: undefined; label: string; value: string; dictType: string; status: number; colorType: string; cssClass: string; remark: string; }' but required in type 'DictDataVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/dict/DictTypeForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; name: string; type: string; status: number; remark: string; }' to type 'DictTypeVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Property 'createTime' is missing in type '{ id: undefined; name: string; type: string; status: number; remark: string; }' but required in type 'DictTypeVO'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/mail/account/MailAccountForm.vue",
+      "code": "TS2322",
+      "message": "Type '{ mail: ({ required: boolean; message: string; trigger: string; type?: undefined; } | { type: string; message: string; trigger: string[]; required?: undefined; })[]; username: { required: boolean; message: string; trigger: string; }[]; ... 4 more ...; starttlsEnable: { ...; }[]; }' is not assignable to type 'Partial<Record<string, Arrayable<FormItemRule>>>'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/mail/account/MailAccountForm.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/system/mail/account/MailAccountForm.vue",
+      "code": "TS2352",
+      "message": "Conversion of type '{ id: undefined; mail: string; username: string; password: string; host: string; port: number; sslEnable: boolean; starttlsEnable: boolean; }' to type 'MailAccountVO' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first. Types of property 'id' are incompatible. Type 'undefined' is not comparable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/mail/log/index.vue",
+      "code": "TS6133",
+      "message": "'formatDate' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/menu/index.vue",
+      "code": "TS2322",
+      "message": "Type '({ key: string; title: string; dataKey: string; width: number; fixed: TableV2FixedDir; align?: undefined; cellRenderer?: undefined; } | { key: string; title: string; dataKey: string; width: number; align: string; cellRenderer: ({ cellData: icon }: { ...; }) => any; fixed?: undefined; } | { ...; } | { ...; } | { ...;...' is not assignable to type 'AnyColumn[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/menu/index.vue",
+      "code": "TS6133",
+      "message": "'refreshTable' is declared but its value is never read.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/notice/index.vue",
+      "code": "TS2322",
+      "message": "Type '(number | undefined)[]' is not assignable to type 'number[]'. Type 'number | undefined' is not assignable to type 'number'. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/notify/my/index.vue",
+      "code": "TS2322",
+      "message": "Type 'string | number | boolean' is not assignable to type 'PropertyKey | undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/post/index.vue",
+      "code": "TS2322",
+      "message": "Type '(number | undefined)[]' is not assignable to type 'number[]'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/role/RoleAssignMenuForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/role/RoleAssignMenuForm.vue",
+      "code": "TS2339",
+      "message": "Property 'value' does not exist on type '{ id: undefined; name: string; code: string; menuIds: never[]; }'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/system/role/RoleAssignMenuForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ roleId: undefined; menuIds: number[]; }' is not assignable to parameter of type 'PermissionAssignRoleMenuReqVO'. Types of property 'roleId' are incompatible. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/role/RoleDataPermissionForm.vue",
+      "code": "TS2322",
+      "message": "Type 'number' is not assignable to type 'undefined'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/system/role/RoleDataPermissionForm.vue",
+      "code": "TS2339",
+      "message": "Property 'value' does not exist on type '{ id: undefined; name: string; code: string; dataScope: undefined; dataScopeDeptIds: never[]; }'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/role/RoleDataPermissionForm.vue",
+      "code": "TS2345",
+      "message": "Argument of type '{ roleId: undefined; dataScope: undefined; dataScopeDeptIds: any; }' is not assignable to parameter of type 'PermissionAssignRoleDataScopeReqVO'. Types of property 'roleId' are incompatible. Type 'undefined' is not assignable to type 'number'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/sms/log/index.vue",
+      "code": "TS2339",
+      "message": "Property 'code' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/sms/log/index.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 3
+    },
+    {
+      "file": "src/views/system/sms/log/index.vue",
+      "code": "TS2339",
+      "message": "Property 'signature' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "file": "src/views/system/sms/log/SmsLogDetail.vue",
+      "code": "TS2339",
+      "message": "Property 'id' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "file": "src/views/system/sms/log/SmsLogDetail.vue",
+      "code": "TS2339",
+      "message": "Property 'signature' does not exist on type 'never'.",
+      "count": 1
+    }
+  ]
+}

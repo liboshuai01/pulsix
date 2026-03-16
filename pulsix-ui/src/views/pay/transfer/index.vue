@@ -203,22 +203,28 @@ const message = useMessage() // 消息弹窗
 
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数
-const list = ref([]) // 列表的数据
-const queryParams = reactive({
+const list = ref<TransferApi.TransferVO[]>([]) // 列表的数据
+const queryParams = reactive<
+  Omit<TransferApi.TransferPageReqVO, 'createTime' | 'successTime'> & {
+    createTime: string[]
+    successTime: string[]
+  }
+>({
   pageNo: 1,
   pageSize: 10,
-  no: null,
-  appId: null,
-  channelId: null,
-  channelCode: null,
-  merchantTransferId: null,
-  type: null,
-  status: null,
+  no: undefined,
+  appId: undefined,
+  channelId: undefined,
+  channelCode: undefined,
+  merchantTransferId: undefined,
+  type: undefined,
+  status: undefined,
   successTime: [],
-  price: null,
-  subject: null,
-  userName: null,
-  userAccount: null,
+  price: undefined,
+  subject: undefined,
+  userName: undefined,
+  accountNo: undefined,
+  channelTransferNo: undefined,
   createTime: []
 })
 const queryFormRef = ref() // 搜索的表单
@@ -266,7 +272,7 @@ const handleExport = async () => {
 /** 添加/修改操作 */
 const detailRef = ref()
 const openDetail = (id: number) => {
-  detailRef.value.open(id)
+  detailRef.value?.open(id)
 }
 
 /** 初始化 **/

@@ -50,6 +50,15 @@ declare global {
     name: string
     children?: Tree[] | any[]
   }
+
+  type HmtTrackCommand = [command: string, value: string]
+
+  interface Window {
+    _hmt: HmtTrackCommand[]
+    bpmnInstances?: any
+  }
+
+  var _hmt: HmtTrackCommand[]
   // 分页数据公共返回
   interface PageResult<T> {
     list: T // 数据

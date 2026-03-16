@@ -8,6 +8,14 @@ export interface WalletRechargePackageVO {
   status: number
 }
 
+export interface WalletRechargePackageSaveReqVO {
+  id?: number
+  name: string
+  payPrice: number
+  bonusPrice: number
+  status: number
+}
+
 // 查询套餐充值列表
 export const getWalletRechargePackagePage = async (params) => {
   return await request.get({ url: '/pay/wallet-recharge-package/page', params })
@@ -15,16 +23,18 @@ export const getWalletRechargePackagePage = async (params) => {
 
 // 查询套餐充值详情
 export const getWalletRechargePackage = async (id: number) => {
-  return await request.get({ url: '/pay/wallet-recharge-package/get?id=' + id })
+  return await request.get<WalletRechargePackageVO>({
+    url: '/pay/wallet-recharge-package/get?id=' + id
+  })
 }
 
 // 新增套餐充值
-export const createWalletRechargePackage = async (data: WalletRechargePackageVO) => {
+export const createWalletRechargePackage = async (data: WalletRechargePackageSaveReqVO) => {
   return await request.post({ url: '/pay/wallet-recharge-package/create', data })
 }
 
 // 修改套餐充值
-export const updateWalletRechargePackage = async (data: WalletRechargePackageVO) => {
+export const updateWalletRechargePackage = async (data: WalletRechargePackageSaveReqVO) => {
   return await request.put({ url: '/pay/wallet-recharge-package/update', data })
 }
 

@@ -400,13 +400,6 @@ const updateElementTask = () => {
   bpmnInstances().modeling.updateProperties(toRaw(bpmnElement.value), {
     extensionElements: extensions
   })
-
-  // 改用通过extensionElements来存储数据
-  return
-  bpmnInstances().modeling.updateProperties(toRaw(bpmnElement.value), {
-    candidateStrategy: userTaskForm.value.candidateStrategy,
-    candidateParam: userTaskForm.value.candidateParam.join(',')
-  })
 }
 
 const updateSkipExpression = () => {

@@ -238,7 +238,7 @@ import 'highlight.js/styles/github.css' // 导入代码高亮样式
 
 defineOptions({ name: 'MyProcessDesigner' })
 
-const bpmnCanvas = ref()
+const bpmnCanvas = ref<HTMLElement>()
 const refFile = ref()
 const emit = defineEmits([
   'destroy',
@@ -327,15 +327,15 @@ const previewResult = ref('')
 const previewType = ref('xml')
 const recoverable = ref(false)
 const revocable = ref(false)
-const additionalModules = computed(() => {
+const additionalModules = computed<any[]>(() => {
   console.log(props.additionalModel, 'additionalModel')
   const Modules: any[] = []
   // 仅保留用户自定义扩展模块
   if (props.onlyCustomizeAddi) {
     if (Object.prototype.toString.call(props.additionalModel) == '[object Array]') {
-      return props.additionalModel || []
+      return (props.additionalModel as any[]) || []
     }
-    return [props.additionalModel]
+    return props.additionalModel ? [props.additionalModel] : []
   }
 
   // 插入用户自定义扩展模块
@@ -406,7 +406,7 @@ console.log(additionalModules, 'additionalModules()')
 console.log(moddleExtensions, 'moddleExtensions()')
 const initBpmnModeler = () => {
   if (bpmnModeler) return
-  let data = document.getElementById('bpmnCanvas')
+  const data = bpmnCanvas.value ?? document.getElementById('bpmnCanvas') ?? undefined
   console.log(data, 'data')
   console.log(props.keyboard, 'props.keyboard')
   console.log(additionalModules, 'additionalModules()')

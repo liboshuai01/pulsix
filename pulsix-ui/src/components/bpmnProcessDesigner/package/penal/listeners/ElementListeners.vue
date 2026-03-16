@@ -419,10 +419,7 @@ const saveListenerConfig = async () => {
     bpmnElement.businessObject?.extensionElements?.values?.filter(
       (ex) => ex.$type !== `${prefix}:ExecutionListener`
     ) ?? []
-  updateElementExtensions(
-    bpmnElement,
-    otherExtensionList.value.concat(bpmnElementListeners.value)
-  )
+  updateElementExtensions(bpmnElement, otherExtensionList.value.concat(bpmnElementListeners.value))
   // 4. 隐藏侧边栏
   listenerFormModelVisible.value = false
   listenerForm.value = {}
@@ -448,10 +445,7 @@ const selectProcessListener = (listener) => {
     bpmnElement.businessObject?.extensionElements?.values?.filter(
       (ex) => ex.$type !== `${prefix}:ExecutionListener`
     ) ?? []
-  updateElementExtensions(
-    bpmnElement,
-    otherExtensionList.value.concat(bpmnElementListeners.value)
-  )
+  updateElementExtensions(bpmnElement, otherExtensionList.value.concat(bpmnElementListeners.value))
 }
 
 watch(

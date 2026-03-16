@@ -19,16 +19,16 @@
       <el-descriptions-item label="应用名称">{{ refundDetail.appName }}</el-descriptions-item>
       <el-descriptions-item label="支付金额">
         <el-tag type="success" size="small">
-          ￥{{ (refundDetail.payPrice / 100.0).toFixed(2) }}
+          ￥{{ ((refundDetail.payPrice || 0) / 100.0).toFixed(2) }}
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="退款金额">
-        <el-tag size="mini" type="danger">
-          ￥{{ (refundDetail.refundPrice / 100.0).toFixed(2) }}
+        <el-tag size="small" type="danger">
+          ￥{{ ((refundDetail.refundPrice || 0) / 100.0).toFixed(2) }}
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="退款状态">
-        <dict-tag :type="DICT_TYPE.PAY_REFUND_STATUS" :value="refundDetail.status" />
+        <dict-tag :type="DICT_TYPE.PAY_REFUND_STATUS" :value="refundDetail.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="退款时间">
         {{ formatDate(refundDetail.successTime) }}
@@ -44,7 +44,7 @@
     <el-divider />
     <el-descriptions :column="2" label-class-name="desc-label">
       <el-descriptions-item label="退款渠道">
-        <dict-tag :type="DICT_TYPE.PAY_CHANNEL_CODE" :value="refundDetail.channelCode" />
+        <dict-tag :type="DICT_TYPE.PAY_CHANNEL_CODE" :value="refundDetail.channelCode ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="退款原因">{{ refundDetail.reason }}</el-descriptions-item>
       <el-descriptions-item label="退款 IP">{{ refundDetail.userIp }}</el-descriptions-item>
@@ -62,7 +62,7 @@
     </el-descriptions>
     <el-descriptions :column="1" label-class-name="desc-label" direction="vertical" border>
       <el-descriptions-item label="支付通道异步回调内容">
-        <el-text style="white-space: pre-wrap; word-break: break-word">
+        <el-text style="word-break: break-word; white-space: pre-wrap">
           {{ refundDetail.channelNotifyData }}
         </el-text>
       </el-descriptions-item>
@@ -76,9 +76,18 @@ import * as RefundApi from '@/api/pay/refund'
 
 defineOptions({ name: 'PayRefundDetail' })
 
+type PayRefundDetailData = Partial<RefundApi.RefundVO> & {
+  appName?: string
+  merchantRefundId?: string
+  payPrice?: number
+  refundPrice?: number
+  updateTime?: string | number | Date
+  channelNotifyData?: string
+}
+
 const dialogVisible = ref(false) // 弹窗的是否展示
 const detailLoading = ref(false) // 表单的加载中
-const refundDetail = ref({})
+const refundDetail = ref<PayRefundDetailData>({})
 
 /** 打开弹窗 */
 const open = async (id: number) => {

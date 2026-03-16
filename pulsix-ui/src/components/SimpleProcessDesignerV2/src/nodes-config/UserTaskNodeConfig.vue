@@ -414,7 +414,7 @@
             <div>
               <el-divider content-position="left">跳过表达式</el-divider>
               <el-form-item prop="skipExpression">
-                <el-input v-model="configForm.skipExpression" type="textarea"  />
+                <el-input v-model="configForm.skipExpression" type="textarea" />
               </el-form-item>
             </div>
           </el-form>

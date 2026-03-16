@@ -100,8 +100,8 @@ const timeUnit = ref(TimeUnitType.HOUR)
 const maxRemindCount = ref(1)
 
 const elExtensionElements = ref()
-const otherExtensions = ref()
-const configExtensions = ref([])
+const otherExtensions = ref<any[]>([])
+const configExtensions = ref<any[]>([])
 const eventDefinition = ref()
 
 const resetElement = () => {

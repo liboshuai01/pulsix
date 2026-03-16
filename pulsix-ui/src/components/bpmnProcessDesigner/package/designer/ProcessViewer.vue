@@ -145,6 +145,27 @@ import { DICT_TYPE } from '@/utils/dict'
 import { dateFormatter, formatPast2 } from '@/utils/formatTime'
 import { BpmProcessInstanceStatus } from '@/utils/constants'
 
+type ViewerCanvas = {
+  _svg?: SVGElement
+  zoom: (scale: number | 'fit-viewport', center?: 'auto') => void
+  addMarker: (id: string, marker: string) => void
+  removeMarker: (id: string, marker: string) => void
+}
+
+type ViewerRegistryElement = {
+  id: string
+  type?: string
+  businessObject?: {
+    name?: string
+    conditionExpression?: unknown
+  }
+}
+
+type ViewerElementRegistry = {
+  get: (id: string) => ViewerRegistryElement | undefined
+  filter: (predicate: (element: ViewerRegistryElement) => boolean) => ViewerRegistryElement[]
+}
+
 const props = defineProps({
   xml: {
     type: String,
@@ -156,24 +177,32 @@ const props = defineProps({
   }
 })
 
-const processCanvas = ref()
+const processCanvas = ref<HTMLDivElement>()
 const bpmnViewer = ref<BpmnViewer | null>(null)
-const customDefs = ref()
+const customDefs = ref<SVGDefsElement>()
 const defaultZoom = ref(1) // 默认缩放比例
 const isLoading = ref(false) // 是否加载中
 
 const processInstance = ref<any>({}) // 流程实例
-const tasks = ref([]) // 流程任务
+const tasks = ref<any[]>([]) // 流程任务
 
 const dialogVisible = ref(false) // 弹窗可见性
 const dialogTitle = ref<string | undefined>(undefined) // 弹窗标题
 const selectActivityType = ref<string | undefined>(undefined) // 选中 Task 的活动编号
 const selectTasks = ref<any[]>([]) // 选中的任务数组
 
+const getViewerCanvas = () => {
+  return bpmnViewer.value?.get('canvas') as ViewerCanvas | undefined
+}
+
+const getElementRegistry = () => {
+  return bpmnViewer.value?.get('elementRegistry') as ViewerElementRegistry | undefined
+}
+
 /** Zoom：恢复 */
 const processReZoom = () => {
   defaultZoom.value = 1
-  bpmnViewer.value?.get('canvas').zoom('fit-viewport', 'auto')
+  getViewerCanvas()?.zoom('fit-viewport', 'auto')
 }
 
 /** Zoom：放大 */
@@ -183,7 +212,7 @@ const processZoomIn = (zoomStep = 0.1) => {
     throw new Error('[Process Designer Warn ]: The zoom ratio cannot be greater than 4')
   }
   defaultZoom.value = newZoom
-  bpmnViewer.value?.get('canvas').zoom(defaultZoom.value)
+  getViewerCanvas()?.zoom(defaultZoom.value)
 }
 
 /** Zoom：缩小 */
@@ -193,7 +222,7 @@ const processZoomOut = (zoomStep = 0.1) => {
     throw new Error('[Process Designer Warn ]: The zoom ratio cannot be less than 0.2')
   }
   defaultZoom.value = newZoom
-  bpmnViewer.value?.get('canvas').zoom(defaultZoom.value)
+  getViewerCanvas()?.zoom(defaultZoom.value)
 }
 
 /** 流程图预览清空 */
@@ -213,9 +242,11 @@ const addCustomDefs = () => {
   if (!bpmnViewer.value) {
     return
   }
-  const canvas = bpmnViewer.value?.get('canvas')
+  const canvas = getViewerCanvas()
   const svg = canvas?._svg
-  svg.appendChild(customDefs.value)
+  if (svg && customDefs.value) {
+    svg.appendChild(customDefs.value)
+  }
 }
 
 /** 节点选中 */
@@ -298,8 +329,11 @@ const setProcessStatus = (view: any) => {
     finishedSequenceFlowActivityIds,
     rejectedTaskActivityIds
   } = view
-  const canvas = bpmnViewer.value.get('canvas')
-  const elementRegistry = bpmnViewer.value.get('elementRegistry')
+  const canvas = getViewerCanvas()
+  const elementRegistry = getElementRegistry()
+  if (!canvas || !elementRegistry) {
+    return
+  }
 
   // 已完成节点
   if (Array.isArray(finishedSequenceFlowActivityIds)) {
@@ -307,7 +341,7 @@ const setProcessStatus = (view: any) => {
       if (item != null) {
         canvas.addMarker(item, 'success')
         const element = elementRegistry.get(item)
-        const conditionExpression = element.businessObject.conditionExpression
+        const conditionExpression = element?.businessObject?.conditionExpression
         if (conditionExpression) {
           canvas.addMarker(item, 'condition-expression')
         }

@@ -280,33 +280,58 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 上传按钮样式 */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 .upload-btn {
   --el-button-bg-color: transparent;
   --el-button-border-color: transparent;
   --el-button-hover-bg-color: var(--el-fill-color-light);
   --el-button-hover-border-color: transparent;
+
   color: var(--el-text-color-regular);
 }
 
 .upload-btn.has-files {
-  color: var(--el-color-primary);
   --el-button-hover-bg-color: var(--el-color-primary-light-9);
+
+  color: var(--el-color-primary);
 }
 
 .file-tooltip {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 320px;
+  min-width: 240px;
+  padding: 8px;
   background: white;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 240px;
-  max-width: 320px;
-  padding: 8px;
+  transform: translateX(-50%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   animation: fadeInDown 0.2s ease;
 }
 
@@ -314,47 +339,25 @@ onUnmounted(() => {
   position: absolute;
   bottom: -5px;
   left: 50%;
-  transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
   border-top: 5px solid var(--el-border-color-light);
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  transform: translateX(-50%);
 }
 
 /* Tooltip 箭头伪元素 */
 .tooltip-arrow::after {
-  content: '';
   position: absolute;
   bottom: 1px;
   left: -4px;
   width: 0;
   height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
   border-top: 4px solid white;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  content: '';
 }
 
 /* 滚动条样式 */
@@ -374,6 +377,7 @@ onUnmounted(() => {
 .file-list::-webkit-scrollbar-thumb:hover {
   background: var(--el-border-color);
 }
+
 /* 滚动条样式 */
 .file-list::-webkit-scrollbar {
   width: 4px;
@@ -391,4 +395,6 @@ onUnmounted(() => {
 .file-list::-webkit-scrollbar-thumb:hover {
   background: var(--el-border-color);
 }
+
+/* 上传按钮样式 */
 </style>
