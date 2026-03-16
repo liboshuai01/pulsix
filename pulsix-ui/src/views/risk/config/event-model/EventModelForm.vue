@@ -2,7 +2,7 @@
   <RiskCenterDialog
     v-model="dialogVisible"
     :title="dialogTitle"
-    width="1280px"
+    width="min(1480px, calc(100vw - 64px))"
     max-height="calc(100vh - 200px)"
     scroll
   >
@@ -104,23 +104,34 @@
                 <Icon icon="ep:plus" class="mr-5px" />新增字段
               </el-button>
             </div>
-            <el-table :data="formData.fields" border row-key="__key">
-              <el-table-column label="排序" width="80" align="center">
+            <el-table
+              :data="formData.fields"
+              border
+              row-key="__key"
+              table-layout="auto"
+              class="risk-event-model-form__field-table"
+            >
+              <el-table-column label="排序" width="92" align="center" header-align="center">
                 <template #default="{ row }">
-                  <el-input-number v-model="row.sortNo" :min="1" controls-position="right" />
+                  <el-input-number
+                    v-model="row.sortNo"
+                    :min="1"
+                    controls-position="right"
+                    class="risk-event-model-form__sort-input"
+                  />
                 </template>
               </el-table-column>
-              <el-table-column label="字段名" min-width="150">
+              <el-table-column label="字段名" min-width="136">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldName" placeholder="fieldName" />
                 </template>
               </el-table-column>
-              <el-table-column label="显示名" min-width="150">
+              <el-table-column label="显示名" min-width="136">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldLabel" placeholder="字段显示名" />
                 </template>
               </el-table-column>
-              <el-table-column label="字段类型" min-width="140">
+              <el-table-column label="字段类型" min-width="126">
                 <template #default="{ row }">
                   <el-select v-model="row.fieldType" placeholder="请选择字段类型">
                     <el-option
@@ -137,22 +148,22 @@
                   <el-switch v-model="row.requiredFlag" :active-value="1" :inactive-value="0" />
                 </template>
               </el-table-column>
-              <el-table-column label="默认值" min-width="150">
+              <el-table-column label="默认值" min-width="132">
                 <template #default="{ row }">
                   <el-input v-model="row.defaultValue" placeholder="默认值" />
                 </template>
               </el-table-column>
-              <el-table-column label="样例值" min-width="170">
+              <el-table-column label="样例值" min-width="148">
                 <template #default="{ row }">
                   <el-input v-model="row.sampleValue" placeholder="样例值" />
                 </template>
               </el-table-column>
-              <el-table-column label="描述" min-width="170">
+              <el-table-column label="描述" min-width="220">
                 <template #default="{ row }">
                   <el-input v-model="row.description" placeholder="字段描述" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="210" fixed="right" align="center">
+              <el-table-column label="操作" width="186" align="center" header-align="center">
                 <template #default="{ $index }">
                   <el-button link type="primary" @click="moveFieldUp($index)">上移</el-button>
                   <el-button link type="primary" @click="moveFieldDown($index)">下移</el-button>
@@ -589,6 +600,25 @@ const resetForm = () => {
   display: flex;
   justify-content: flex-end;
   width: 100%;
+}
+
+.risk-event-model-form__field-table {
+  :deep(.el-input),
+  :deep(.el-select),
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  :deep(.el-table__cell .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+.risk-event-model-form__sort-input {
+  :deep(.el-input__inner) {
+    text-align: center;
+  }
 }
 
 .risk-event-model-form__json {
