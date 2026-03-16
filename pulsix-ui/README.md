@@ -65,6 +65,22 @@
 | ESLint                        | 脚本代码检查              |
 | DotENV                        | env 文件高亮            |
 
+## AI / 本地前端校验
+
+为了避免每次改完前端代码都等待全量构建，项目提供三档校验命令：
+
+* 默认自动模式：`pnpm verify:ai:auto`
+* 仅快速校验：`pnpm verify:ai:fast`
+* 手动完整校验：`pnpm verify:ai:full`
+
+说明：
+
+* `verify:ai:fast` 只执行 `git diff --check` 和 `ts:check`
+* `verify:ai:auto` 会先跑快速校验，再根据高风险改动规则决定是否补跑 `build:dev`
+* `verify:ai:full` 始终执行完整校验，适合发布前或明确要求严格验证时使用
+* `ts:check` 是 baseline 型门禁，不代表当前仓库已经没有 TypeScript 历史错误
+* `build:dev` 仍然保留为最终强校验，但不再适合作为每次 AI 改动后的默认步骤
+
 ## 🔥 后端架构
 
 支持 Spring Boot、Spring Cloud 两种架构：
