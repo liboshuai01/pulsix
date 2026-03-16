@@ -106,12 +106,13 @@
             </div>
             <el-table
               :data="formData.fields"
+              :fit="false"
               border
               row-key="__key"
-              table-layout="auto"
+              scrollbar-always-on
               class="risk-event-model-form__field-table"
             >
-              <el-table-column label="排序" width="92" align="center" header-align="center">
+              <el-table-column label="排序" width="96" align="center" header-align="center">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="row.sortNo"
@@ -121,17 +122,17 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="字段名" min-width="136">
+              <el-table-column label="字段名" width="180">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldName" placeholder="fieldName" />
                 </template>
               </el-table-column>
-              <el-table-column label="显示名" min-width="136">
+              <el-table-column label="显示名" width="180">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldLabel" placeholder="字段显示名" />
                 </template>
               </el-table-column>
-              <el-table-column label="字段类型" min-width="126">
+              <el-table-column label="字段类型" width="160">
                 <template #default="{ row }">
                   <el-select v-model="row.fieldType" placeholder="请选择字段类型">
                     <el-option
@@ -148,27 +149,57 @@
                   <el-switch v-model="row.requiredFlag" :active-value="1" :inactive-value="0" />
                 </template>
               </el-table-column>
-              <el-table-column label="默认值" min-width="132">
+              <el-table-column label="默认值" width="180">
                 <template #default="{ row }">
                   <el-input v-model="row.defaultValue" placeholder="默认值" />
                 </template>
               </el-table-column>
-              <el-table-column label="样例值" min-width="148">
+              <el-table-column label="样例值" width="200">
                 <template #default="{ row }">
                   <el-input v-model="row.sampleValue" placeholder="样例值" />
                 </template>
               </el-table-column>
-              <el-table-column label="描述" min-width="220">
+              <el-table-column label="描述" width="240">
                 <template #default="{ row }">
                   <el-input v-model="row.description" placeholder="字段描述" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="186" align="center" header-align="center">
+              <el-table-column label="操作" width="150" align="center" header-align="center">
                 <template #default="{ $index }">
-                  <el-button link type="primary" @click="moveFieldUp($index)">上移</el-button>
-                  <el-button link type="primary" @click="moveFieldDown($index)">下移</el-button>
-                  <el-button link type="warning" @click="openExtJsonDialog($index)">高级</el-button>
-                  <el-button link type="danger" @click="removeField($index)">删除</el-button>
+                  <div class="risk-event-model-form__row-actions">
+                    <el-button
+                      link
+                      type="primary"
+                      class="risk-event-model-form__row-action-btn"
+                      @click="moveFieldUp($index)"
+                    >
+                      上移
+                    </el-button>
+                    <el-button
+                      link
+                      type="primary"
+                      class="risk-event-model-form__row-action-btn"
+                      @click="moveFieldDown($index)"
+                    >
+                      下移
+                    </el-button>
+                    <el-button
+                      link
+                      type="warning"
+                      class="risk-event-model-form__row-action-btn"
+                      @click="openExtJsonDialog($index)"
+                    >
+                      高级
+                    </el-button>
+                    <el-button
+                      link
+                      type="danger"
+                      class="risk-event-model-form__row-action-btn"
+                      @click="removeField($index)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
@@ -603,6 +634,8 @@ const resetForm = () => {
 }
 
 .risk-event-model-form__field-table {
+  min-width: 1502px;
+
   :deep(.el-input),
   :deep(.el-select),
   :deep(.el-input-number) {
@@ -613,6 +646,18 @@ const resetForm = () => {
     padding-left: 8px;
     padding-right: 8px;
   }
+}
+
+.risk-event-model-form__row-actions {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  gap: 6px 12px;
+}
+
+.risk-event-model-form__row-action-btn {
+  margin-left: 0 !important;
+  padding: 0;
 }
 
 .risk-event-model-form__sort-input {

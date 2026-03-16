@@ -104,34 +104,53 @@
         width="180"
         :formatter="dateFormatter"
       />
-      <el-table-column label="操作" align="center" width="320" fixed="right">
+      <el-table-column label="操作" align="center" width="400" fixed="right">
         <template #default="scope">
-          <el-button link type="primary" @click="openDetail(scope.row.id!)">查看详情</el-button>
-          <el-button link type="primary" @click="openPreview(scope.row.id!)">预览标准事件</el-button>
-          <el-button
-            link
-            type="primary"
-            @click="openForm('update', scope.row.id!)"
-            v-hasPermi="['risk:event-model:update']"
-          >
-            编辑
-          </el-button>
-          <el-button
-            link
-            type="warning"
-            @click="handleStatusChange(scope.row)"
-            v-hasPermi="['risk:event-model:update']"
-          >
-            {{ scope.row.status === CommonStatusEnum.ENABLE ? '停用' : '启用' }}
-          </el-button>
-          <el-button
-            link
-            type="danger"
-            @click="handleDelete(scope.row.id!)"
-            v-hasPermi="['risk:event-model:delete']"
-          >
-            删除
-          </el-button>
+          <div class="risk-event-model__actions">
+            <el-button
+              link
+              type="primary"
+              class="risk-event-model__action-btn"
+              @click="openDetail(scope.row.id!)"
+            >
+              查看详情
+            </el-button>
+            <el-button
+              link
+              type="primary"
+              class="risk-event-model__action-btn"
+              @click="openPreview(scope.row.id!)"
+            >
+              预览标准事件
+            </el-button>
+            <el-button
+              link
+              type="primary"
+              class="risk-event-model__action-btn"
+              @click="openForm('update', scope.row.id!)"
+              v-hasPermi="['risk:event-model:update']"
+            >
+              编辑
+            </el-button>
+            <el-button
+              link
+              type="warning"
+              class="risk-event-model__action-btn"
+              @click="handleStatusChange(scope.row)"
+              v-hasPermi="['risk:event-model:update']"
+            >
+              {{ scope.row.status === CommonStatusEnum.ENABLE ? '停用' : '启用' }}
+            </el-button>
+            <el-button
+              link
+              type="danger"
+              class="risk-event-model__action-btn"
+              @click="handleDelete(scope.row.id!)"
+              v-hasPermi="['risk:event-model:delete']"
+            >
+              删除
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -238,3 +257,17 @@ onMounted(() => {
   getList()
 })
 </script>
+
+<style scoped lang="scss">
+.risk-event-model__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 12px;
+}
+
+.risk-event-model__action-btn {
+  margin-left: 0 !important;
+  padding: 0;
+}
+</style>
