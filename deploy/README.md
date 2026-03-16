@@ -8,7 +8,7 @@
 
 - `docker-compose.yml`：单机版基础设施编排
 - `.env.template`：常用配置模板，可复制为 `.env` 后按需修改
-- `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时依次导入 `docs/sql/pulsix-system-infra.sql`、`docs/sql/pulsix-risk.sql`
+- `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时依次导入 `docs/sql/pulsix-system-infra.sql`、`docs/sql/pulsix-risk.sql`、`docs/sql/pulsix-risk-menu.sql`
 - `redis/init/01-init-redis.sh`：Redis 启动后幂等装载开发联调所需的名单、画像、特征副本、缓存和字典数据
 - `kafka/init/01-create-topics.sh`：Kafka 启动后幂等创建默认 Topic
 - `doris/init/01-init-doris.sh`：Doris 启动后幂等执行建库建表 SQL
@@ -80,7 +80,7 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 ## 首次初始化行为
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
-- 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql` 和 `docs/sql/pulsix-risk.sql`
+- 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动依次导入 `docs/sql/pulsix-system-infra.sql`、`docs/sql/pulsix-risk.sql` 和 `docs/sql/pulsix-risk-menu.sql`
 - `Redis` 通过 `redis-init` 初始化服务在 `docker compose up -d` 后检查并补齐默认开发数据；marker key 只记录最近一次成功校验，后续重复执行会保持幂等，并自动补回已经过期的 TTL 种子
 - `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
 - `Doris` 通过 `doris-init` 初始化服务在 `docker compose up -d` 后检查并创建默认库表

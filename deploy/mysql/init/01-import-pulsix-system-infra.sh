@@ -4,6 +4,7 @@ set -eu
 database="${MYSQL_DATABASE:-pulsix}"
 base_sql_file="/opt/pulsix/init/pulsix-system-infra.sql"
 risk_sql_file="/opt/pulsix/init/pulsix-risk.sql"
+risk_menu_sql_file="/opt/pulsix/init/pulsix-risk-menu.sql"
 
 import_sql() {
   sql_file="$1"
@@ -25,11 +26,7 @@ import_sql() {
 }
 
 import_sql "${base_sql_file}" "基础设施 SQL"
-
-if [ -f "${risk_sql_file}" ]; then
-  import_sql "${risk_sql_file}" "风控 SQL"
-else
-  echo "[mysql-init] 未检测到风控 SQL，跳过: ${risk_sql_file}"
-fi
+import_sql "${risk_sql_file}" "风控 SQL"
+import_sql "${risk_menu_sql_file}" "风控菜单 SQL"
 
 echo "[mysql-init] SQL 导入完成"

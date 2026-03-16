@@ -3,7 +3,8 @@
 
  执行顺序：
  1. 先执行 docs/sql/pulsix-system-infra.sql
- 2. 再执行本文件
+ 2. 再执行 docs/sql/pulsix-risk.sql
+ 3. 最后执行本文件
 
  说明：
  - 本文件只补充 system_menu 的 risk 菜单树，不改 system_role_menu。
