@@ -13,7 +13,7 @@ function pathResolve(dir: string) {
   return resolve(root, '.', dir)
 }
 
-export default ({ command, mode }: ConfigEnv): UserConfig => {
+export default async ({ command, mode }: ConfigEnv): Promise<UserConfig> => {
   const envMode =
     command === 'build'
       ? mode
@@ -30,7 +30,7 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       host: '0.0.0.0',
       open: env.VITE_OPEN === 'true'
     },
-    plugins: createVitePlugins(),
+    plugins: await createVitePlugins(),
     css: {
       preprocessorOptions: {
         scss: {
