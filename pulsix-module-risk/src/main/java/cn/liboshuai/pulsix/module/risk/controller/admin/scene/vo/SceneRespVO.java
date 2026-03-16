@@ -18,20 +18,11 @@ public class SceneRespVO {
     @Schema(description = "场景名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "交易风控")
     private String sceneName;
 
-    @Schema(description = "场景类型", example = "TRADE")
-    private String sceneType;
-
     @Schema(description = "运行模式", requiredMode = Schema.RequiredMode.REQUIRED, example = "ASYNC_DECISION")
     private String runtimeMode;
 
     @Schema(description = "默认策略编码", example = "TRADE_RISK_POLICY_FIRST_HIT")
     private String defaultPolicyCode;
-
-    @Schema(description = "决策超时时间毫秒", requiredMode = Schema.RequiredMode.REQUIRED, example = "500")
-    private Integer decisionTimeoutMs;
-
-    @Schema(description = "日志级别", requiredMode = Schema.RequiredMode.REQUIRED, example = "FULL")
-    private String logLevel;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     private Integer status;

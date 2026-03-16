@@ -8,20 +8,11 @@
         <el-descriptions-item label="场景编码">
           {{ detail?.sceneCode || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="场景类型">
-          {{ detail?.sceneType || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="运行模式">
           {{ getSceneRuntimeModeLabel(detail?.runtimeMode) }}
         </el-descriptions-item>
         <el-descriptions-item label="默认策略编码">
           {{ detail?.defaultPolicyCode || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="决策超时(ms)">
-          {{ detail?.decisionTimeoutMs ?? '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="日志级别">
-          {{ getSceneLogLevelLabel(detail?.logLevel) }}
         </el-descriptions-item>
         <el-descriptions-item label="状态">
           <dict-tag v-if="detail" :type="DICT_TYPE.COMMON_STATUS" :value="detail.status" />
@@ -54,7 +45,7 @@
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as SceneApi from '@/api/risk/scene'
-import { getSceneLogLevelLabel, getSceneRuntimeModeLabel } from './constants'
+import { getSceneRuntimeModeLabel } from './constants'
 
 defineOptions({ name: 'RiskSceneDetailDrawer' })
 

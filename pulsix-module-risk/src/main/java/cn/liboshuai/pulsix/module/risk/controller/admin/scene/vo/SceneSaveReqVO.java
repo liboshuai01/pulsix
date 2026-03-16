@@ -2,13 +2,11 @@ package cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo;
 
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.validation.InEnum;
-import cn.liboshuai.pulsix.module.risk.enums.scene.SceneLogLevelEnum;
 import cn.liboshuai.pulsix.module.risk.enums.scene.SceneRuntimeModeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -30,10 +28,6 @@ public class SceneSaveReqVO {
     @Size(max = 128, message = "场景名称长度不能超过 128 个字符")
     private String sceneName;
 
-    @Schema(description = "场景类型", example = "TRADE")
-    @Size(max = 64, message = "场景类型长度不能超过 64 个字符")
-    private String sceneType;
-
     @Schema(description = "运行模式", requiredMode = Schema.RequiredMode.REQUIRED, example = "ASYNC_DECISION")
     @NotBlank(message = "运行模式不能为空")
     @InEnum(value = SceneRuntimeModeEnum.class, message = "运行模式必须是 {value}")
@@ -42,16 +36,6 @@ public class SceneSaveReqVO {
     @Schema(description = "默认策略编码", example = "TRADE_RISK_POLICY_FIRST_HIT")
     @Size(max = 64, message = "默认策略编码长度不能超过 64 个字符")
     private String defaultPolicyCode;
-
-    @Schema(description = "决策超时时间毫秒", requiredMode = Schema.RequiredMode.REQUIRED, example = "500")
-    @NotNull(message = "决策超时时间不能为空")
-    @Positive(message = "决策超时时间必须是正整数")
-    private Integer decisionTimeoutMs;
-
-    @Schema(description = "日志级别", requiredMode = Schema.RequiredMode.REQUIRED, example = "FULL")
-    @NotBlank(message = "日志级别不能为空")
-    @InEnum(value = SceneLogLevelEnum.class, message = "日志级别必须是 {value}")
-    private String logLevel;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "状态不能为空")

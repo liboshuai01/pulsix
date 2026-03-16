@@ -4,11 +4,8 @@ export interface SceneVO {
   id?: number
   sceneCode: string
   sceneName: string
-  sceneType?: string
   runtimeMode: string
   defaultPolicyCode?: string
-  decisionTimeoutMs: number
-  logLevel: string
   status: number
   description?: string
   creator?: string

@@ -23,7 +23,6 @@ public interface SceneMapper extends BaseMapperX<SceneDO> {
         return selectPage(reqVO, new LambdaQueryWrapperX<SceneDO>()
                 .likeIfPresent(SceneDO::getSceneCode, reqVO.getSceneCode())
                 .likeIfPresent(SceneDO::getSceneName, reqVO.getSceneName())
-                .likeIfPresent(SceneDO::getSceneType, reqVO.getSceneType())
                 .eqIfPresent(SceneDO::getStatus, reqVO.getStatus())
                 .eqIfPresent(SceneDO::getRuntimeMode, reqVO.getRuntimeMode())
                 .orderByDesc(SceneDO::getId));

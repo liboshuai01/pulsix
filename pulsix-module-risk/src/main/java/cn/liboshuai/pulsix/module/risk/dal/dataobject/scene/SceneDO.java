@@ -3,7 +3,6 @@ package cn.liboshuai.pulsix.module.risk.dal.dataobject.scene;
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
-import cn.liboshuai.pulsix.module.risk.enums.scene.SceneLogLevelEnum;
 import cn.liboshuai.pulsix.module.risk.enums.scene.SceneRuntimeModeEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -37,10 +36,6 @@ public class SceneDO extends BaseDO {
      */
     private String sceneName;
     /**
-     * 场景类型
-     */
-    private String sceneType;
-    /**
      * 运行模式
      *
      * 枚举 {@link SceneRuntimeModeEnum}
@@ -50,16 +45,6 @@ public class SceneDO extends BaseDO {
      * 默认策略编码
      */
     private String defaultPolicyCode;
-    /**
-     * 决策超时毫秒
-     */
-    private Integer decisionTimeoutMs;
-    /**
-     * 日志级别
-     *
-     * 枚举 {@link SceneLogLevelEnum}
-     */
-    private String logLevel;
     /**
      * 状态
      *

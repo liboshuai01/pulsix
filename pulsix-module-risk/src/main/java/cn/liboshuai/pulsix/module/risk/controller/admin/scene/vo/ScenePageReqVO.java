@@ -17,9 +17,6 @@ public class ScenePageReqVO extends PageParam {
     @Schema(description = "场景名称，模糊匹配", example = "交易风控")
     private String sceneName;
 
-    @Schema(description = "场景类型，模糊匹配", example = "TRADE")
-    private String sceneType;
-
     @Schema(description = "状态，参见 CommonStatusEnum 枚举类", example = "0")
     @InEnum(value = CommonStatusEnum.class, message = "状态必须是 {value}")
     private Integer status;

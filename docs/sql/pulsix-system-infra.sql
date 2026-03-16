@@ -2823,11 +2823,8 @@ CREATE TABLE `scene_def`
     `id`                  bigint                                                        NOT NULL AUTO_INCREMENT COMMENT '场景主键',
     `scene_code`          varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '场景编码',
     `scene_name`          varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '场景名称',
-    `scene_type`          varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT NULL COMMENT '场景类型',
     `runtime_mode`        varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL DEFAULT 'ASYNC_DECISION' COMMENT '运行模式',
     `default_policy_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT NULL COMMENT '默认策略编码',
-    `decision_timeout_ms` int                                                           NOT NULL DEFAULT 500 COMMENT '决策超时时间毫秒',
-    `log_level`           varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL DEFAULT 'FULL' COMMENT '日志级别',
     `status`              tinyint                                                       NOT NULL DEFAULT 1 COMMENT '状态',
     `description`         varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT NULL COMMENT '描述',
     `creator`             varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT '' COMMENT '创建者',
@@ -2848,15 +2845,15 @@ CREATE TABLE `scene_def`
 -- Records of scene_def
 -- ----------------------------
 INSERT INTO `scene_def`
-VALUES (1, 'PROMOTION_RISK', '营销反作弊', 'PROMOTION', 'ASYNC_DECISION', 'PROMOTION_RISK_POLICY_FIRST_HIT', 500,
-        'FULL', 1, '用于领券、邀新奖励、积分发放等营销动作受理后的异步风控', 'admin', '2026-03-08 09:30:00', 'admin',
+VALUES (1, 'PROMOTION_RISK', '营销反作弊', 'ASYNC_DECISION', 'PROMOTION_RISK_POLICY_FIRST_HIT', 1,
+        '用于领券、邀新奖励、积分发放等营销动作受理后的异步风控', 'admin', '2026-03-08 09:30:00', 'admin',
         '2026-03-08 09:30:00', b'0');
 INSERT INTO `scene_def`
-VALUES (2, 'WITHDRAW_RISK', '提现审核风控', 'WITHDRAW', 'ASYNC_DECISION', 'WITHDRAW_RISK_POLICY_FIRST_HIT', 500, 'FULL',
-        1, '用于提现申请落单后、打款前的异步审核场景', 'admin', '2026-03-08 09:40:00', 'admin', '2026-03-08 09:40:00',
+VALUES (2, 'WITHDRAW_RISK', '提现审核风控', 'ASYNC_DECISION', 'WITHDRAW_RISK_POLICY_FIRST_HIT', 1,
+        '用于提现申请落单后、打款前的异步审核场景', 'admin', '2026-03-08 09:40:00', 'admin', '2026-03-08 09:40:00',
         b'0');
 INSERT INTO `scene_def`
-VALUES (3, 'ORDER_RISK', '订单后置风控', 'ORDER', 'ASYNC_DECISION', 'ORDER_RISK_POLICY_FIRST_HIT', 500, 'FULL', 1,
+VALUES (3, 'ORDER_RISK', '订单后置风控', 'ASYNC_DECISION', 'ORDER_RISK_POLICY_FIRST_HIT', 1,
         '用于支付成功后、发货前的异步订单风险拦截', 'admin', '2026-03-08 09:50:00', 'admin', '2026-03-08 09:50:00',
         b'0');
 

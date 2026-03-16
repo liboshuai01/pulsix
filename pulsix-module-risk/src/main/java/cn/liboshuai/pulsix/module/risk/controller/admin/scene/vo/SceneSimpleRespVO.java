@@ -16,9 +16,6 @@ public class SceneSimpleRespVO {
     @Schema(description = "场景名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "交易风控")
     private String sceneName;
 
-    @Schema(description = "场景类型", example = "TRADE")
-    private String sceneType;
-
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     private Integer status;
 

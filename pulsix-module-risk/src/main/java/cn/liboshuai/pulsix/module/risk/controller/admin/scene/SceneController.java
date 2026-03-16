@@ -10,6 +10,8 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo.SceneUpdateStat
 import cn.liboshuai.pulsix.module.risk.convert.scene.SceneConvert;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
 import cn.liboshuai.pulsix.module.risk.service.scene.SceneService;
+import cn.liboshuai.pulsix.module.system.api.user.AdminUserApi;
+import cn.liboshuai.pulsix.module.system.api.user.dto.AdminUserRespDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static cn.liboshuai.pulsix.framework.common.pojo.CommonResult.success;
 
@@ -38,6 +44,8 @@ public class SceneController {
 
     @Resource
     private SceneService sceneService;
+    @Resource
+    private AdminUserApi adminUserApi;
 
     @PostMapping("/create")
     @Operation(summary = "创建风控场景")
@@ -77,7 +85,12 @@ public class SceneController {
     @PreAuthorize("@ss.hasPermission('risk:scene:query')")
     public CommonResult<SceneRespVO> getScene(@RequestParam("id") Long id) {
         SceneDO scene = sceneService.getScene(id);
-        return success(scene == null ? null : SceneConvert.INSTANCE.convert(scene));
+        if (scene == null) {
+            return success(null);
+        }
+        SceneRespVO respVO = SceneConvert.INSTANCE.convert(scene);
+        translateAuditUsers(Collections.singletonList(respVO));
+        return success(respVO);
     }
 
     @GetMapping("/page")
@@ -85,7 +98,9 @@ public class SceneController {
     @PreAuthorize("@ss.hasPermission('risk:scene:query')")
     public CommonResult<PageResult<SceneRespVO>> getScenePage(@Valid ScenePageReqVO pageReqVO) {
         PageResult<SceneDO> pageResult = sceneService.getScenePage(pageReqVO);
-        return success(SceneConvert.INSTANCE.convertPage(pageResult));
+        PageResult<SceneRespVO> respVOPage = SceneConvert.INSTANCE.convertPage(pageResult);
+        translateAuditUsers(respVOPage.getList());
+        return success(respVOPage);
     }
 
     @GetMapping("/simple-list")
@@ -93,6 +108,56 @@ public class SceneController {
     @PreAuthorize("@ss.hasPermission('risk:scene:query')")
     public CommonResult<List<SceneSimpleRespVO>> getSimpleSceneList() {
         return success(SceneConvert.INSTANCE.convertSimpleList(sceneService.getSimpleSceneList()));
+    }
+
+    private void translateAuditUsers(List<SceneRespVO> scenes) {
+        if (scenes == null || scenes.isEmpty()) {
+            return;
+        }
+
+        Set<Long> userIds = new HashSet<>();
+        for (SceneRespVO scene : scenes) {
+            Long creatorId = parseUserId(scene.getCreator());
+            if (creatorId != null) {
+                userIds.add(creatorId);
+            }
+            Long updaterId = parseUserId(scene.getUpdater());
+            if (updaterId != null) {
+                userIds.add(updaterId);
+            }
+        }
+        if (userIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, AdminUserRespDTO> userMap = adminUserApi.getUserMap(userIds);
+        for (SceneRespVO scene : scenes) {
+            scene.setCreator(resolveUserNickname(scene.getCreator(), userMap));
+            scene.setUpdater(resolveUserNickname(scene.getUpdater(), userMap));
+        }
+    }
+
+    private String resolveUserNickname(String rawUserId, Map<Long, AdminUserRespDTO> userMap) {
+        Long userId = parseUserId(rawUserId);
+        if (userId == null) {
+            return rawUserId;
+        }
+        AdminUserRespDTO user = userMap.get(userId);
+        if (user == null || user.getNickname() == null || user.getNickname().isBlank()) {
+            return rawUserId;
+        }
+        return user.getNickname();
+    }
+
+    private Long parseUserId(String rawUserId) {
+        if (rawUserId == null || rawUserId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(rawUserId);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
 }

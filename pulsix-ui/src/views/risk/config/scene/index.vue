@@ -1,18 +1,5 @@
 <template>
   <ContentWrap>
-    <div class="risk-scene__hero">
-      <div>
-        <p class="risk-scene__eyebrow">配置中心</p>
-        <h1 class="risk-scene__title">场景管理</h1>
-        <p class="risk-scene__description">
-          管理营销反作弊、提现审核、订单后置风控等风控场景，为事件模型、特征、规则、策略与发布提供统一组织根。
-        </p>
-      </div>
-      <el-tag type="primary" effect="plain" round>scene_def 已接入</el-tag>
-    </div>
-  </ContentWrap>
-
-  <ContentWrap>
     <el-form
       ref="queryFormRef"
       :model="queryParams"
@@ -33,15 +20,6 @@
         <el-input
           v-model="queryParams.sceneCode"
           placeholder="请输入场景编码"
-          clearable
-          class="!w-240px"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="场景类型" prop="sceneType">
-        <el-input
-          v-model="queryParams.sceneType"
-          placeholder="请输入场景类型"
           clearable
           class="!w-240px"
           @keyup.enter="handleQuery"
@@ -91,7 +69,6 @@
     <el-table v-loading="loading" :data="list">
       <el-table-column label="场景名称" align="center" prop="sceneName" min-width="150" />
       <el-table-column label="场景编码" align="center" prop="sceneCode" min-width="170" />
-      <el-table-column label="场景类型" align="center" prop="sceneType" min-width="120" />
       <el-table-column label="运行模式" align="center" prop="runtimeMode" min-width="140">
         <template #default="scope">
           {{ getSceneRuntimeModeLabel(scope.row.runtimeMode) }}
@@ -104,12 +81,6 @@
         min-width="220"
         :show-overflow-tooltip="true"
       />
-      <el-table-column label="决策超时(ms)" align="center" prop="decisionTimeoutMs" width="130" />
-      <el-table-column label="日志级别" align="center" prop="logLevel" width="120">
-        <template #default="scope">
-          {{ getSceneLogLevelLabel(scope.row.logLevel) }}
-        </template>
-      </el-table-column>
       <el-table-column label="状态" align="center" prop="status" width="100">
         <template #default="scope">
           <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="scope.row.status" />
@@ -171,11 +142,7 @@ import { CommonStatusEnum } from '@/utils/constants'
 import * as SceneApi from '@/api/risk/scene'
 import SceneForm from './SceneForm.vue'
 import SceneDetailDrawer from './SceneDetailDrawer.vue'
-import {
-  getSceneLogLevelLabel,
-  getSceneRuntimeModeLabel,
-  SCENE_RUNTIME_MODE_OPTIONS
-} from './constants'
+import { getSceneRuntimeModeLabel, SCENE_RUNTIME_MODE_OPTIONS } from './constants'
 
 defineOptions({ name: 'RiskScene' })
 
@@ -191,7 +158,6 @@ const queryParams = reactive({
   pageSize: 10,
   sceneName: undefined,
   sceneCode: undefined,
-  sceneType: undefined,
   status: undefined,
   runtimeMode: undefined
 })
@@ -252,43 +218,3 @@ onMounted(() => {
   getList()
 })
 </script>
-
-<style scoped lang="scss">
-.risk-scene__hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.risk-scene__eyebrow {
-  margin: 0 0 6px;
-  color: var(--el-color-primary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.risk-scene__title {
-  margin: 0;
-  color: var(--el-text-color-primary);
-  font-size: 28px;
-  line-height: 1.2;
-}
-
-.risk-scene__description {
-  max-width: 880px;
-  margin: 10px 0 0;
-  color: var(--el-text-color-regular);
-  line-height: 1.8;
-}
-
-@media (max-width: 768px) {
-  .risk-scene__hero {
-    flex-direction: column;
-  }
-
-  .risk-scene__title {
-    font-size: 24px;
-  }
-}
-</style>

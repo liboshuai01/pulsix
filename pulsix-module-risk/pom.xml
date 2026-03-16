@@ -19,6 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>cn.liboshuai.pulsix</groupId>
+            <artifactId>pulsix-module-system</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.liboshuai.pulsix</groupId>
             <artifactId>pulsix-spring-boot-starter-biz-tenant</artifactId>
         </dependency>
 

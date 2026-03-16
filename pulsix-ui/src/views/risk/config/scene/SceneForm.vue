@@ -32,11 +32,6 @@
       </el-row>
       <el-row :gutter="18">
         <el-col :span="12">
-          <el-form-item label="场景类型" prop="sceneType">
-            <el-input v-model="formData.sceneType" placeholder="请输入场景类型" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
           <el-form-item label="运行模式" prop="runtimeMode">
             <el-select v-model="formData.runtimeMode" placeholder="请选择运行模式">
               <el-option
@@ -55,32 +50,9 @@
             <el-input v-model="formData.defaultPolicyCode" placeholder="请输入默认策略编码" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="决策超时(ms)" prop="decisionTimeoutMs">
-            <el-input-number
-              v-model="formData.decisionTimeoutMs"
-              :min="1"
-              :step="100"
-              controls-position="right"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
       </el-row>
       <el-row :gutter="18">
-        <el-col :span="12">
-          <el-form-item label="日志级别" prop="logLevel">
-            <el-select v-model="formData.logLevel" placeholder="请选择日志级别">
-              <el-option
-                v-for="item in SCENE_LOG_LEVEL_OPTIONS"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
+        <el-col :span="24">
           <el-form-item label="状态" prop="status">
             <el-radio-group v-model="formData.status">
               <el-radio
@@ -114,7 +86,7 @@
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as SceneApi from '@/api/risk/scene'
-import { SCENE_LOG_LEVEL_OPTIONS, SCENE_RUNTIME_MODE_OPTIONS } from './constants'
+import { SCENE_RUNTIME_MODE_OPTIONS } from './constants'
 import type { FormRules } from 'element-plus'
 
 defineOptions({ name: 'RiskSceneForm' })
@@ -132,11 +104,8 @@ const createDefaultFormData = (): SceneApi.SceneVO => ({
   id: undefined,
   sceneCode: '',
   sceneName: '',
-  sceneType: '',
   runtimeMode: SCENE_RUNTIME_MODE_OPTIONS[0].value,
   defaultPolicyCode: '',
-  decisionTimeoutMs: 500,
-  logLevel: SCENE_LOG_LEVEL_OPTIONS[0].value,
   status: CommonStatusEnum.ENABLE,
   description: ''
 })
@@ -154,8 +123,6 @@ const formRules = reactive<FormRules>({
     }
   ],
   runtimeMode: [{ required: true, message: '运行模式不能为空', trigger: 'change' }],
-  decisionTimeoutMs: [{ required: true, message: '决策超时不能为空', trigger: 'blur' }],
-  logLevel: [{ required: true, message: '日志级别不能为空', trigger: 'change' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
 })
 
