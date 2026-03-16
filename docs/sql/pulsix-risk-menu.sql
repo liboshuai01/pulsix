@@ -74,6 +74,10 @@ INSERT INTO `system_menu` (
   (6074, '场景查询', 'risk:scene:query', 3, 1, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6075, '场景新增', 'risk:scene:create', 3, 2, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6076, '场景修改', 'risk:scene:update', 3, 3, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6077, '场景删除', 'risk:scene:delete', 3, 4, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
+  (6077, '场景删除', 'risk:scene:delete', 3, 4, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6078, '事件模型查询', 'risk:event-model:query', 3, 1, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6079, '事件模型新增', 'risk:event-model:create', 3, 2, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6080, '事件模型修改', 'risk:event-model:update', 3, 3, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6081, '事件模型删除', 'risk:event-model:delete', 3, 4, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
 
 COMMIT;
