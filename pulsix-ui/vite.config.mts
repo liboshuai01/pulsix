@@ -1,8 +1,8 @@
 import { resolve } from 'path'
 import { loadEnv } from 'vite'
 import type { ConfigEnv, UserConfig } from 'vite'
-import { createVitePlugins } from './build/vite/index.ts'
-import { exclude, include } from './build/vite/optimize.ts'
+import { createVitePlugins } from './build/vite'
+import { exclude, include } from './build/vite/optimize'
 
 // Keep build validation focused on project regressions instead of stale browserslist metadata noise.
 process.env.BROWSERSLIST_IGNORE_OLD_DATA ??= 'true'
@@ -13,7 +13,7 @@ function pathResolve(dir: string) {
   return resolve(root, '.', dir)
 }
 
-export default async ({ command, mode }: ConfigEnv): Promise<UserConfig> => {
+export default ({ command, mode }: ConfigEnv): UserConfig => {
   const envMode =
     command === 'build'
       ? mode
@@ -30,7 +30,7 @@ export default async ({ command, mode }: ConfigEnv): Promise<UserConfig> => {
       host: '0.0.0.0',
       open: env.VITE_OPEN === 'true'
     },
-    plugins: await createVitePlugins(),
+    plugins: createVitePlugins(),
     css: {
       preprocessorOptions: {
         scss: {
