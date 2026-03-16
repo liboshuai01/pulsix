@@ -15,6 +15,7 @@
         <!-- 各种 module 拓展 -->
         <module>pulsix-module-system</module>
         <module>pulsix-module-infra</module>
+        <module>pulsix-module-risk</module>
 <!--        <module>pulsix-module-member</module>-->
 <!--        <module>pulsix-module-bpm</module>-->
 <!--        <module>pulsix-module-report</module>-->

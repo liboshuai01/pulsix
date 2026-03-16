@@ -9,7 +9,7 @@
  说明：
  - 本文件只补充 system_menu 的 risk 菜单树，不改 system_role_menu。
  - 超级管理员会通过现有权限逻辑自动看到全部菜单；普通角色后续在角色管理中按需授权。
- - 菜单 ID 独占 6000-6074 区间，便于后续继续扩展按钮权限或隐藏页。
+ - 菜单 ID 独占 6000-6084 区间，便于后续继续扩展按钮权限或隐藏页。
 */
 
 SET NAMES utf8mb4;
@@ -17,7 +17,7 @@ SET NAMES utf8mb4;
 BEGIN;
 
 DELETE FROM `system_menu`
-WHERE `id` BETWEEN 6000 AND 6074;
+WHERE `id` BETWEEN 6000 AND 6084;
 
 INSERT INTO `system_menu` (
   `id`,
@@ -70,6 +70,10 @@ INSERT INTO `system_menu` (
   (6070, '接入源管理', '', 2, 1, 6007, 'source', 'ep:link', 'risk/access/source/index', 'RiskAccessSource', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6071, '鉴权配置', '', 2, 2, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6072, '错误治理', '', 2, 3, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index', 'RiskAccessError', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6073, '接入指引', '', 2, 4, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
+  (6073, '接入指引', '', 2, 4, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6074, '场景查询', 'risk:scene:query', 3, 1, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6075, '场景新增', 'risk:scene:create', 3, 2, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6076, '场景修改', 'risk:scene:update', 3, 3, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6077, '场景删除', 'risk:scene:delete', 3, 4, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
 
 COMMIT;

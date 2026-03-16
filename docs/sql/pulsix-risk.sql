@@ -66,7 +66,7 @@ CREATE TABLE `scene_def` (
   `default_policy_code` varchar(64) DEFAULT NULL COMMENT '默认策略编码',
   `decision_timeout_ms` int NOT NULL DEFAULT 500 COMMENT '决策超时时间毫秒',
   `log_level` varchar(32) NOT NULL DEFAULT 'FULL' COMMENT '日志级别',
-  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态',
   `description` varchar(512) DEFAULT NULL COMMENT '描述',
   `creator` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -688,9 +688,9 @@ CREATE TABLE `alert_record` (
 BEGIN;
 
 INSERT INTO `scene_def` (`id`, `scene_code`, `scene_name`, `scene_type`, `runtime_mode`, `default_policy_code`, `decision_timeout_ms`, `log_level`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1, 'PROMOTION_RISK', '营销反作弊', 'PROMOTION', 'ASYNC_DECISION', 'PROMOTION_RISK_POLICY_FIRST_HIT', 500, 'FULL', 1, '用于领券、邀新奖励、积分发放等营销动作受理后的异步风控', 'admin', '2026-03-08 09:30:00', 'admin', '2026-03-08 09:30:00', b'0'),
-(2, 'WITHDRAW_RISK', '提现审核风控', 'WITHDRAW', 'ASYNC_DECISION', 'WITHDRAW_RISK_POLICY_FIRST_HIT', 500, 'FULL', 1, '用于提现申请落单后、打款前的异步审核场景', 'admin', '2026-03-08 09:40:00', 'admin', '2026-03-08 09:40:00', b'0'),
-(3, 'ORDER_RISK', '订单后置风控', 'ORDER', 'ASYNC_DECISION', 'ORDER_RISK_POLICY_FIRST_HIT', 500, 'FULL', 1, '用于支付成功后、发货前的异步订单风险拦截', 'admin', '2026-03-08 09:50:00', 'admin', '2026-03-08 09:50:00', b'0');
+(1, 'PROMOTION_RISK', '营销反作弊', 'PROMOTION', 'ASYNC_DECISION', 'PROMOTION_RISK_POLICY_FIRST_HIT', 500, 'FULL', 0, '用于领券、邀新奖励、积分发放等营销动作受理后的异步风控', 'admin', '2026-03-08 09:30:00', 'admin', '2026-03-08 09:30:00', b'0'),
+(2, 'WITHDRAW_RISK', '提现审核风控', 'WITHDRAW', 'ASYNC_DECISION', 'WITHDRAW_RISK_POLICY_FIRST_HIT', 500, 'FULL', 0, '用于提现申请落单后、打款前的异步审核场景', 'admin', '2026-03-08 09:40:00', 'admin', '2026-03-08 09:40:00', b'0'),
+(3, 'ORDER_RISK', '订单后置风控', 'ORDER', 'ASYNC_DECISION', 'ORDER_RISK_POLICY_FIRST_HIT', 500, 'FULL', 0, '用于支付成功后、发货前的异步订单风险拦截', 'admin', '2026-03-08 09:50:00', 'admin', '2026-03-08 09:50:00', b'0');
 
 INSERT INTO `entity_type_def` (`id`, `entity_type`, `entity_name`, `key_field_name`, `sample_value`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (1, 'USER', '用户', 'userId', 'U20001', 1, '用户维度，适用于营销、提现、订单三类场景', 'admin', '2026-03-08 09:32:00', 'admin', '2026-03-08 09:32:00', b'0'),
