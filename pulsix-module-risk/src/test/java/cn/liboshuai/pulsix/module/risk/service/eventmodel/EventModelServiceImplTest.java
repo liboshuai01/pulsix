@@ -116,6 +116,36 @@ class EventModelServiceImplTest {
         verify(eventSchemaMapper).updateById(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(0);
         assertThat(captor.getValue().getVersion()).isEqualTo(2);
+        verify(eventFieldDefMapper).deleteByEventCodePhysically("TRADE_EVENT");
+    }
+
+    @Test
+    void updateEventModel_sortChanged_replacesFieldListWithoutDuplicateInsertConflict() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setId(10L);
+        EventSchemaDO schema = createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT");
+        when(eventSchemaMapper.selectById(10L)).thenReturn(schema);
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(schema);
+
+        reqVO.getFields().stream()
+                .filter(field -> "sceneCode".equals(field.getFieldName()))
+                .findFirst()
+                .ifPresent(field -> field.setSortNo(3));
+        reqVO.getFields().stream()
+                .filter(field -> "eventType".equals(field.getFieldName()))
+                .findFirst()
+                .ifPresent(field -> field.setSortNo(2));
+
+        eventModelService.updateEventModel(reqVO);
+
+        verify(eventFieldDefMapper).deleteByEventCodePhysically("TRADE_EVENT");
+        ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(eventFieldDefMapper).insertBatch(captor.capture());
+        List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
+        assertThat(insertedFields).extracting(EventFieldDefDO::getFieldName)
+                .containsExactly("eventId", "eventType", "sceneCode", "eventTime", "amount", "ext");
+        assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
+                .containsExactly(1, 2, 3, 4, 5, 6);
     }
 
     @Test

@@ -3,7 +3,9 @@ package cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel;
 import cn.liboshuai.pulsix.framework.mybatis.core.mapper.BaseMapperX;
 import cn.liboshuai.pulsix.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventFieldDefDO;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -21,5 +23,8 @@ public interface EventFieldDefMapper extends BaseMapperX<EventFieldDefDO> {
         return delete(new LambdaQueryWrapperX<EventFieldDefDO>()
                 .eq(EventFieldDefDO::getEventCode, eventCode));
     }
+
+    @Delete("DELETE FROM event_field_def WHERE event_code = #{eventCode}")
+    int deleteByEventCodePhysically(@Param("eventCode") String eventCode);
 
 }

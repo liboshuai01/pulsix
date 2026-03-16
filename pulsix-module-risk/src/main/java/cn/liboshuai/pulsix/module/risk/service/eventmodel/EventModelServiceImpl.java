@@ -88,7 +88,9 @@ public class EventModelServiceImpl implements EventModelService {
         updateObj.setStatus(schema.getStatus());
         eventSchemaMapper.updateById(updateObj);
 
-        eventFieldDefMapper.deleteByEventCode(schema.getEventCode());
+        // The field table has a unique key on (event_code, field_name), so update must
+        // physically remove old rows before re-inserting the normalized field list.
+        eventFieldDefMapper.deleteByEventCodePhysically(schema.getEventCode());
         insertFieldList(buildFieldDOList(schema.getEventCode(), validationResult.normalizedFields()));
     }
 
@@ -107,7 +109,7 @@ public class EventModelServiceImpl implements EventModelService {
     public void deleteEventModel(Long id) {
         EventSchemaDO schema = validateEventModelExists(id);
         validateEventModelDeleteAllowed(schema);
-        eventFieldDefMapper.deleteByEventCode(schema.getEventCode());
+        eventFieldDefMapper.deleteByEventCodePhysically(schema.getEventCode());
         eventSchemaMapper.deleteById(id);
     }
 
