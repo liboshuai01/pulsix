@@ -1,5 +1,12 @@
 <template>
-  <el-drawer v-model="drawerVisible" title="事件模型详情" size="900px" destroy-on-close>
+  <Dialog
+    v-model="dialogVisible"
+    title="事件模型详情"
+    width="90%"
+    max-height="78vh"
+    scroll
+    append-to-body
+  >
     <div v-loading="detailLoading" class="risk-event-model-detail">
       <el-descriptions title="基础信息" :column="2" :label-width="120" border>
         <el-descriptions-item label="场景编码">
@@ -74,7 +81,7 @@
         </el-descriptions-item>
       </el-descriptions>
     </div>
-  </el-drawer>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -83,9 +90,9 @@ import { formatDate } from '@/utils/formatTime'
 import * as EventModelApi from '@/api/risk/event-model'
 import { getEventFieldTypeLabel } from './constants'
 
-defineOptions({ name: 'RiskEventModelDetailDrawer' })
+defineOptions({ name: 'RiskEventModelDetailDialog' })
 
-const drawerVisible = ref(false)
+const dialogVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<EventModelApi.EventModelVO>()
 const sampleJsonText = computed(() =>
@@ -93,7 +100,7 @@ const sampleJsonText = computed(() =>
 )
 
 const open = async (id: number) => {
-  drawerVisible.value = true
+  dialogVisible.value = true
   detail.value = undefined
   detailLoading.value = true
   try {

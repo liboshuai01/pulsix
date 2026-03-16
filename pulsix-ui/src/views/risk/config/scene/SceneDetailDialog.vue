@@ -1,7 +1,14 @@
 <template>
-  <el-drawer v-model="drawerVisible" title="场景详情" size="560px" destroy-on-close>
+  <Dialog
+    v-model="dialogVisible"
+    title="场景详情"
+    width="60%"
+    max-height="70vh"
+    scroll
+    append-to-body
+  >
     <div v-loading="detailLoading" class="risk-scene-detail">
-      <el-descriptions title="基础信息" :column="1" :label-width="120" border>
+      <el-descriptions title="基础信息" :column="2" :label-width="120" border>
         <el-descriptions-item label="场景名称">
           {{ detail?.sceneName || '-' }}
         </el-descriptions-item>
@@ -14,16 +21,16 @@
         <el-descriptions-item label="默认策略编码">
           {{ detail?.defaultPolicyCode || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="状态">
+        <el-descriptions-item label="状态" :span="2">
           <dict-tag v-if="detail" :type="DICT_TYPE.COMMON_STATUS" :value="detail.status" />
           <span v-else>-</span>
         </el-descriptions-item>
-        <el-descriptions-item label="场景描述">
+        <el-descriptions-item label="场景描述" :span="2">
           <span class="risk-scene-detail__multiline">{{ detail?.description || '-' }}</span>
         </el-descriptions-item>
       </el-descriptions>
 
-      <el-descriptions title="审计信息" :column="1" :label-width="120" border class="mt-18px">
+      <el-descriptions title="审计信息" :column="2" :label-width="120" border class="mt-18px">
         <el-descriptions-item label="创建人">
           {{ detail?.creator || '-' }}
         </el-descriptions-item>
@@ -38,7 +45,7 @@
         </el-descriptions-item>
       </el-descriptions>
     </div>
-  </el-drawer>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -47,14 +54,14 @@ import { formatDate } from '@/utils/formatTime'
 import * as SceneApi from '@/api/risk/scene'
 import { getSceneRuntimeModeLabel } from './constants'
 
-defineOptions({ name: 'RiskSceneDetailDrawer' })
+defineOptions({ name: 'RiskSceneDetailDialog' })
 
-const drawerVisible = ref(false)
+const dialogVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<SceneApi.SceneVO>()
 
 const open = async (id: number) => {
-  drawerVisible.value = true
+  dialogVisible.value = true
   detail.value = undefined
   detailLoading.value = true
   try {

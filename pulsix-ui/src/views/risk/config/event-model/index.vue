@@ -144,7 +144,7 @@
   </ContentWrap>
 
   <EventModelForm ref="formRef" @success="getList" />
-  <EventModelDetailDrawer ref="detailDrawerRef" />
+  <EventModelDetailDialog ref="detailDialogRef" />
   <EventModelPreviewDialog ref="previewDialogRef" />
 </template>
 
@@ -154,7 +154,7 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import * as EventModelApi from '@/api/risk/event-model'
 import EventModelForm from './EventModelForm.vue'
-import EventModelDetailDrawer from './EventModelDetailDrawer.vue'
+import EventModelDetailDialog from './EventModelDetailDialog.vue'
 import EventModelPreviewDialog from './EventModelPreviewDialog.vue'
 
 defineOptions({ name: 'RiskEventModel' })
@@ -203,9 +203,9 @@ const openForm = (type: 'create' | 'update', id?: number) => {
   formRef.value.open(type, id)
 }
 
-const detailDrawerRef = ref()
+const detailDialogRef = ref()
 const openDetail = (id: number) => {
-  detailDrawerRef.value.open(id)
+  detailDialogRef.value.open(id)
 }
 
 const previewDialogRef = ref()

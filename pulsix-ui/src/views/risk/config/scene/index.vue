@@ -132,7 +132,7 @@
   </ContentWrap>
 
   <SceneForm ref="formRef" @success="getList" />
-  <SceneDetailDrawer ref="detailDrawerRef" />
+  <SceneDetailDialog ref="detailDialogRef" />
 </template>
 
 <script setup lang="ts">
@@ -141,7 +141,7 @@ import { dateFormatter } from '@/utils/formatTime'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as SceneApi from '@/api/risk/scene'
 import SceneForm from './SceneForm.vue'
-import SceneDetailDrawer from './SceneDetailDrawer.vue'
+import SceneDetailDialog from './SceneDetailDialog.vue'
 import { getSceneRuntimeModeLabel, SCENE_RUNTIME_MODE_OPTIONS } from './constants'
 
 defineOptions({ name: 'RiskScene' })
@@ -188,9 +188,9 @@ const openForm = (type: 'create' | 'update', id?: number) => {
   formRef.value.open(type, id)
 }
 
-const detailDrawerRef = ref()
+const detailDialogRef = ref()
 const openDetail = (id: number) => {
-  detailDrawerRef.value.open(id)
+  detailDialogRef.value.open(id)
 }
 
 const handleStatusChange = async (row: SceneApi.SceneVO) => {
