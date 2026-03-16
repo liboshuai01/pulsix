@@ -21,8 +21,7 @@
     "noImplicitAny": false,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["src/*"],
-      "dom7": ["node_modules/@wangeditor-next/editor/node_modules/dom7"]
+      "@/*": ["src/*"]
     },
     "types": [
       // "@intlify/unplugin-vue-i18n/types",

@@ -329,6 +329,25 @@ const resetTaskForm = () => {
     userTaskForm.value.skipExpression = ''
   }
 
+  // 改用通过extensionElements来存储数据
+  return
+  if (businessObject.candidateStrategy != undefined) {
+    userTaskForm.value.candidateStrategy = parseInt(businessObject.candidateStrategy) as any
+  } else {
+    userTaskForm.value.candidateStrategy = undefined
+  }
+  if (businessObject.candidateParam && businessObject.candidateParam.length > 0) {
+    if (userTaskForm.value.candidateStrategy === 60) {
+      // 特殊：流程表达式，只有一个 input 输入框
+      userTaskForm.value.candidateParam = [businessObject.candidateParam]
+    } else {
+      userTaskForm.value.candidateParam = businessObject.candidateParam
+        .split(',')
+        .map((item) => item)
+    }
+  } else {
+    userTaskForm.value.candidateParam = []
+  }
 }
 
 /** 更新 candidateStrategy 字段时，需要清空 candidateParam，并触发 bpmn 图更新 */
@@ -382,6 +401,12 @@ const updateElementTask = () => {
     extensionElements: extensions
   })
 
+  // 改用通过extensionElements来存储数据
+  return
+  bpmnInstances().modeling.updateProperties(toRaw(bpmnElement.value), {
+    candidateStrategy: userTaskForm.value.candidateStrategy,
+    candidateParam: userTaskForm.value.candidateParam.join(',')
+  })
 }
 
 const updateSkipExpression = () => {

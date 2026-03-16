@@ -59,10 +59,6 @@ export default ({command, mode}: ConfigEnv): UserConfig => {
                 {
                     find: /\@\//,
                     replacement: `${pathResolve('src')}/`
-                },
-                {
-                    find: 'dom7',
-                    replacement: pathResolve('node_modules/@wangeditor-next/editor/node_modules/dom7/dom7.esm.js')
                 }
             ]
         },
