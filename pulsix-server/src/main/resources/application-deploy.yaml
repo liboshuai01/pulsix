@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          url: jdbc:mysql://127.0.0.1:3306/pulsix?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
+          username: root
+          password: pulsix_root_123
+        slave:
+          lazy: true
+          url: jdbc:mysql://127.0.0.1:3306/pulsix?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true
+          username: root
+          password: pulsix_root_123
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      password: pulsix_redis_123
+  kafka:
+    bootstrap-servers: 127.0.0.1:29092
