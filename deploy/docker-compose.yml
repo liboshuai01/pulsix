@@ -20,6 +20,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
       - ../docs/sql/pulsix-system-infra.sql:/opt/pulsix/init/pulsix-system-infra.sql:ro
+      - ../docs/sql/pulsix-risk.sql:/opt/pulsix/init/pulsix-risk.sql:ro
     healthcheck:
       test:
         [

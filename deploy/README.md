@@ -2,11 +2,13 @@
 
 这是一套面向本地开发与单机联调的最小基础设施编排，默认提供 `MySQL`、`Redis`、`Kafka(KRaft)`、`Doris` 四个依赖，可直接通过一次 `docker compose up -d` 全部拉起。
 
+注意：当前 `deploy` 只负责基础设施，不会启动 `pulsix-server`、`pulsix-ui`、Flink 等业务进程；如果你要联调后端，需要额外启动 Spring Boot，并让它显式使用对齐这套基础设施的配置。
+
 ## 文件说明
 
 - `docker-compose.yml`：单机版基础设施编排
 - `.env.template`：常用配置模板，可复制为 `.env` 后按需修改
-- `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时导入 `docs/sql/pulsix-system-infra.sql`
+- `mysql/init/01-import-pulsix-system-infra.sh`：MySQL 首次建库时依次导入 `docs/sql/pulsix-system-infra.sql`、`docs/sql/pulsix-risk.sql`
 - `redis/init/01-init-redis.sh`：Redis 启动后幂等装载开发联调所需的名单、画像、特征副本、缓存和字典数据
 - `kafka/init/01-create-topics.sh`：Kafka 启动后幂等创建默认 Topic
 - `doris/init/01-init-doris.sh`：Doris 启动后幂等执行建库建表 SQL
@@ -78,7 +80,7 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 ## 首次初始化行为
 
 - `MySQL` 使用官方镜像的 `/docker-entrypoint-initdb.d` 机制
-- 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql`
+- 只有在 `mysql-data` 数据卷为空、容器首次初始化时，才会自动导入 `docs/sql/pulsix-system-infra.sql` 和 `docs/sql/pulsix-risk.sql`
 - `Redis` 通过 `redis-init` 初始化服务在 `docker compose up -d` 后检查并补齐默认开发数据；marker key 只记录最近一次成功校验，后续重复执行会保持幂等，并自动补回已经过期的 TTL 种子
 - `Kafka` 通过 `kafka-init` 初始化服务在 `docker compose up -d` 后检查并创建默认 Topic
 - `Doris` 通过 `doris-init` 初始化服务在 `docker compose up -d` 后检查并创建默认库表
@@ -92,6 +94,22 @@ docker compose exec mysql mysql -h doris-fe -P 9030 -uroot -e "SHOW BACKENDS;"
 docker compose down -v
 docker compose up -d
 ```
+
+## 对接后端
+
+`pulsix-server` 默认激活的是 `local` Profile，而当前仓库里的 `local/dev` 默认值并不直接对齐这套 `deploy`：
+
+- MySQL：`deploy` 默认是 `127.0.0.1:3306/pulsix`，而 `local/dev` 仍指向 `ruoyi-vue-pro`
+- Redis：`deploy` 默认开启了密码 `pulsix_redis_123`，而 `local` 默认未配置密码
+- Kafka：`deploy` 对宿主机暴露的是 `127.0.0.1:29092`，而 `local/dev` 仍指向 `127.0.0.1:9092`
+
+仓库已提供 `application-deploy.yaml` 作为叠加配置。启动后端时，建议显式使用：
+
+```bash
+./mvnw -pl pulsix-server spring-boot:run -Dspring-boot.run.profiles=local,deploy
+```
+
+如果你不是用 Maven Wrapper，也可以通过 JVM 参数或环境变量设置 `SPRING_PROFILES_ACTIVE=local,deploy`。
 
 ## 默认 Kafka Topics
 
