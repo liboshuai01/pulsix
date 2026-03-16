@@ -1,11 +1,10 @@
 <template>
-  <Dialog
+  <RiskCenterDialog
     v-model="dialogVisible"
     title="场景详情"
-    width="60%"
-    max-height="70vh"
+    width="980px"
+    max-height="calc(100vh - 260px)"
     scroll
-    append-to-body
   >
     <div v-loading="detailLoading" class="risk-scene-detail">
       <el-descriptions title="基础信息" :column="2" :label-width="120" border>
@@ -45,13 +44,14 @@
         </el-descriptions-item>
       </el-descriptions>
     </div>
-  </Dialog>
+  </RiskCenterDialog>
 </template>
 
 <script setup lang="ts">
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as SceneApi from '@/api/risk/scene'
+import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 import { getSceneRuntimeModeLabel } from './constants'
 
 defineOptions({ name: 'RiskSceneDetailDialog' })

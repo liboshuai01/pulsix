@@ -1,5 +1,11 @@
 <template>
-  <el-drawer v-model="drawerVisible" :title="drawerTitle" size="1100px" destroy-on-close>
+  <RiskCenterDialog
+    v-model="dialogVisible"
+    :title="dialogTitle"
+    width="1280px"
+    max-height="calc(100vh - 200px)"
+    scroll
+  >
     <div v-loading="formLoading" class="risk-event-model-form">
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
         <el-tabs v-model="activeTab" @tab-change="handleTabChange">
@@ -239,12 +245,19 @@
     <template #footer>
       <div class="risk-event-model-form__footer">
         <el-button type="primary" :loading="formLoading" @click="submitForm">确 定</el-button>
-        <el-button @click="drawerVisible = false">取 消</el-button>
+        <el-button @click="dialogVisible = false">取 消</el-button>
       </div>
     </template>
-  </el-drawer>
+  </RiskCenterDialog>
 
-  <Dialog v-model="extJsonDialogVisible" title="字段高级配置" width="720px" max-height="420px" scroll>
+  <RiskCenterDialog
+    v-model="extJsonDialogVisible"
+    title="字段高级配置"
+    :fullscreen="false"
+    width="720px"
+    max-height="calc(100vh - 360px)"
+    scroll
+  >
     <el-input
       v-model="extJsonText"
       type="textarea"
@@ -255,7 +268,7 @@
       <el-button type="primary" @click="saveExtJson">保 存</el-button>
       <el-button @click="extJsonDialogVisible = false">取 消</el-button>
     </template>
-  </Dialog>
+  </RiskCenterDialog>
 </template>
 
 <script setup lang="ts">
@@ -263,6 +276,7 @@ import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SceneApi from '@/api/risk/scene'
 import * as EventModelApi from '@/api/risk/event-model'
+import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 import { EVENT_FIELD_TYPE_OPTIONS, EVENT_MODEL_DEFAULT_TOPIC } from './constants'
 import type { FormRules } from 'element-plus'
 
@@ -274,8 +288,8 @@ type EventModelFormData = Omit<EventModelApi.EventModelVO, 'fields'> & { fields:
 const { t } = useI18n()
 const message = useMessage()
 
-const drawerVisible = ref(false)
-const drawerTitle = ref('')
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
 const formLoading = ref(false)
 const previewLoading = ref(false)
 const formType = ref<'create' | 'update'>('create')
@@ -350,8 +364,8 @@ const loadSceneOptions = async () => {
 }
 
 const open = async (type: 'create' | 'update', id?: number) => {
-  drawerVisible.value = true
-  drawerTitle.value = type === 'create' ? t('action.create') : t('action.update')
+  dialogVisible.value = true
+  dialogTitle.value = type === 'create' ? t('action.create') : t('action.update')
   formType.value = type
   activeTab.value = 'basic'
   previewResult.value = {
@@ -407,7 +421,7 @@ const submitForm = async () => {
       await EventModelApi.updateEventModel(payload)
       message.success(t('common.updateSuccess'))
     }
-    drawerVisible.value = false
+    dialogVisible.value = false
     emit('success')
   } finally {
     formLoading.value = false

@@ -1,5 +1,11 @@
 <template>
-  <Dialog v-model="dialogVisible" title="标准事件预览" width="960px" max-height="560px" scroll>
+  <RiskCenterDialog
+    v-model="dialogVisible"
+    title="标准事件预览"
+    width="1100px"
+    max-height="calc(100vh - 240px)"
+    scroll
+  >
     <div v-loading="loading">
       <el-descriptions :column="2" border class="mb-16px">
         <el-descriptions-item label="场景编码">{{ detail?.sceneCode || '-' }}</el-descriptions-item>
@@ -61,11 +67,12 @@
         </el-col>
       </el-row>
     </div>
-  </Dialog>
+  </RiskCenterDialog>
 </template>
 
 <script setup lang="ts">
 import * as EventModelApi from '@/api/risk/event-model'
+import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 
 defineOptions({ name: 'RiskEventModelPreviewDialog' })
 

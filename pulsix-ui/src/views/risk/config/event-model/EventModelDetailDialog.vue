@@ -1,11 +1,10 @@
 <template>
-  <Dialog
+  <RiskCenterDialog
     v-model="dialogVisible"
     title="事件模型详情"
-    width="90%"
-    max-height="78vh"
+    width="1280px"
+    max-height="calc(100vh - 220px)"
     scroll
-    append-to-body
   >
     <div v-loading="detailLoading" class="risk-event-model-detail">
       <el-descriptions title="基础信息" :column="2" :label-width="120" border>
@@ -81,13 +80,14 @@
         </el-descriptions-item>
       </el-descriptions>
     </div>
-  </Dialog>
+  </RiskCenterDialog>
 </template>
 
 <script setup lang="ts">
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as EventModelApi from '@/api/risk/event-model'
+import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 import { getEventFieldTypeLabel } from './constants'
 
 defineOptions({ name: 'RiskEventModelDetailDialog' })

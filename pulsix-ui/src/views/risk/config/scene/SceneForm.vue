@@ -1,10 +1,10 @@
 <template>
-  <Dialog
+  <RiskCenterDialog
     v-model="dialogVisible"
     :title="dialogTitle"
     :fullscreen="false"
-    width="720px"
-    max-height="520px"
+    width="760px"
+    max-height="calc(100vh - 320px)"
     scroll
   >
     <el-form
@@ -82,13 +82,14 @@
       <el-button type="primary" :disabled="formLoading" @click="submitForm">确 定</el-button>
       <el-button @click="dialogVisible = false">取 消</el-button>
     </template>
-  </Dialog>
+  </RiskCenterDialog>
 </template>
 
 <script setup lang="ts">
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as SceneApi from '@/api/risk/scene'
+import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 import { SCENE_RUNTIME_MODE_OPTIONS } from './constants'
 import type { FormRules } from 'element-plus'
 
