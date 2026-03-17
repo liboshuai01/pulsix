@@ -131,6 +131,10 @@
 - `scene_def`
 - `event_schema`
 - `event_field_def`
+- `access_source_def`
+- `event_access_binding`
+- `event_access_raw_field_def`
+- `event_access_mapping_rule`
 - `feature_def`
 - `feature_stream_conf`
 - `feature_lookup_conf`
@@ -568,6 +572,11 @@ Redis 不适合用来做：
 - `eventId`
 - `eventTime`
 - 业务字段
+
+补充一个一期约束：
+
+- 上游请求仍显式携带标准 `eventType`
+- `pulsix-ingest` 按 `sourceCode + eventType` 装载唯一接入映射，再完成标准化
 
 #### 为什么一期建议统一 Topic
 

@@ -86,8 +86,6 @@ CREATE TABLE event_schema (
   event_code VARCHAR(64) NOT NULL,
   event_name VARCHAR(128) NOT NULL,
   event_type VARCHAR(64) NOT NULL,
-  source_type VARCHAR(32) DEFAULT NULL,
-  topic_name VARCHAR(128) DEFAULT NULL,
   version INT NOT NULL DEFAULT 1,
   status TINYINT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
@@ -122,6 +120,62 @@ CREATE TABLE event_field_def (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   deleted bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
   UNIQUE KEY uk_event_field (event_code, field_name)
+);
+```
+
+---
+
+### D.3.4 接入源表 `access_source_def`
+
+```sql
+CREATE TABLE access_source_def (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  source_code VARCHAR(64) NOT NULL,
+  source_name VARCHAR(128) NOT NULL,
+  source_type VARCHAR(32) NOT NULL,
+  topic_name VARCHAR(128) NOT NULL,
+  allowed_scene_codes JSON DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  description VARCHAR(512) DEFAULT NULL,
+  UNIQUE KEY uk_source_code (source_code)
+);
+```
+
+### D.3.5 接入映射聚合表 `event_access_binding`
+
+```sql
+CREATE TABLE event_access_binding (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  event_code VARCHAR(64) NOT NULL,
+  source_code VARCHAR(64) NOT NULL,
+  raw_sample_json JSON DEFAULT NULL,
+  sample_headers_json JSON DEFAULT NULL,
+  description VARCHAR(512) DEFAULT NULL,
+  UNIQUE KEY uk_event_source (event_code, source_code)
+);
+```
+
+### D.3.6 接入映射明细表
+
+```sql
+CREATE TABLE event_access_raw_field_def (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  binding_id BIGINT NOT NULL,
+  field_name VARCHAR(64) NOT NULL,
+  field_path VARCHAR(255) NOT NULL,
+  field_type VARCHAR(32) NOT NULL,
+  required_flag TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE event_access_mapping_rule (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  binding_id BIGINT NOT NULL,
+  target_field_name VARCHAR(64) NOT NULL,
+  mapping_type VARCHAR(32) NOT NULL,
+  source_field_path VARCHAR(255) DEFAULT NULL,
+  constant_value VARCHAR(512) DEFAULT NULL,
+  script_engine VARCHAR(32) DEFAULT NULL,
+  script_content TEXT DEFAULT NULL
 );
 ```
 
