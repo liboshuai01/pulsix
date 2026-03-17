@@ -32,6 +32,18 @@
         </el-descriptions-item>
       </el-descriptions>
 
+      <div class="mt-16px flex justify-end">
+        <el-button
+          type="primary"
+          plain
+          :disabled="!detail?.eventCode"
+          @click="goToAccessMapping(detail?.eventCode)"
+          v-hasPermi="['risk:access-mapping:query']"
+        >
+          配置接入映射
+        </el-button>
+      </div>
+
       <el-card header="接入绑定" class="mt-18px" shadow="never">
         <el-empty
           v-if="!detail?.bindingSources?.length"
@@ -109,6 +121,7 @@ import { getEventFieldTypeLabel } from './constants'
 
 defineOptions({ name: 'RiskEventModelDetailDialog' })
 
+const router = useRouter()
 const dialogVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<EventModelApi.EventModelVO>()
@@ -122,6 +135,13 @@ const open = async (id: number) => {
   } finally {
     detailLoading.value = false
   }
+}
+
+const goToAccessMapping = (eventCode?: string) => {
+  if (!eventCode) {
+    return
+  }
+  router.push({ path: '/risk/access/mapping/index', query: { eventCode } })
 }
 
 defineExpose({ open })

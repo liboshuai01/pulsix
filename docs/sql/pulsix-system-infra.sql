@@ -6580,14 +6580,29 @@ INSERT INTO `system_menu`
 VALUES (6070, '接入源管理', '', 2, 1, 6007, 'source', 'ep:link', 'risk/access/source/index', 'RiskAccessSource', 0,
         b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
 INSERT INTO `system_menu`
-VALUES (6071, '鉴权配置', '', 2, 2, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1',
+VALUES (6086, '接入映射', '', 2, 2, 6007, 'mapping', 'ep:share', 'risk/access/mapping/index', 'RiskAccessMapping', 0,
+        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
+INSERT INTO `system_menu`
+VALUES (6071, '鉴权配置', '', 2, 3, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1',
         b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
 INSERT INTO `system_menu`
-VALUES (6072, '错误治理', '', 2, 3, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index',
+VALUES (6072, '错误治理', '', 2, 4, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index',
         'RiskAccessError', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
 INSERT INTO `system_menu`
-VALUES (6073, '接入指引', '', 2, 4, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1',
+VALUES (6073, '接入指引', '', 2, 5, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1',
         b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
+INSERT INTO `system_menu`
+VALUES (6087, '接入映射查询', 'risk:access-mapping:query', 3, 1, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
+        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
+INSERT INTO `system_menu`
+VALUES (6088, '接入映射新增', 'risk:access-mapping:create', 3, 2, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
+        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
+INSERT INTO `system_menu`
+VALUES (6089, '接入映射修改', 'risk:access-mapping:update', 3, 3, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
+        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
+INSERT INTO `system_menu`
+VALUES (6090, '接入映射删除', 'risk:access-mapping:delete', 3, 4, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
+        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
 
 -- ----------------------------
 -- Table structure for system_notice

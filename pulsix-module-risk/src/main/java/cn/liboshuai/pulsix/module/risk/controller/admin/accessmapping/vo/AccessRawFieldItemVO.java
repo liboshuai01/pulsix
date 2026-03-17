@@ -1,0 +1,60 @@
+package cn.liboshuai.pulsix.module.risk.controller.admin.accessmapping.vo;
+
+import cn.liboshuai.pulsix.framework.common.validation.InEnum;
+import cn.liboshuai.pulsix.module.risk.enums.eventmodel.EventFieldTypeEnum;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Schema(description = "管理后台 - 接入映射原始字段项")
+@Data
+public class AccessRawFieldItemVO {
+
+    private static final String FIELD_NAME_PATTERN = "^[A-Za-z][A-Za-z0-9_]*$";
+    private static final String FIELD_PATH_PATTERN = "^[A-Za-z_][A-Za-z0-9_]*(\\[[0-9]+\\])?(\\.[A-Za-z_][A-Za-z0-9_]*(\\[[0-9]+\\])?)*$";
+
+    @Schema(description = "原始字段名", requiredMode = Schema.RequiredMode.REQUIRED, example = "userId")
+    @NotBlank(message = "原始字段名不能为空")
+    @Size(max = 64, message = "原始字段名长度不能超过 64 个字符")
+    @Pattern(regexp = FIELD_NAME_PATTERN, message = "原始字段名只能以字母开头，且仅支持字母、数字和下划线")
+    private String fieldName;
+
+    @Schema(description = "原始字段显示名", example = "用户ID")
+    @Size(max = 128, message = "原始字段显示名长度不能超过 128 个字符")
+    private String fieldLabel;
+
+    @Schema(description = "原始字段路径", requiredMode = Schema.RequiredMode.REQUIRED, example = "user.id")
+    @NotBlank(message = "原始字段路径不能为空")
+    @Size(max = 255, message = "原始字段路径长度不能超过 255 个字符")
+    @Pattern(regexp = FIELD_PATH_PATTERN, message = "原始字段路径格式不正确，仅支持 a.b.c 或 items[0].skuId")
+    private String fieldPath;
+
+    @Schema(description = "原始字段类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "STRING")
+    @NotBlank(message = "原始字段类型不能为空")
+    @InEnum(value = EventFieldTypeEnum.class, message = "原始字段类型必须是 {value}")
+    private String fieldType;
+
+    @Schema(description = "是否必填", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
+    @NotNull(message = "原始字段必填标识不能为空")
+    @Min(value = 0, message = "原始字段必填标识只能是 0 或 1")
+    @Max(value = 1, message = "原始字段必填标识只能是 0 或 1")
+    private Integer requiredFlag;
+
+    @Schema(description = "样例值", example = "U10001")
+    @Size(max = 512, message = "原始字段样例值长度不能超过 512 个字符")
+    private String sampleValue;
+
+    @Schema(description = "描述", example = "用户主键")
+    @Size(max = 512, message = "原始字段描述长度不能超过 512 个字符")
+    private String description;
+
+    @Schema(description = "排序号", example = "10")
+    @Min(value = 0, message = "原始字段排序号不能小于 0")
+    private Integer sortNo;
+
+}

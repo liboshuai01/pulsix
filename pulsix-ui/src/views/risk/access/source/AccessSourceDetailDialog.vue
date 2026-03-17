@@ -69,6 +69,18 @@
         </el-descriptions-item>
       </el-descriptions>
 
+      <div class="mt-16px flex justify-end">
+        <el-button
+          type="primary"
+          plain
+          :disabled="!detail?.sourceCode"
+          @click="goToAccessMapping(detail?.sourceCode)"
+          v-hasPermi="['risk:access-mapping:query']"
+        >
+          配置接入映射
+        </el-button>
+      </div>
+
       <el-descriptions title="审计信息" :column="2" :label-width="120" border class="mt-18px">
         <el-descriptions-item label="创建人">
           {{ detail?.creator || '-' }}
@@ -95,6 +107,7 @@ import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 
 defineOptions({ name: 'RiskAccessSourceDetailDialog' })
 
+const router = useRouter()
 const dialogVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<AccessSourceApi.AccessSourceVO>()
@@ -108,6 +121,13 @@ const open = async (id: number) => {
   } finally {
     detailLoading.value = false
   }
+}
+
+const goToAccessMapping = (sourceCode?: string) => {
+  if (!sourceCode) {
+    return
+  }
+  router.push({ path: '/risk/access/mapping/index', query: { sourceCode } })
 }
 
 defineExpose({ open })

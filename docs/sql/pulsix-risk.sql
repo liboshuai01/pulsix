@@ -39,6 +39,8 @@ DROP TABLE IF EXISTS `alert_template_def`;
 DROP TABLE IF EXISTS `alert_channel_def`;
 DROP TABLE IF EXISTS `risk_error_log`;
 DROP TABLE IF EXISTS `access_auth_conf`;
+DROP TABLE IF EXISTS `event_access_mapping_rule`;
+DROP TABLE IF EXISTS `event_access_raw_field_def`;
 DROP TABLE IF EXISTS `event_access_binding`;
 DROP TABLE IF EXISTS `access_source_def`;
 DROP TABLE IF EXISTS `risk_event`;
@@ -536,6 +538,9 @@ CREATE TABLE `event_access_binding` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
   `event_code` varchar(64) NOT NULL COMMENT '事件编码',
   `source_code` varchar(64) NOT NULL COMMENT '接入源编码',
+  `raw_sample_json` json DEFAULT NULL COMMENT '原始样例报文',
+  `sample_headers_json` json DEFAULT NULL COMMENT '样例请求头',
+  `description` varchar(512) DEFAULT NULL COMMENT '描述',
   `creator` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updater` varchar(64) DEFAULT '' COMMENT '更新者',
@@ -546,6 +551,49 @@ CREATE TABLE `event_access_binding` (
   KEY `idx_source_code` (`source_code`),
   KEY `idx_event_code` (`event_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='事件接入绑定表';
+
+CREATE TABLE `event_access_raw_field_def` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `binding_id` bigint NOT NULL COMMENT '接入绑定主键',
+  `field_name` varchar(64) NOT NULL COMMENT '原始字段名',
+  `field_label` varchar(128) DEFAULT NULL COMMENT '原始字段显示名',
+  `field_path` varchar(255) NOT NULL COMMENT '原始字段路径',
+  `field_type` varchar(32) NOT NULL COMMENT '原始字段类型',
+  `required_flag` tinyint NOT NULL DEFAULT 0 COMMENT '是否必填',
+  `sample_value` varchar(512) DEFAULT NULL COMMENT '样例值',
+  `description` varchar(512) DEFAULT NULL COMMENT '描述',
+  `sort_no` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `creator` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_binding_field_path` (`binding_id`, `field_path`),
+  KEY `idx_binding_sort` (`binding_id`, `sort_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='事件接入原始字段定义表';
+
+CREATE TABLE `event_access_mapping_rule` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `binding_id` bigint NOT NULL COMMENT '接入绑定主键',
+  `target_field_name` varchar(64) NOT NULL COMMENT '目标标准字段名',
+  `mapping_type` varchar(32) NOT NULL COMMENT '映射类型',
+  `source_field_path` varchar(255) DEFAULT NULL COMMENT '源字段路径',
+  `constant_value` varchar(512) DEFAULT NULL COMMENT '常量值',
+  `script_engine` varchar(32) DEFAULT NULL COMMENT '脚本引擎',
+  `script_content` text COMMENT '脚本内容',
+  `time_pattern` varchar(128) DEFAULT NULL COMMENT '时间格式',
+  `enum_mapping_json` json DEFAULT NULL COMMENT '枚举映射',
+  `description` varchar(512) DEFAULT NULL COMMENT '描述',
+  `creator` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_binding_target_field` (`binding_id`, `target_field_name`),
+  KEY `idx_binding_id` (`binding_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='事件接入标准化映射规则表';
 
 CREATE TABLE `access_auth_conf` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
@@ -879,10 +927,64 @@ INSERT INTO `access_source_def` (`id`, `source_code`, `source_name`, `source_typ
 (14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 200, '["WITHDRAW_RISK"]', '["10.40.0.0/16","192.168.20.0/24"]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00', 'admin', '2026-03-08 10:58:00', b'0'),
 (14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'pulsix.event.standard', 500, '["ORDER_RISK"]', '["172.20.8.0/24"]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin', '2026-03-08 11:58:00', b'0');
 
-INSERT INTO `event_access_binding` (`id`, `event_code`, `source_code`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(14101, 'PROMOTION_EVENT', 'PROMOTION_CENTER_HTTP', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
-(14102, 'WITHDRAW_EVENT', 'WITHDRAW_CENTER_HTTP', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
-(14103, 'ORDER_EVENT', 'ORDER_CENTER_SDK', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
+INSERT INTO `event_access_binding` (`id`, `event_code`, `source_code`, `raw_sample_json`, `sample_headers_json`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14101, 'PROMOTION_EVENT', 'PROMOTION_CENTER_HTTP', '{"eventId":"E_PROMO_0001","traceId":"T_PROMO_0001","eventType":"promotion_grant","applyTime":"2026-03-08T10:00:00","user":{"id":"U10001"},"device":{"id":"D20001"},"ip":"10.30.1.18","couponAmount":"68.80","channel":"APP"}', '{"X-Source-System":"promotion-center","X-Request-Id":"REQ-PROMO-0001"}', '营销中心受理事件接入映射', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14102, 'WITHDRAW_EVENT', 'WITHDRAW_CENTER_HTTP', '{"eventId":"E_WD_0001","traceId":"T_WD_0001","eventType":"withdraw_apply","applyTime":"2026-03-08T11:00:00","uid":"U30123","withdrawNo":"WD202603080001","withdrawAmount":"5200","ip":"10.40.2.11"}', '{"X-Source-System":"withdraw-center","X-Request-Id":"REQ-WD-0001"}', '资金中心提现申请事件接入映射', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14103, 'ORDER_EVENT', 'ORDER_CENTER_SDK', '{"eventId":"E_ORDER_0001","traceId":"T_ORDER_0001","eventType":"order_paid","paidTime":"2026-03-08T12:00:00","userId":"U50001","orderNo":"O202603080001","amount":"199.90","deviceId":"D40001","ip":"172.20.8.9"}', '{"x-sdk-version":"1.0.0","x-request-id":"REQ-ORDER-0001"}', '订单中心支付成功事件接入映射', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
+
+INSERT INTO `event_access_raw_field_def` (`id`, `binding_id`, `field_name`, `field_label`, `field_path`, `field_type`, `required_flag`, `sample_value`, `description`, `sort_no`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14201, 14101, 'eventId', '事件ID', 'eventId', 'STRING', 1, 'E_PROMO_0001', '营销事件唯一标识', 10, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14202, 14101, 'traceId', '链路ID', 'traceId', 'STRING', 0, 'T_PROMO_0001', '链路追踪号', 20, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14203, 14101, 'applyTime', '受理时间', 'applyTime', 'DATETIME', 1, '2026-03-08T10:00:00', '营销受理时间', 30, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14204, 14101, 'userId', '用户ID', 'user.id', 'STRING', 1, 'U10001', '用户主键', 40, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14205, 14101, 'deviceId', '设备ID', 'device.id', 'STRING', 0, 'D20001', '设备主键', 50, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14206, 14101, 'ip', 'IP', 'ip', 'STRING', 0, '10.30.1.18', '客户端 IP', 60, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14207, 14101, 'couponAmount', '券金额', 'couponAmount', 'DECIMAL', 1, '68.80', '营销奖励金额', 70, 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14211, 14102, 'eventId', '事件ID', 'eventId', 'STRING', 1, 'E_WD_0001', '提现事件唯一标识', 10, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14212, 14102, 'traceId', '链路ID', 'traceId', 'STRING', 0, 'T_WD_0001', '链路追踪号', 20, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14213, 14102, 'applyTime', '申请时间', 'applyTime', 'DATETIME', 1, '2026-03-08T11:00:00', '提现申请时间', 30, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14214, 14102, 'userId', '用户ID', 'uid', 'STRING', 1, 'U30123', '用户主键', 40, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14215, 14102, 'withdrawNo', '提现单号', 'withdrawNo', 'STRING', 1, 'WD202603080001', '提现单据号', 50, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14216, 14102, 'withdrawAmount', '提现金额', 'withdrawAmount', 'DECIMAL', 1, '5200', '提现金额', 60, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14217, 14102, 'ip', 'IP', 'ip', 'STRING', 0, '10.40.2.11', '客户端 IP', 70, 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14221, 14103, 'eventId', '事件ID', 'eventId', 'STRING', 1, 'E_ORDER_0001', '订单事件唯一标识', 10, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14222, 14103, 'traceId', '链路ID', 'traceId', 'STRING', 0, 'T_ORDER_0001', '链路追踪号', 20, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14223, 14103, 'paidTime', '支付时间', 'paidTime', 'DATETIME', 1, '2026-03-08T12:00:00', '支付成功时间', 30, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14224, 14103, 'userId', '用户ID', 'userId', 'STRING', 1, 'U50001', '用户主键', 40, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14225, 14103, 'orderNo', '订单号', 'orderNo', 'STRING', 1, 'O202603080001', '订单号', 50, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14226, 14103, 'amount', '订单金额', 'amount', 'DECIMAL', 1, '199.90', '订单支付金额', 60, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14227, 14103, 'deviceId', '设备ID', 'deviceId', 'STRING', 0, 'D40001', '设备主键', 70, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14228, 14103, 'ip', 'IP', 'ip', 'STRING', 0, '172.20.8.9', '客户端 IP', 80, 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
+
+INSERT INTO `event_access_mapping_rule` (`id`, `binding_id`, `target_field_name`, `mapping_type`, `source_field_path`, `constant_value`, `script_engine`, `script_content`, `time_pattern`, `enum_mapping_json`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14301, 14101, 'eventId', 'SOURCE_FIELD', 'eventId', NULL, NULL, NULL, NULL, NULL, '映射营销事件ID', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14302, 14101, 'traceId', 'SOURCE_FIELD', 'traceId', NULL, NULL, NULL, NULL, NULL, '映射营销 traceId', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14303, 14101, 'sceneCode', 'CONSTANT', NULL, 'PROMOTION_RISK', NULL, NULL, NULL, NULL, '锁定场景编码', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14304, 14101, 'eventType', 'CONSTANT', NULL, 'promotion_grant', NULL, NULL, NULL, NULL, '锁定事件类型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14305, 14101, 'eventTime', 'SOURCE_FIELD', 'applyTime', NULL, NULL, NULL, 'yyyy-MM-dd''T''HH:mm:ss', NULL, '映射营销受理时间', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14306, 14101, 'userId', 'SOURCE_FIELD', 'user.id', NULL, NULL, NULL, NULL, NULL, '映射用户ID', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14307, 14101, 'deviceId', 'SOURCE_FIELD', 'device.id', NULL, NULL, NULL, NULL, NULL, '映射设备ID', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14308, 14101, 'ip', 'SOURCE_FIELD', 'ip', NULL, NULL, NULL, NULL, NULL, '映射 IP', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14309, 14101, 'grantAmount', 'SOURCE_FIELD', 'couponAmount', NULL, NULL, NULL, NULL, NULL, '映射发放金额', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14311, 14102, 'eventId', 'SOURCE_FIELD', 'eventId', NULL, NULL, NULL, NULL, NULL, '映射提现事件ID', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14312, 14102, 'traceId', 'SOURCE_FIELD', 'traceId', NULL, NULL, NULL, NULL, NULL, '映射提现 traceId', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14313, 14102, 'sceneCode', 'CONSTANT', NULL, 'WITHDRAW_RISK', NULL, NULL, NULL, NULL, '锁定场景编码', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14314, 14102, 'eventType', 'CONSTANT', NULL, 'withdraw_apply', NULL, NULL, NULL, NULL, '锁定事件类型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14315, 14102, 'eventTime', 'SOURCE_FIELD', 'applyTime', NULL, NULL, NULL, 'yyyy-MM-dd''T''HH:mm:ss', NULL, '映射提现申请时间', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14316, 14102, 'userId', 'SOURCE_FIELD', 'uid', NULL, NULL, NULL, NULL, NULL, '映射用户ID', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14317, 14102, 'withdrawNo', 'SOURCE_FIELD', 'withdrawNo', NULL, NULL, NULL, NULL, NULL, '映射提现单号', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14318, 14102, 'withdrawAmount', 'SOURCE_FIELD', 'withdrawAmount', NULL, NULL, NULL, NULL, NULL, '映射提现金额', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14319, 14102, 'ip', 'SOURCE_FIELD', 'ip', NULL, NULL, NULL, NULL, NULL, '映射 IP', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14321, 14103, 'eventId', 'SOURCE_FIELD', 'eventId', NULL, NULL, NULL, NULL, NULL, '映射订单事件ID', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14322, 14103, 'traceId', 'SOURCE_FIELD', 'traceId', NULL, NULL, NULL, NULL, NULL, '映射订单 traceId', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14323, 14103, 'sceneCode', 'CONSTANT', NULL, 'ORDER_RISK', NULL, NULL, NULL, NULL, '锁定场景编码', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14324, 14103, 'eventType', 'CONSTANT', NULL, 'order_paid', NULL, NULL, NULL, NULL, '锁定事件类型', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14325, 14103, 'eventTime', 'SOURCE_FIELD', 'paidTime', NULL, NULL, NULL, 'yyyy-MM-dd''T''HH:mm:ss', NULL, '映射支付时间', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14326, 14103, 'userId', 'SOURCE_FIELD', 'userId', NULL, NULL, NULL, NULL, NULL, '映射用户ID', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14327, 14103, 'orderNo', 'SOURCE_FIELD', 'orderNo', NULL, NULL, NULL, NULL, NULL, '映射订单号', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14328, 14103, 'payAmount', 'SOURCE_FIELD', 'amount', NULL, NULL, NULL, NULL, NULL, '映射支付金额', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14329, 14103, 'deviceId', 'SOURCE_FIELD', 'deviceId', NULL, NULL, NULL, NULL, NULL, '映射设备ID', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0'),
+(14330, 14103, 'ip', 'SOURCE_FIELD', 'ip', NULL, NULL, NULL, NULL, NULL, '映射 IP', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
 
 INSERT INTO `access_auth_conf` (`id`, `source_code`, `auth_type`, `app_key`, `app_secret`, `sign_algo`, `signature_header`, `nonce_ttl_seconds`, `effective_from`, `expire_at`, `status`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (15001, 'PROMOTION_CENTER_HTTP', 'API_KEY', 'promo_http_key', 'promo_http_secret_demo', 'NONE', 'X-API-Key', 0, '2026-03-08 10:00:00', NULL, 1, '{"headers":["X-API-Key"]}', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),

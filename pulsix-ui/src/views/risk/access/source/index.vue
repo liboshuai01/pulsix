@@ -129,7 +129,7 @@
         width="180"
         :formatter="dateFormatter"
       />
-      <el-table-column label="操作" align="center" width="320" fixed="right">
+      <el-table-column label="操作" align="center" width="390" fixed="right">
         <template #default="scope">
           <div class="risk-access-source__actions">
             <el-button
@@ -148,6 +148,15 @@
               v-hasPermi="['risk:access-source:update']"
             >
               编辑
+            </el-button>
+            <el-button
+              link
+              type="success"
+              class="risk-access-source__action-btn"
+              @click="goToAccessMapping(scope.row.sourceCode)"
+              v-hasPermi="['risk:access-mapping:query']"
+            >
+              接入映射
             </el-button>
             <el-button
               link
@@ -194,6 +203,7 @@ import AccessSourceDetailDialog from './AccessSourceDetailDialog.vue'
 defineOptions({ name: 'RiskAccessSource' })
 
 const message = useMessage()
+const router = useRouter()
 
 const loading = ref(false)
 const total = ref(0)
@@ -239,6 +249,13 @@ const openForm = (type: 'create' | 'update', id?: number) => {
 const detailDialogRef = ref()
 const openDetail = (id: number) => {
   detailDialogRef.value.open(id)
+}
+
+const goToAccessMapping = (sourceCode?: string) => {
+  if (!sourceCode) {
+    return
+  }
+  router.push({ path: '/risk/access/mapping/index', query: { sourceCode } })
 }
 
 const handleStatusChange = async (row: AccessSourceApi.AccessSourceVO) => {

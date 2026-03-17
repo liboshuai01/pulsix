@@ -10,12 +10,9 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModel
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelSaveReqVO;
 import cn.liboshuai.pulsix.module.risk.convert.eventmodel.EventModelConvert;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPageReqVO;
-import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.AccessSourceDO;
-import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.EventAccessBindingDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventFieldDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
-import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.AccessSourceMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.EventAccessBindingMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventFieldDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventSchemaMapper;
@@ -31,17 +28,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import static cn.liboshuai.pulsix.framework.common.exception.util.ServiceExceptionUtil.exception;
-import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_BINDING_DUPLICATE;
-import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_BINDING_REQUIRED;
-import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_BINDING_SCENE_MISMATCH;
-import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_BINDING_SOURCE_NOT_EXISTS;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_DELETE_DENIED;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_FIELD_DUPLICATE;
@@ -62,8 +53,6 @@ public class EventModelServiceImpl implements EventModelService {
     @Resource
     private EventFieldDefMapper eventFieldDefMapper;
     @Resource
-    private AccessSourceMapper accessSourceMapper;
-    @Resource
     private EventAccessBindingMapper eventAccessBindingMapper;
     @Resource
     private SceneMapper sceneMapper;
@@ -73,7 +62,6 @@ public class EventModelServiceImpl implements EventModelService {
     public Long createEventModel(EventModelSaveReqVO createReqVO) {
         validateSceneExists(createReqVO.getSceneCode());
         validateEventCodeUnique(null, createReqVO.getEventCode());
-        validateBindingSources(createReqVO.getSceneCode(), createReqVO.getBindingSourceCodes());
 
         DraftValidationResult validationResult = validateDraft(createReqVO);
         throwIfInvalid(validationResult);
@@ -83,7 +71,6 @@ public class EventModelServiceImpl implements EventModelService {
         schema.setStatus(CommonStatusEnum.DISABLE.getStatus());
         eventSchemaMapper.insert(schema);
         insertFieldList(buildFieldDOList(createReqVO.getEventCode(), validationResult.normalizedFields()));
-        insertBindingList(buildBindingDOList(createReqVO.getEventCode(), createReqVO.getBindingSourceCodes()));
         return schema.getId();
     }
 
@@ -95,7 +82,6 @@ public class EventModelServiceImpl implements EventModelService {
                 updateReqVO.getEventType());
         validateSceneExists(updateReqVO.getSceneCode());
         validateEventCodeUnique(updateReqVO.getId(), updateReqVO.getEventCode());
-        validateBindingSources(updateReqVO.getSceneCode(), updateReqVO.getBindingSourceCodes());
 
         DraftValidationResult validationResult = validateDraft(updateReqVO);
         throwIfInvalid(validationResult);
@@ -109,8 +95,6 @@ public class EventModelServiceImpl implements EventModelService {
         // physically remove old rows before re-inserting the normalized field list.
         eventFieldDefMapper.deleteByEventCodePhysically(schema.getEventCode());
         insertFieldList(buildFieldDOList(schema.getEventCode(), validationResult.normalizedFields()));
-        eventAccessBindingMapper.deleteByEventCodePhysically(schema.getEventCode());
-        insertBindingList(buildBindingDOList(schema.getEventCode(), updateReqVO.getBindingSourceCodes()));
     }
 
     @Override
@@ -136,6 +120,14 @@ public class EventModelServiceImpl implements EventModelService {
     @Override
     public EventSchemaDO getEventModel(Long id) {
         return eventSchemaMapper.selectById(id);
+    }
+
+    @Override
+    public EventSchemaDO getEventModelByCode(String eventCode) {
+        if (StrUtil.isBlank(eventCode)) {
+            return null;
+        }
+        return eventSchemaMapper.selectByEventCode(eventCode);
     }
 
     @Override
@@ -218,34 +210,8 @@ public class EventModelServiceImpl implements EventModelService {
         if (eventSchemaMapper.selectFeatureCountByEventCode(schema.getEventCode()) > 0) {
             throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode());
         }
-    }
-
-    private void validateBindingSources(String sceneCode, List<String> bindingSourceCodes) {
-        if (bindingSourceCodes == null || bindingSourceCodes.isEmpty()) {
-            throw exception(EVENT_MODEL_BINDING_REQUIRED);
-        }
-
-        Set<String> sourceCodeSet = new LinkedHashSet<>();
-        for (String sourceCode : bindingSourceCodes) {
-            if (!sourceCodeSet.add(sourceCode)) {
-                throw exception(EVENT_MODEL_BINDING_DUPLICATE, sourceCode);
-            }
-        }
-
-        Map<String, AccessSourceDO> sourceMap = new LinkedHashMap<>();
-        for (AccessSourceDO source : accessSourceMapper.selectListBySourceCodes(sourceCodeSet)) {
-            sourceMap.put(source.getSourceCode(), source);
-        }
-
-        for (String sourceCode : sourceCodeSet) {
-            AccessSourceDO source = sourceMap.get(sourceCode);
-            if (source == null) {
-                throw exception(EVENT_MODEL_BINDING_SOURCE_NOT_EXISTS, sourceCode);
-            }
-            List<String> allowedSceneCodes = source.getAllowedSceneCodes();
-            if (allowedSceneCodes == null || !allowedSceneCodes.contains(sceneCode)) {
-                throw exception(EVENT_MODEL_BINDING_SCENE_MISMATCH, sourceCode, sceneCode);
-            }
+        if (eventAccessBindingMapper.selectCountByEventCode(schema.getEventCode()) > 0) {
+            throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode());
         }
     }
 
@@ -351,29 +317,11 @@ public class EventModelServiceImpl implements EventModelService {
         return StrUtil.equalsIgnoreCase(DISABLED_FIELD_NAME_EXT, StrUtil.trim(fieldName));
     }
 
-    private List<EventAccessBindingDO> buildBindingDOList(String eventCode, List<String> sourceCodes) {
-        List<EventAccessBindingDO> bindings = new ArrayList<>(sourceCodes.size());
-        for (String sourceCode : new LinkedHashSet<>(sourceCodes)) {
-            EventAccessBindingDO binding = new EventAccessBindingDO();
-            binding.setEventCode(eventCode);
-            binding.setSourceCode(sourceCode);
-            bindings.add(binding);
-        }
-        return bindings;
-    }
-
     private void insertFieldList(Collection<EventFieldDefDO> fields) {
         if (fields.isEmpty()) {
             return;
         }
         eventFieldDefMapper.insertBatch(fields);
-    }
-
-    private void insertBindingList(Collection<EventAccessBindingDO> bindings) {
-        if (bindings.isEmpty()) {
-            return;
-        }
-        eventAccessBindingMapper.insertBatch(bindings);
     }
 
     private void validateFieldValueConfig(EventFieldDefDO field, List<String> messages) {

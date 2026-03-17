@@ -42,10 +42,6 @@ public class EventModelSaveReqVO {
     @Size(max = 64, message = "事件类型长度不能超过 64 个字符")
     private String eventType;
 
-    @Schema(description = "绑定接入源编码列表", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "绑定接入源不能为空")
-    private List<String> bindingSourceCodes;
-
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "状态不能为空")
     @InEnum(value = CommonStatusEnum.class, message = "状态必须是 {value}")

@@ -21,6 +21,8 @@ public interface EventModelService {
 
     EventSchemaDO getEventModel(Long id);
 
+    EventSchemaDO getEventModelByCode(String eventCode);
+
     List<EventFieldDefDO> getEventFieldList(String eventCode);
 
     PageResult<EventSchemaDO> getEventModelPage(EventModelPageReqVO pageReqVO);

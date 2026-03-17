@@ -101,6 +101,22 @@ public class EventModelController {
         return success(respVO);
     }
 
+    @GetMapping("/get-by-code")
+    @Operation(summary = "根据事件编码获得事件模型详情")
+    @Parameter(name = "eventCode", description = "事件编码", required = true, example = "PROMOTION_EVENT")
+    @PreAuthorize("@ss.hasPermission('risk:event-model:query')")
+    public CommonResult<EventModelRespVO> getEventModelByCode(@RequestParam("eventCode") String eventCode) {
+        EventSchemaDO schema = eventModelService.getEventModelByCode(eventCode);
+        if (schema == null) {
+            return success(null);
+        }
+        EventModelRespVO respVO = EventModelConvert.INSTANCE.convert(schema);
+        respVO.setFields(EventModelConvert.INSTANCE.convertFieldList(eventModelService.getEventFieldList(schema.getEventCode())));
+        fillBindingSources(Collections.singletonList(respVO));
+        translateAuditUsers(Collections.singletonList(respVO));
+        return success(respVO);
+    }
+
     @GetMapping("/page")
     @Operation(summary = "获得事件模型分页")
     @PreAuthorize("@ss.hasPermission('risk:event-model:query')")

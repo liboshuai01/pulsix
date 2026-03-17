@@ -18,7 +18,6 @@
                     placeholder="请选择场景"
                     filterable
                     :disabled="formType === 'update'"
-                    @change="handleSceneChange"
                   >
                     <el-option
                       v-for="scene in sceneOptions"
@@ -83,67 +82,11 @@
                 placeholder="请输入事件模型描述"
               />
             </el-form-item>
-          </el-tab-pane>
-
-          <el-tab-pane label="接入绑定" name="binding">
-            <div class="mb-12px flex items-center justify-between gap-12px">
-              <div class="text-13px text-[var(--el-text-color-secondary)]">
-                事件模型负责维护接入绑定。请先选择场景，再从当前场景允许的接入源中至少选择一个。
-              </div>
-              <el-tag type="primary" effect="plain">
-                已选 {{ formData.bindingSourceCodes.length }} 个接入源
-              </el-tag>
-            </div>
-            <el-form-item
-              label-width="0"
-              prop="bindingSourceCodes"
-              class="risk-event-model-form__binding-form-item"
-            >
-              <el-alert
-                v-if="!formData.sceneCode"
-                title="请先在基础信息中选择场景编码，再维护接入绑定。"
-                type="info"
-                :closable="false"
-              />
-              <div v-else v-loading="bindingLoading" class="risk-event-model-form__binding-panel">
-                <el-table
-                  v-if="bindingSourceOptions.length"
-                  ref="bindingTableRef"
-                  :data="bindingSourceOptions"
-                  row-key="sourceCode"
-                  border
-                  class="risk-event-model-form__binding-table"
-                  @selection-change="handleBindingSelectionChange"
-                >
-                  <el-table-column type="selection" width="55" reserve-selection />
-                  <el-table-column label="接入源名称" prop="sourceName" min-width="180" />
-                  <el-table-column label="接入源编码" prop="sourceCode" min-width="180" />
-                  <el-table-column label="接入类型" min-width="120">
-                    <template #default="{ row }">
-                      <dict-tag :type="DICT_TYPE.RISK_ACCESS_SOURCE_TYPE" :value="row.sourceType" />
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="标准 Topic" min-width="180">
-                    <template #default="{ row }">
-                      <dict-tag :type="DICT_TYPE.RISK_ACCESS_TOPIC_NAME" :value="row.topicName" />
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="状态" width="100" align="center">
-                    <template #default="{ row }">
-                      <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="row.status" />
-                    </template>
-                  </el-table-column>
-                </el-table>
-                <el-empty
-                  v-else-if="!bindingLoading"
-                  description="当前场景下暂无可绑定的接入源"
-                  :image-size="72"
-                />
-              </div>
-            </el-form-item>
-            <div class="text-13px text-[var(--el-text-color-secondary)]">
-              只在《事件模型》页维护事件与接入源的关系；已停用但仍被当前事件绑定的接入源，也会保留展示。
-            </div>
+            <el-alert
+              title="事件与接入源的绑定关系已迁移到《接入映射》页统一维护，这里只维护标准字段定义。"
+              type="info"
+              :closable="false"
+            />
           </el-tab-pane>
 
           <el-tab-pane label="字段定义" name="fields">
@@ -253,7 +196,6 @@
               </el-table-column>
             </el-table>
           </el-tab-pane>
-
         </el-tabs>
       </el-form>
     </div>
@@ -272,7 +214,6 @@ import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE } from '@/utils/dict'
 import * as SceneApi from '@/api/risk/scene'
 import * as EventModelApi from '@/api/risk/event-model'
-import * as AccessSourceApi from '@/api/risk/access-source'
 import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 import { EVENT_FIELD_TYPE_OPTIONS } from './constants'
 import type { FormRules } from 'element-plus'
@@ -291,14 +232,10 @@ const message = useMessage()
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formLoading = ref(false)
-const bindingLoading = ref(false)
 const formType = ref<'create' | 'update'>('create')
 const activeTab = ref('basic')
 const formRef = ref()
-const bindingTableRef = ref()
 const sceneOptions = ref<SceneApi.SceneVO[]>([])
-const bindingSourceOptions = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
-const currentBoundSourceFallback = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
 
 const createFieldRow = (): EventFieldRow => ({
   __key: `${Date.now()}-${Math.random()}`,
@@ -318,7 +255,6 @@ const createDefaultFormData = (): EventModelFormData => ({
   eventCode: '',
   eventName: '',
   eventType: '',
-  bindingSourceCodes: [],
   version: undefined,
   status: CommonStatusEnum.DISABLE,
   description: '',
@@ -345,77 +281,6 @@ const loadSceneOptions = async () => {
   sceneOptions.value = await SceneApi.getSimpleSceneList()
 }
 
-const toSimpleAccessSource = (
-  source: EventModelApi.EventBindingSourceItemVO
-): AccessSourceApi.AccessSourceSimpleVO => ({
-  sourceCode: source.sourceCode,
-  sourceName: source.sourceName,
-  sourceType: source.sourceType,
-  topicName: source.topicName,
-  status: source.status
-})
-
-const mergeBindingSourceOptions = (
-  preferred: AccessSourceApi.AccessSourceSimpleVO[],
-  fallback: AccessSourceApi.AccessSourceSimpleVO[]
-) => {
-  const mergedMap = new Map<string, AccessSourceApi.AccessSourceSimpleVO>()
-  preferred.forEach((item) => mergedMap.set(item.sourceCode, item))
-  fallback.forEach((item) => {
-    if (!mergedMap.has(item.sourceCode)) {
-      mergedMap.set(item.sourceCode, item)
-    }
-  })
-  return Array.from(mergedMap.values())
-}
-
-const syncBindingSelection = async () => {
-  await nextTick()
-  if (!bindingTableRef.value) {
-    return
-  }
-  bindingTableRef.value.clearSelection()
-  const selectedSourceCodeSet = new Set(formData.value.bindingSourceCodes)
-  bindingSourceOptions.value.forEach((item) => {
-    if (selectedSourceCodeSet.has(item.sourceCode)) {
-      bindingTableRef.value.toggleRowSelection(item, true)
-    }
-  })
-}
-
-const loadBindingSourceOptions = async (
-  sceneCode: string,
-  fallbackSources: AccessSourceApi.AccessSourceSimpleVO[] = currentBoundSourceFallback.value
-) => {
-  if (!sceneCode) {
-    bindingSourceOptions.value = []
-    formData.value.bindingSourceCodes = []
-    await syncBindingSelection()
-    return
-  }
-
-  bindingLoading.value = true
-  try {
-    const enabledSources = await AccessSourceApi.getSimpleAccessSourceList(sceneCode)
-    bindingSourceOptions.value = mergeBindingSourceOptions(enabledSources, fallbackSources)
-    const availableSourceCodes = new Set(
-      bindingSourceOptions.value.map((item) => item.sourceCode)
-    )
-    formData.value.bindingSourceCodes = formData.value.bindingSourceCodes.filter((sourceCode) =>
-      availableSourceCodes.has(sourceCode)
-    )
-    await syncBindingSelection()
-  } finally {
-    bindingLoading.value = false
-  }
-}
-
-const handleSceneChange = async (sceneCode: string) => {
-  currentBoundSourceFallback.value = []
-  formData.value.bindingSourceCodes = []
-  await loadBindingSourceOptions(sceneCode, [])
-}
-
 const open = async (type: 'create' | 'update', id?: number) => {
   dialogVisible.value = true
   dialogTitle.value = type === 'create' ? t('action.create') : t('action.update')
@@ -427,14 +292,12 @@ const open = async (type: 'create' | 'update', id?: number) => {
     formLoading.value = true
     try {
       const data = await EventModelApi.getEventModel(id)
-      currentBoundSourceFallback.value = (data.bindingSources || []).map(toSimpleAccessSource)
       formData.value = {
         id: data.id,
         sceneCode: data.sceneCode,
         eventCode: data.eventCode,
         eventName: data.eventName,
         eventType: data.eventType,
-        bindingSourceCodes: currentBoundSourceFallback.value.map((item) => item.sourceCode),
         version: data.version,
         status: data.status,
         description: data.description || '',
@@ -444,7 +307,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
           __key: `${Date.now()}-${index}-${Math.random()}`
         }))
       }
-      await loadBindingSourceOptions(formData.value.sceneCode)
     } finally {
       formLoading.value = false
     }
@@ -456,12 +318,6 @@ defineExpose({ open })
 const emit = defineEmits(['success'])
 
 const validateSubmitSections = async () => {
-  if (!formData.value.bindingSourceCodes.length) {
-    activeTab.value = 'binding'
-    await nextTick()
-    message.warning('请先在【接入绑定】中至少选择一个接入源')
-    return false
-  }
   if (!formData.value.fields.length) {
     activeTab.value = 'fields'
     await nextTick()
@@ -544,17 +400,7 @@ const syncFieldSortNo = () => {
   })
 }
 
-const handleBindingSelectionChange = (selection: AccessSourceApi.AccessSourceSimpleVO[]) => {
-  formData.value.bindingSourceCodes = selection.map((item) => item.sourceCode)
-  formRef.value?.clearValidate?.('bindingSourceCodes')
-}
-
 const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
-  if (!formData.value.bindingSourceCodes.length) {
-    message.warning('请先在【接入绑定】中至少选择一个接入源')
-    activeTab.value = 'binding'
-    return null
-  }
   if (!formData.value.fields.length) {
     message.warning('请先在【字段定义】中至少新增一个字段')
     activeTab.value = 'fields'
@@ -576,7 +422,6 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
     eventCode: formData.value.eventCode,
     eventName: formData.value.eventName,
     eventType: formData.value.eventType,
-    bindingSourceCodes: Array.from(new Set(formData.value.bindingSourceCodes)),
     status: formData.value.status,
     description: formData.value.description || undefined,
     fields: formData.value.fields.map((field: EventFieldRow) => {
@@ -594,12 +439,7 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
 
 const resetForm = () => {
   formData.value = createDefaultFormData()
-  bindingSourceOptions.value = []
-  currentBoundSourceFallback.value = []
   formRef.value?.resetFields()
-  nextTick(() => {
-    bindingTableRef.value?.clearSelection?.()
-  })
 }
 </script>
 
@@ -612,20 +452,6 @@ const resetForm = () => {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-}
-
-.risk-event-model-form__binding-form-item {
-  :deep(.el-form-item__content) {
-    width: 100%;
-  }
-}
-
-.risk-event-model-form__binding-table {
-  width: 100%;
-}
-
-.risk-event-model-form__binding-panel {
-  min-height: 120px;
 }
 
 .risk-event-model-form__field-table {

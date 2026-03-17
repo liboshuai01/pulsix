@@ -34,7 +34,6 @@ export interface EventModelSaveReqVO {
   eventCode: string
   eventName: string
   eventType: string
-  bindingSourceCodes: string[]
   status: number
   description?: string
   fields: EventFieldItemVO[]
@@ -70,6 +69,11 @@ export const getEventModelPage = (params: PageParam) => {
 // 查询事件模型详情
 export const getEventModel = (id: number) => {
   return request.get({ url: '/risk/event-model/get?id=' + id }) as Promise<EventModelVO>
+}
+
+// 根据事件编码查询事件模型详情
+export const getEventModelByCode = (eventCode: string) => {
+  return request.get({ url: '/risk/event-model/get-by-code', params: { eventCode } }) as Promise<EventModelVO>
 }
 
 // 查询启用中的事件模型精简列表

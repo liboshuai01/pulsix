@@ -131,6 +131,15 @@
             </el-button>
             <el-button
               link
+              type="success"
+              class="risk-event-model__action-btn"
+              @click="goToAccessMapping(scope.row.eventCode)"
+              v-hasPermi="['risk:access-mapping:query']"
+            >
+              接入映射
+            </el-button>
+            <el-button
+              link
               type="primary"
               class="risk-event-model__action-btn"
               @click="openForm('update', scope.row.id!)"
@@ -185,6 +194,7 @@ import EventModelPreviewDialog from './EventModelPreviewDialog.vue'
 defineOptions({ name: 'RiskEventModel' })
 
 const message = useMessage()
+const router = useRouter()
 
 const loading = ref(false)
 const total = ref(0)
@@ -235,6 +245,13 @@ const openDetail = (id: number) => {
 const previewDialogRef = ref()
 const openPreview = (id: number) => {
   previewDialogRef.value.open(id)
+}
+
+const goToAccessMapping = (eventCode?: string) => {
+  if (!eventCode) {
+    return
+  }
+  router.push({ path: '/risk/access/mapping/index', query: { eventCode } })
 }
 
 const handleStatusChange = async (row: EventModelApi.EventModelVO) => {

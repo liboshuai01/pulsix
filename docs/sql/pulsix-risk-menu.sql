@@ -68,9 +68,10 @@ INSERT INTO `system_menu` (
   (6060, '告警配置', '', 2, 1, 6006, 'config', 'ep:message-box', 'risk/alert/config/index', 'RiskAlertConfig', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6061, '告警记录', '', 2, 2, 6006, 'record', 'ep:chat-line-square', 'risk/alert/record/index', 'RiskAlertRecord', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6070, '接入源管理', '', 2, 1, 6007, 'source', 'ep:link', 'risk/access/source/index', 'RiskAccessSource', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6071, '鉴权配置', '', 2, 2, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6072, '错误治理', '', 2, 3, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index', 'RiskAccessError', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6073, '接入指引', '', 2, 4, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6086, '接入映射', '', 2, 2, 6007, 'mapping', 'ep:share', 'risk/access/mapping/index', 'RiskAccessMapping', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6071, '鉴权配置', '', 2, 3, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6072, '错误治理', '', 2, 4, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index', 'RiskAccessError', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6073, '接入指引', '', 2, 5, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6074, '场景查询', 'risk:scene:query', 3, 1, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6075, '场景新增', 'risk:scene:create', 3, 2, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6076, '场景修改', 'risk:scene:update', 3, 3, 6020, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
@@ -82,6 +83,10 @@ INSERT INTO `system_menu` (
   (6082, '接入源查询', 'risk:access-source:query', 3, 1, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6083, '接入源新增', 'risk:access-source:create', 3, 2, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6084, '接入源修改', 'risk:access-source:update', 3, 3, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6085, '接入源删除', 'risk:access-source:delete', 3, 4, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
+  (6085, '接入源删除', 'risk:access-source:delete', 3, 4, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6087, '接入映射查询', 'risk:access-mapping:query', 3, 1, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6088, '接入映射新增', 'risk:access-mapping:create', 3, 2, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6089, '接入映射修改', 'risk:access-mapping:update', 3, 3, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6090, '接入映射删除', 'risk:access-mapping:delete', 3, 4, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
 
 COMMIT;
