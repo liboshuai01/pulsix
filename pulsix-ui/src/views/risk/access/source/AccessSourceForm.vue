@@ -109,14 +109,58 @@
 
       <el-row :gutter="18">
         <el-col :xs="24" :md="12">
-          <el-form-item label="IP 白名单" prop="ipWhitelistText">
-            <el-input
-              v-model="formData.ipWhitelistText"
-              type="textarea"
-              :rows="6"
-              placeholder='请输入 JSON 数组，例如 ["10.0.0.1","172.20.8.0/24"]'
-              class="risk-access-source-form__code-input"
-            />
+          <el-form-item label="IP 白名单" prop="ipWhitelist">
+            <div class="risk-access-source-form__whitelist-panel">
+              <el-radio-group
+                v-model="formData.ipWhitelistMode"
+                class="risk-access-source-form__whitelist-mode"
+              >
+                <el-radio value="ALL">允许所有 IP</el-radio>
+                <el-radio value="WHITELIST">启用白名单</el-radio>
+              </el-radio-group>
+
+              <el-alert
+                v-if="formData.ipWhitelistMode === 'ALL'"
+                title="当前未启用白名单，将允许所有来源 IP 接入。"
+                type="info"
+                :closable="false"
+                class="risk-access-source-form__whitelist-alert"
+              />
+
+              <template v-else>
+                <div class="risk-access-source-form__whitelist-tip">
+                  逐条添加允许接入的 IPv4 或 CIDR 网段，例如 `10.0.0.1`、`172.20.8.0/24`
+                </div>
+                <div class="risk-access-source-form__whitelist-input-row">
+                  <el-input
+                    ref="ipWhitelistInputRef"
+                    v-model="formData.ipWhitelistDraft"
+                    placeholder="请输入 IP 或 CIDR"
+                    @keyup.enter="handleAddIpWhitelist"
+                  />
+                  <el-button type="primary" plain @click="handleAddIpWhitelist">添加</el-button>
+                </div>
+                <div
+                  v-if="formData.ipWhitelist.length"
+                  class="risk-access-source-form__whitelist-tag-list"
+                >
+                  <el-tag
+                    v-for="item in formData.ipWhitelist"
+                    :key="item"
+                    closable
+                    class="mr-8px mb-8px"
+                    @close="handleRemoveIpWhitelist(item)"
+                  >
+                    {{ item }}
+                  </el-tag>
+                </div>
+                <el-empty
+                  v-else
+                  description="请至少添加一个允许接入的 IP 或 CIDR"
+                  :image-size="56"
+                />
+              </template>
+            </div>
           </el-form-item>
         </el-col>
         <el-col :xs="24" :md="12">
@@ -149,8 +193,10 @@ import type { FormRules } from 'element-plus'
 
 defineOptions({ name: 'RiskAccessSourceForm' })
 
-type AccessSourceFormData = AccessSourceApi.AccessSourceVO & {
-  ipWhitelistText: string
+type AccessSourceFormData = Omit<AccessSourceApi.AccessSourceVO, 'ipWhitelist'> & {
+  ipWhitelist: string[]
+  ipWhitelistMode: 'ALL' | 'WHITELIST'
+  ipWhitelistDraft: string
 }
 
 const { t } = useI18n()
@@ -161,6 +207,7 @@ const dialogTitle = ref('')
 const formLoading = ref(false)
 const formType = ref<'create' | 'update'>('create')
 const formRef = ref()
+const ipWhitelistInputRef = ref()
 const sceneOptions = ref<SceneApi.SceneVO[]>([])
 
 const sourceTypeOptions = computed(() => getStrDictOptions(DICT_TYPE.RISK_ACCESS_SOURCE_TYPE))
@@ -175,42 +222,36 @@ const createDefaultFormData = (): AccessSourceFormData => ({
   rateLimitQps: undefined,
   allowedSceneCodes: [],
   ipWhitelist: [],
-  ipWhitelistText: '[]',
+  ipWhitelistMode: 'ALL',
+  ipWhitelistDraft: '',
   status: CommonStatusEnum.ENABLE,
   description: ''
 })
 
 const formData = ref<AccessSourceFormData>(createDefaultFormData())
 
-const parseIpWhitelistText = (value: string) => {
-  if (!value.trim()) {
-    return []
-  }
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch (error: any) {
-    throw new Error(`IP 白名单格式不正确：${error.message}`)
-  }
-  if (!Array.isArray(parsed)) {
-    throw new Error('IP 白名单必须是 JSON 数组')
-  }
-  const ipWhitelist = parsed.map((item) => {
-    if (typeof item !== 'string' || !item.trim()) {
-      throw new Error('IP 白名单中的每一项都必须是非空字符串')
-    }
-    return item.trim()
-  })
-  return Array.from(new Set(ipWhitelist))
-}
+const IPV4_SEGMENT = '(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)'
+const IPV4_REGEXP = new RegExp(`^${IPV4_SEGMENT}(\\.${IPV4_SEGMENT}){3}$`)
+const IPV4_CIDR_REGEXP = new RegExp(`^${IPV4_SEGMENT}(\\.${IPV4_SEGMENT}){3}\\/(3[0-2]|[12]?\\d)$`)
 
-const validateIpWhitelistText = (_rule: any, value: string, callback: (error?: Error) => void) => {
-  try {
-    parseIpWhitelistText(value || '[]')
+const isValidIpWhitelistEntry = (value: string) =>
+  IPV4_REGEXP.test(value) || IPV4_CIDR_REGEXP.test(value)
+
+const validateIpWhitelist = (_rule: any, value: string[], callback: (error?: Error) => void) => {
+  if (formData.value.ipWhitelistMode === 'ALL') {
     callback()
-  } catch (error: any) {
-    callback(error)
+    return
   }
+  if (!value?.length) {
+    callback(new Error('启用白名单后，至少添加一个 IP 或 CIDR'))
+    return
+  }
+  const invalidEntry = value.find((item) => !isValidIpWhitelistEntry(item))
+  if (invalidEntry) {
+    callback(new Error(`IP 白名单条目格式不正确：${invalidEntry}`))
+    return
+  }
+  callback()
 }
 
 const formRules = reactive<FormRules>({
@@ -226,13 +267,55 @@ const formRules = reactive<FormRules>({
   sourceType: [{ required: true, message: '接入类型不能为空', trigger: 'change' }],
   topicName: [{ required: true, message: '标准 Topic 不能为空', trigger: 'change' }],
   allowedSceneCodes: [{ required: true, message: '至少选择一个允许场景', trigger: 'change' }],
-  ipWhitelistText: [{ validator: validateIpWhitelistText, trigger: 'blur' }],
+  ipWhitelist: [{ validator: validateIpWhitelist, trigger: 'change' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
 })
 
 const loadSceneOptions = async () => {
   sceneOptions.value = await SceneApi.getSimpleSceneList()
 }
+
+const focusIpWhitelistInput = () => {
+  nextTick(() => {
+    ipWhitelistInputRef.value?.focus?.()
+  })
+}
+
+const handleAddIpWhitelist = () => {
+  const candidate = formData.value.ipWhitelistDraft.trim()
+  if (!candidate) {
+    return
+  }
+  if (!isValidIpWhitelistEntry(candidate)) {
+    message.error('只支持 IPv4 或 IPv4/CIDR，例如 10.0.0.1 或 172.20.8.0/24')
+    return
+  }
+  if (formData.value.ipWhitelist.includes(candidate)) {
+    message.warning('该 IP 白名单条目已存在')
+    formData.value.ipWhitelistDraft = ''
+    return
+  }
+  formData.value.ipWhitelist = [...formData.value.ipWhitelist, candidate]
+  formData.value.ipWhitelistDraft = ''
+  formRef.value?.clearValidate?.('ipWhitelist')
+  focusIpWhitelistInput()
+}
+
+const handleRemoveIpWhitelist = (item: string) => {
+  formData.value.ipWhitelist = formData.value.ipWhitelist.filter((entry) => entry !== item)
+}
+
+watch(
+  () => formData.value.ipWhitelistMode,
+  (mode) => {
+    formRef.value?.clearValidate?.('ipWhitelist')
+    if (mode === 'WHITELIST') {
+      focusIpWhitelistInput()
+      return
+    }
+    formData.value.ipWhitelistDraft = ''
+  }
+)
 
 const open = async (type: 'create' | 'update', id?: number) => {
   dialogVisible.value = true
@@ -252,7 +335,8 @@ const open = async (type: 'create' | 'update', id?: number) => {
         topicName: data.topicName || '',
         allowedSceneCodes: data.allowedSceneCodes || [],
         ipWhitelist: data.ipWhitelist || [],
-        ipWhitelistText: JSON.stringify(data.ipWhitelist || [], null, 2),
+        ipWhitelistMode: data.ipWhitelist?.length ? 'WHITELIST' : 'ALL',
+        ipWhitelistDraft: '',
         description: data.description || ''
       }
     } finally {
@@ -265,26 +349,21 @@ defineExpose({ open })
 
 const emit = defineEmits(['success'])
 
-const buildPayload = (): AccessSourceApi.AccessSourceVO | null => {
-  try {
-    const ipWhitelist = parseIpWhitelistText(formData.value.ipWhitelistText || '[]')
-    return {
-      id: formData.value.id,
-      sourceCode: formData.value.sourceCode,
-      sourceName: formData.value.sourceName,
-      sourceType: formData.value.sourceType,
-      topicName: formData.value.topicName,
-      rateLimitQps: formData.value.rateLimitQps ?? undefined,
-      allowedSceneCodes: Array.from(new Set(formData.value.allowedSceneCodes)),
-      ipWhitelist: ipWhitelist.length ? ipWhitelist : undefined,
-      status: formData.value.status,
-      description: formData.value.description || undefined
-    }
-  } catch (error: any) {
-    message.error(error.message)
-    return null
-  }
-}
+const buildPayload = (): AccessSourceApi.AccessSourceVO => ({
+  id: formData.value.id,
+  sourceCode: formData.value.sourceCode,
+  sourceName: formData.value.sourceName,
+  sourceType: formData.value.sourceType,
+  topicName: formData.value.topicName,
+  rateLimitQps: formData.value.rateLimitQps ?? undefined,
+  allowedSceneCodes: Array.from(new Set(formData.value.allowedSceneCodes)),
+  ipWhitelist:
+    formData.value.ipWhitelistMode === 'WHITELIST' && formData.value.ipWhitelist.length
+      ? Array.from(new Set(formData.value.ipWhitelist))
+      : undefined,
+  status: formData.value.status,
+  description: formData.value.description || undefined
+})
 
 const submitForm = async () => {
   if (!formRef.value) {
@@ -331,10 +410,45 @@ const resetForm = () => {
   width: 100%;
 }
 
-.risk-access-source-form__code-input {
-  :deep(.el-textarea__inner) {
-    font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-    line-height: 1.6;
+.risk-access-source-form__whitelist-panel {
+  width: 100%;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  padding: 14px 14px 6px;
+  background: var(--el-fill-color-blank);
+}
+
+.risk-access-source-form__whitelist-mode {
+  margin-bottom: 12px;
+}
+
+.risk-access-source-form__whitelist-alert {
+  margin-bottom: 8px;
+}
+
+.risk-access-source-form__whitelist-tip {
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.risk-access-source-form__whitelist-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.risk-access-source-form__whitelist-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .risk-access-source-form__whitelist-input-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

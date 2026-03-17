@@ -62,7 +62,7 @@
               {{ item }}
             </el-tag>
           </div>
-          <span v-else>-</span>
+          <el-tag v-else type="success" effect="plain">允许所有 IP</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="描述" :span="2">
           <span class="risk-access-source-detail__multiline">{{ detail?.description || '-' }}</span>
