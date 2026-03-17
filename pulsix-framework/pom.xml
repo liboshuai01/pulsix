@@ -27,6 +27,7 @@
         <module>pulsix-spring-boot-starter-biz-tenant</module>
         <module>pulsix-spring-boot-starter-biz-data-permission</module>
         <module>pulsix-spring-boot-starter-biz-ip</module>
+        <module>pulsix-kernel</module>
     </modules>
 
     <artifactId>pulsix-framework</artifactId>

@@ -14,9 +14,8 @@
 
     <name>${project.artifactId}</name>
     <description>
-        Flink 实时风控引擎
+        计算引擎
     </description>
-    <url>https://github.com/YunaiV/ruoyi-vue-pro</url>
 
     <dependencies>
         <dependency>
