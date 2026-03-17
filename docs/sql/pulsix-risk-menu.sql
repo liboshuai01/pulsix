@@ -9,7 +9,7 @@
  说明：
  - 本文件只补充 system_menu 的 risk 菜单树，不改 system_role_menu。
  - 超级管理员会通过现有权限逻辑自动看到全部菜单；普通角色后续在角色管理中按需授权。
- - 菜单 ID 独占 6000-6084 区间，便于后续继续扩展按钮权限或隐藏页。
+ - 菜单 ID 独占 6000-6090 区间，便于后续继续扩展按钮权限或隐藏页。
 */
 
 SET NAMES utf8mb4;
@@ -17,7 +17,7 @@ SET NAMES utf8mb4;
 BEGIN;
 
 DELETE FROM `system_menu`
-WHERE `id` BETWEEN 6000 AND 6084;
+WHERE `id` BETWEEN 6000 AND 6090;
 
 INSERT INTO `system_menu` (
   `id`,
