@@ -1,9 +1,22 @@
 /*
- pulsix-risk-access-dict.sql
+ pulsix-risk-dict.sql
 
- 风控接入治理相关字典初始化脚本：
- - risk_access_source_type
- - risk_access_topic_name
+ 用途：
+ - 风控相关字典初始化脚本
+ - 当前仅包含接入治理相关字典：
+   - risk_access_source_type
+   - risk_access_topic_name
+ - 不包含风控业务表
+ - 不包含风控菜单
+
+ 建议执行顺序（全新库）：
+ 1. 先执行 docs/sql/pulsix-system-infra.sql
+ 2. 再执行 docs/sql/pulsix-risk.sql
+ 3. 再执行本文件
+ 4. 最后执行 docs/sql/pulsix-risk-menu.sql
+
+ 说明：
+ - 本文件使用 NOT EXISTS 方式写入，允许重复执行
 */
 
 START TRANSACTION;

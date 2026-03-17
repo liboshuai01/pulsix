@@ -1,17 +1,21 @@
 /*
- Navicat Premium Dump SQL
+ pulsix-system-infra.sql
 
- Source Server         : root@localhost
- Source Server Type    : MySQL
- Source Server Version : 80408 (8.4.8)
- Source Host           : localhost:3306
- Source Schema         : pulsix
+ 用途：
+ - 系统基础库全量初始化脚本，包含 system_*、infra_*、quartz 等基础表与基础数据
+ - 不包含风控业务表
+ - 不包含风控菜单
+ - 不包含风控字典
 
- Target Server Type    : MySQL
- Target Server Version : 80408 (8.4.8)
- File Encoding         : 65001
+ 建议执行顺序（全新库）：
+ 1. 先执行本文件
+ 2. 再执行 docs/sql/pulsix-risk.sql
+ 3. 再执行 docs/sql/pulsix-risk-dict.sql
+ 4. 最后执行 docs/sql/pulsix-risk-menu.sql
 
- Date: 16/03/2026 15:33:31
+ 说明：
+ - 风控菜单独立维护在 docs/sql/pulsix-risk-menu.sql，不要回写到本文件
+ - 风控字典独立维护在 docs/sql/pulsix-risk-dict.sql，不要回写到本文件
 */
 
 SET NAMES utf8mb4;
@@ -6492,117 +6496,6 @@ VALUES (5045, '同步公众号模板', 'mp:message-template:sync', 3, 3, 5042, '
 INSERT INTO `system_menu`
 VALUES (5046, '给粉丝发送模版消息', 'mp:message-template:send', 3, 4, 5042, '', '', '', '', 0, b'1', b'1', b'1', '1',
         '2025-11-26 17:01:11', '1', '2025-11-26 17:01:11', b'0');
-INSERT INTO `system_menu`
-VALUES (6000, '实时风控', '', 1, 600, 0, '/risk', 'ep:warning', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6001, '风控总览', '', 1, 1, 6000, 'overview', 'ep:data-analysis', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6002, '配置中心', '', 1, 2, 6000, 'config', 'ep:setting', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6003, '发布中心', '', 1, 3, 6000, 'release', 'ep:upload-filled', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6004, '仿真测试', '', 1, 4, 6000, 'simulation', 'ep:cpu', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6005, '查询分析', '', 1, 5, 6000, 'query', 'ep:histogram', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6006, '告警中心', '', 1, 6, 6000, 'alert', 'ep:bell', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6007, '接入治理', '', 1, 7, 6000, 'access', 'ep:guide', NULL, NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6010, 'Dashboard', '', 2, 1, 6001, 'dashboard', 'ep:odometer', 'risk/overview/dashboard/index', 'RiskDashboard',
-        0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6020, '场景管理', '', 2, 1, 6002, 'scene', 'ep:collection', 'risk/config/scene/index', 'RiskScene', 0, b'1',
-        b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6021, '事件模型', '', 2, 2, 6002, 'event-model', 'ep:document', 'risk/config/event-model/index',
-        'RiskEventModel', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6022, '实体类型', '', 2, 3, 6002, 'entity-type', 'ep:user', 'risk/config/entity-type/index', 'RiskEntityType',
-        0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6023, '名单中心', '', 2, 4, 6002, 'list-center', 'ep:finished', 'risk/config/list-center/index',
-        'RiskListCenter', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6024, '特征中心', '', 2, 5, 6002, 'feature-center', 'ep:trend-charts', 'risk/config/feature-center/index',
-        'RiskFeatureCenter', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6025, '规则中心', '', 2, 6, 6002, 'rule-center', 'ep:connection', 'risk/config/rule-center/index',
-        'RiskRuleCenter', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6026, '策略中心', '', 2, 7, 6002, 'policy-center', 'ep:share', 'risk/config/policy-center/index',
-        'RiskPolicyCenter', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6030, '发布管理', '', 2, 1, 6003, 'manage', 'ep:promotion', 'risk/release/manage/index', 'RiskReleaseManage', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6031, '发布记录', '', 2, 2, 6003, 'record', 'ep:tickets', 'risk/release/record/index', 'RiskReleaseRecord', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6032, '版本对比 / 回滚', '', 2, 3, 6003, 'diff-rollback', 'ep:refresh-left', 'risk/release/diff-rollback/index',
-        'RiskReleaseDiffRollback', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15',
-        b'0');
-INSERT INTO `system_menu`
-VALUES (6040, '单条事件仿真', '', 2, 1, 6004, 'event', 'ep:edit-pen', 'risk/simulation/event/index',
-        'RiskSimulationEvent', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15',
-        b'0');
-INSERT INTO `system_menu`
-VALUES (6041, '仿真用例', '', 2, 2, 6004, 'case', 'ep:files', 'risk/simulation/case/index', 'RiskSimulationCase', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6042, '仿真报告', '', 2, 3, 6004, 'report', 'ep:data-analysis', 'risk/simulation/report/index',
-        'RiskSimulationReport', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15',
-        b'0');
-INSERT INTO `system_menu`
-VALUES (6050, '决策日志', '', 2, 1, 6005, 'decision-log', 'ep:list', 'risk/query/decision-log/index', 'RiskDecisionLog',
-        0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6051, '命中明细', '', 2, 2, 6005, 'hit-detail', 'ep:document-checked', 'risk/query/hit-detail/index',
-        'RiskHitDetail', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6052, '风险事件查询', '', 2, 3, 6005, 'risk-event', 'ep:warning-filled', 'risk/query/risk-event/index',
-        'RiskRiskEvent', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6060, '告警配置', '', 2, 1, 6006, 'config', 'ep:message-box', 'risk/alert/config/index', 'RiskAlertConfig', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6061, '告警记录', '', 2, 2, 6006, 'record', 'ep:chat-line-square', 'risk/alert/record/index', 'RiskAlertRecord',
-        0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6070, '接入源管理', '', 2, 1, 6007, 'source', 'ep:link', 'risk/access/source/index', 'RiskAccessSource', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6086, '接入映射', '', 2, 2, 6007, 'mapping', 'ep:share', 'risk/access/mapping/index', 'RiskAccessMapping', 0,
-        b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6071, '鉴权配置', '', 2, 3, 6007, 'auth', 'ep:key', 'risk/access/auth/index', 'RiskAccessAuth', 0, b'1', b'1',
-        b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6072, '错误治理', '', 2, 4, 6007, 'error', 'ep:circle-close-filled', 'risk/access/error/index',
-        'RiskAccessError', 0, b'1', b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6073, '接入指引', '', 2, 5, 6007, 'guide', 'ep:reading', 'risk/access/guide/index', 'RiskAccessGuide', 0, b'1',
-        b'1', b'1', 'admin', '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6087, '接入映射查询', 'risk:access-mapping:query', 3, 1, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6088, '接入映射新增', 'risk:access-mapping:create', 3, 2, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6089, '接入映射修改', 'risk:access-mapping:update', 3, 3, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
-INSERT INTO `system_menu`
-VALUES (6090, '接入映射删除', 'risk:access-mapping:delete', 3, 4, 6086, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin',
-        '2026-03-16 15:29:15', 'admin', '2026-03-16 15:29:15', b'0');
 
 -- ----------------------------
 -- Table structure for system_notice

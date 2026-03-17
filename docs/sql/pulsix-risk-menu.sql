@@ -1,13 +1,18 @@
 /*
  pulsix-risk-menu.sql
 
- 执行顺序：
+ 用途：
+ - 风控菜单与按钮权限初始化脚本，仅写入 system_menu
+ - 不修改 system_role_menu
+ - 风控菜单只在本文件独立维护，不回写 docs/sql/pulsix-system-infra.sql
+
+ 建议执行顺序（全新库）：
  1. 先执行 docs/sql/pulsix-system-infra.sql
  2. 再执行 docs/sql/pulsix-risk.sql
- 3. 最后执行本文件
+ 3. 再执行 docs/sql/pulsix-risk-dict.sql
+ 4. 最后执行本文件
 
  说明：
- - 本文件只补充 system_menu 的 risk 菜单树，不改 system_role_menu。
  - 超级管理员会通过现有权限逻辑自动看到全部菜单；普通角色后续在角色管理中按需授权。
  - 菜单 ID 独占 6000-6090 区间，便于后续继续扩展按钮权限或隐藏页。
 */

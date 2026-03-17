@@ -1,6 +1,17 @@
 /*
  pulsix-risk.sql
 
+ 用途：
+ - 风控业务表与示例数据初始化脚本
+ - 不包含 system_menu 菜单数据
+ - 不包含 system_dict_type / system_dict_data 字典数据
+
+ 建议执行顺序（全新库）：
+ 1. 先执行 docs/sql/pulsix-system-infra.sql
+ 2. 再执行本文件
+ 3. 再执行 docs/sql/pulsix-risk-dict.sql
+ 4. 最后执行 docs/sql/pulsix-risk-menu.sql
+
  基于下列文档整理的一期风险模块初始化 SQL：
  - docs/实时风控系统.md
  - docs/wiki/实时风控系统第7章：控制平台的数据模型设计.md
