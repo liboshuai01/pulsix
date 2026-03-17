@@ -48,7 +48,7 @@ public interface ErrorCodeConstants {
     ErrorCode ACCESS_MAPPING_TARGET_FIELD_DUPLICATE = new ErrorCode(1_003_000_308, "目标字段【{}】重复配置映射规则");
     ErrorCode ACCESS_MAPPING_TARGET_FIELD_NOT_EXISTS = new ErrorCode(1_003_000_309, "目标字段【{}】不存在于事件模型中");
     ErrorCode ACCESS_MAPPING_RULE_CONFIG_INVALID = new ErrorCode(1_003_000_310, "接入映射规则配置非法：{}");
-    ErrorCode ACCESS_MAPPING_SCRIPT_ENGINE_UNSUPPORTED = new ErrorCode(1_003_000_311, "脚本引擎【{}】暂未开放，请使用表达式模式");
+    ErrorCode ACCESS_MAPPING_SCRIPT_ENGINE_UNSUPPORTED = new ErrorCode(1_003_000_311, "脚本引擎【{}】暂未开放，请使用 AVIATOR 表达式");
     ErrorCode ACCESS_MAPPING_PUBLIC_FIELD_INVALID = new ErrorCode(1_003_000_312, "公共字段【{}】映射结果必须等于固定值【{}】");
 
 }

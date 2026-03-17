@@ -42,6 +42,10 @@
             <groupId>cn.liboshuai.pulsix</groupId>
             <artifactId>pulsix-spring-boot-starter-mybatis</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.googlecode.aviator</groupId>
+            <artifactId>aviator</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

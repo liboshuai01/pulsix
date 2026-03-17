@@ -205,7 +205,8 @@
           <el-tab-pane label="标准化规则" name="rules">
             <div class="mb-12px flex items-center justify-between gap-12px">
               <div class="text-13px text-[var(--el-text-color-secondary)]">
-                目标字段固定来自当前事件模型的标准字段列表，只保存已配置映射方式的行。
+                目标字段固定来自当前事件模型的标准字段列表。脚本映射统一使用 AVIATOR，
+                可访问 `rawPayload / headers / sourceCode / sceneCode / eventCode`。
               </div>
               <el-button type="primary" plain @click="openPreview">
                 <Icon icon="ep:view" class="mr-5px" />预览标准事件
@@ -287,7 +288,7 @@
                       v-model="row.scriptContent"
                       type="textarea"
                       :rows="3"
-                      placeholder="请输入表达式，例如 #rawPayload['order']['amount']"
+                      placeholder="请输入表达式，例如 rawPayload['order']['amount']"
                     />
                   </div>
                   <span v-else class="text-[var(--el-text-color-placeholder)]">未配置</span>
@@ -395,6 +396,8 @@ type AccessMappingFormData = {
 type EventOption = EventModelApi.EventModelSimpleVO
 type SourceOption = AccessSourceApi.AccessSourceSimpleVO
 
+const DEFAULT_SCRIPT_ENGINE = 'AVIATOR'
+
 const { t } = useI18n()
 const message = useMessage()
 
@@ -500,7 +503,7 @@ const buildRuleRows = (
       mappingType: rule?.mappingType,
       sourceFieldPath: rule?.sourceFieldPath || '',
       constantValue: rule?.constantValue || '',
-      scriptEngine: rule?.scriptEngine || 'EXPRESSION',
+      scriptEngine: rule?.scriptEngine || DEFAULT_SCRIPT_ENGINE,
       scriptContent: rule?.scriptContent || '',
       timePattern: rule?.timePattern || '',
       enumMappingText: rule?.enumMappingJson ? JSON.stringify(rule.enumMappingJson, null, 2) : '',
@@ -654,7 +657,7 @@ const moveRawFieldDown = (index: number) => {
 
 const handleMappingTypeChange = (row: RuleRow) => {
   if (row.mappingType === 'SCRIPT' && !row.scriptEngine) {
-    row.scriptEngine = 'EXPRESSION'
+    row.scriptEngine = DEFAULT_SCRIPT_ENGINE
   }
   if (!row.mappingType) {
     clearRuleRow(row)
@@ -665,7 +668,7 @@ const clearRuleRow = (row: RuleRow) => {
   row.mappingType = undefined
   row.sourceFieldPath = ''
   row.constantValue = ''
-  row.scriptEngine = 'EXPRESSION'
+  row.scriptEngine = DEFAULT_SCRIPT_ENGINE
   row.scriptContent = ''
   row.timePattern = ''
   row.enumMappingText = ''
@@ -791,9 +794,9 @@ const buildMappingRules = (): AccessMappingApi.AccessMappingRuleItemVO[] | null 
       return null
     }
     if (row.mappingType === 'SCRIPT') {
-      if (row.scriptEngine !== 'EXPRESSION') {
+      if (row.scriptEngine !== DEFAULT_SCRIPT_ENGINE) {
         activeTab.value = 'rules'
-        message.warning('一期仅支持 EXPRESSION 表达式映射')
+        message.warning('一期仅支持 AVIATOR 表达式映射')
         return null
       }
       if (!row.scriptContent?.trim()) {
@@ -813,7 +816,7 @@ const buildMappingRules = (): AccessMappingApi.AccessMappingRuleItemVO[] | null 
       mappingType: row.mappingType!,
       sourceFieldPath: row.sourceFieldPath?.trim() || undefined,
       constantValue: row.constantValue?.trim() || undefined,
-      scriptEngine: row.mappingType === 'SCRIPT' ? row.scriptEngine || 'EXPRESSION' : undefined,
+      scriptEngine: row.mappingType === 'SCRIPT' ? row.scriptEngine || DEFAULT_SCRIPT_ENGINE : undefined,
       scriptContent: row.scriptContent?.trim() || undefined,
       timePattern: row.timePattern?.trim() || undefined,
       enumMappingJson,

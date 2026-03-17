@@ -38,11 +38,11 @@ public class AccessMappingRuleItemVO {
     @Size(max = 512, message = "常量值长度不能超过 512 个字符")
     private String constantValue;
 
-    @Schema(description = "脚本引擎", example = "EXPRESSION")
+    @Schema(description = "脚本引擎", example = "AVIATOR")
     @InEnum(value = AccessScriptEngineEnum.class, message = "脚本引擎必须是 {value}")
     private String scriptEngine;
 
-    @Schema(description = "脚本内容", example = "#rawPayload['amount']")
+    @Schema(description = "脚本内容", example = "rawPayload['amount']")
     private String scriptContent;
 
     @Schema(description = "时间格式", example = "yyyy-MM-dd'T'HH:mm:ss")

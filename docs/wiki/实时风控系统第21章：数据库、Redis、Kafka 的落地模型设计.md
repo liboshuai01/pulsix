@@ -577,6 +577,7 @@ Redis 不适合用来做：
 
 - 上游请求仍显式携带标准 `eventCode`
 - `pulsix-ingest` 按 `sourceCode + eventCode` 装载唯一接入映射，再完成标准化
+- 接入映射中的脚本规则一期统一使用 `AVIATOR`，仅暴露 `rawPayload / headers / sourceCode / sceneCode / eventCode`
 
 #### 为什么一期建议统一 Topic
 

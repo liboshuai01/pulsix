@@ -11,7 +11,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum AccessScriptEngineEnum implements ArrayValuable<String> {
 
-    EXPRESSION("EXPRESSION", "表达式"),
+    AVIATOR("AVIATOR", "Aviator"),
     GROOVY("GROOVY", "Groovy");
 
     public static final String[] ARRAYS = valuesAsArray();

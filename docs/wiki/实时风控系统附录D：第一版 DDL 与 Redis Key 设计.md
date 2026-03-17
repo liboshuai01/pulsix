@@ -173,7 +173,7 @@ CREATE TABLE event_access_mapping_rule (
   mapping_type VARCHAR(32) NOT NULL,
   source_field_path VARCHAR(255) DEFAULT NULL,
   constant_value VARCHAR(512) DEFAULT NULL,
-  script_engine VARCHAR(32) DEFAULT NULL,
+  script_engine VARCHAR(32) DEFAULT NULL, -- AVIATOR / GROOVY，一期只开放 AVIATOR
   script_content TEXT DEFAULT NULL
 );
 ```

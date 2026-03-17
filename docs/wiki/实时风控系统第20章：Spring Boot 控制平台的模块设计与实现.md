@@ -210,7 +210,7 @@ pulsix-module-risk
 这里建议把边界再收紧一点：
 
 - 《事件模型》页只维护标准结构
-- 《接入映射》页独立放在接入治理下，维护 `eventCode + sourceCode` 维度的原始结构、样例报文与标准化规则
+- 《接入映射》页独立放在接入治理下，维护 `eventCode + sourceCode` 维度的原始结构、样例报文与标准化规则；脚本映射一期统一使用 Aviator，最小上下文只暴露 `rawPayload / headers / sourceCode / sceneCode / eventCode`
 
 这里我建议你再加一个非常务实的判断：
 
@@ -331,7 +331,7 @@ pulsix-module-risk
 负责：
 
 - 接入源管理
-- 接入映射管理
+- 接入映射管理（含 Aviator 脚本映射预览）
 - 鉴权配置管理
 - 来源启停与基础限流配置
 - 错误事件 / `DLQ` 查询

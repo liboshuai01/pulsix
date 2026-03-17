@@ -15,7 +15,7 @@ export const ACCESS_MAPPING_TYPE_OPTIONS = [
 ]
 
 export const ACCESS_SCRIPT_ENGINE_OPTIONS = [
-  { label: 'SpEL 表达式', value: 'EXPRESSION' },
+  { label: 'AVIATOR 表达式', value: 'AVIATOR' },
   { label: 'Groovy（预留）', value: 'GROOVY', disabled: true }
 ]
 

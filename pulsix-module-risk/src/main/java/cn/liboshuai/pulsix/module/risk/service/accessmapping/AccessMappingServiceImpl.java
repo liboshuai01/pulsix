@@ -3,6 +3,8 @@ package cn.liboshuai.pulsix.module.risk.service.accessmapping;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.googlecode.aviator.AviatorEvaluator;
+import com.googlecode.aviator.Expression;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.framework.common.util.json.JsonUtils;
 import cn.liboshuai.pulsix.module.risk.controller.admin.accessmapping.vo.AccessMappingPageReqVO;
@@ -27,10 +29,6 @@ import cn.liboshuai.pulsix.module.risk.enums.accessmapping.AccessMappingTypeEnum
 import cn.liboshuai.pulsix.module.risk.enums.accessmapping.AccessScriptEngineEnum;
 import cn.liboshuai.pulsix.module.risk.service.accessmapping.bo.AccessMappingRuntimeBO;
 import jakarta.annotation.Resource;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -77,7 +75,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
     private static final String FIELD_SOURCE_EVENT_DEFAULT = "EVENT_DEFAULT";
     private static final String FIELD_SOURCE_SYSTEM_FILL = "SYSTEM_FILL";
     private static final Set<String> FIXED_PUBLIC_FIELDS = Set.of("sceneCode", "eventCode");
-    private static final ExpressionParser EXPRESSION_PARSER = new SpelExpressionParser();
+    private static final String SCRIPT_ENGINE_AVIATOR = AccessScriptEngineEnum.AVIATOR.getType();
 
     @Resource
     private EventAccessBindingMapper eventAccessBindingMapper;
@@ -209,7 +207,9 @@ public class AccessMappingServiceImpl implements AccessMappingService {
         runtimeBO.setBinding(binding);
         runtimeBO.setStandardFields(getStandardFieldList(binding.getEventCode()));
         runtimeBO.setRawFields(getRawFieldList(binding.getId()));
-        runtimeBO.setMappingRules(getMappingRuleList(binding.getId()));
+        List<EventAccessMappingRuleDO> mappingRules = getMappingRuleList(binding.getId());
+        validateRuntimeMappingRules(sourceCode, eventCode, mappingRules);
+        runtimeBO.setMappingRules(mappingRules);
         return runtimeBO;
     }
 
@@ -428,7 +428,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
                 messages.add("目标字段【" + rule.getTargetFieldName() + "】配置为脚本映射时，脚本引擎不能为空");
                 return;
             }
-            if (!AccessScriptEngineEnum.EXPRESSION.getType().equals(rule.getScriptEngine())) {
+            if (!SCRIPT_ENGINE_AVIATOR.equals(rule.getScriptEngine())) {
                 throw exception(ACCESS_MAPPING_SCRIPT_ENGINE_UNSUPPORTED, rule.getScriptEngine());
             }
             if (StrUtil.isBlank(rule.getScriptContent())) {
@@ -469,20 +469,52 @@ public class AccessMappingServiceImpl implements AccessMappingService {
             return MISSING_VALUE;
         }
         try {
-            Expression expression = EXPRESSION_PARSER.parseExpression(scriptContent);
-            StandardEvaluationContext context = new StandardEvaluationContext();
-            Map<String, Object> root = new LinkedHashMap<>();
-            root.put("rawPayload", contextBundle.rawPayload());
-            root.put("headers", contextBundle.headers());
-            root.put("sourceCode", contextBundle.sourceCode());
-            root.put("sceneCode", contextBundle.sceneCode());
-            root.put("eventCode", contextBundle.eventCode());
-            context.setRootObject(root);
-            context.setVariables(root);
-            return expression.getValue(context);
+            Expression expression = compileExpression(scriptContent);
+            return expression.execute(buildExpressionEnv(contextBundle));
         } catch (Exception ex) {
-            messages.add("目标字段【" + targetFieldName + "】的表达式执行失败：" + ex.getMessage());
+            messages.add("目标字段【" + targetFieldName + "】的 AVIATOR 表达式编译或执行失败：" + ex.getMessage());
             return MISSING_VALUE;
+        }
+    }
+
+    private Expression compileExpression(String scriptContent) {
+        return AviatorEvaluator.compile(scriptContent, true);
+    }
+
+    private Map<String, Object> buildExpressionEnv(EvaluationContextBundle contextBundle) {
+        Map<String, Object> env = new LinkedHashMap<>();
+        env.put("rawPayload", contextBundle.rawPayload());
+        env.put("headers", contextBundle.headers());
+        env.put("sourceCode", contextBundle.sourceCode());
+        env.put("sceneCode", contextBundle.sceneCode());
+        env.put("eventCode", contextBundle.eventCode());
+        return env;
+    }
+
+    private void validateRuntimeMappingRules(String sourceCode, String eventCode, List<EventAccessMappingRuleDO> mappingRules) {
+        if (CollUtil.isEmpty(mappingRules)) {
+            return;
+        }
+        for (EventAccessMappingRuleDO rule : mappingRules) {
+            if (!AccessMappingTypeEnum.SCRIPT.getType().equals(rule.getMappingType())) {
+                continue;
+            }
+            if (!SCRIPT_ENGINE_AVIATOR.equals(rule.getScriptEngine())) {
+                throw new IllegalStateException("接入映射运行态脚本引擎非法，sourceCode="
+                        + sourceCode + ", eventCode=" + eventCode + ", targetField=" + rule.getTargetFieldName()
+                        + ", scriptEngine=" + rule.getScriptEngine());
+            }
+            if (StrUtil.isBlank(rule.getScriptContent())) {
+                throw new IllegalStateException("接入映射运行态脚本内容为空，sourceCode="
+                        + sourceCode + ", eventCode=" + eventCode + ", targetField=" + rule.getTargetFieldName());
+            }
+            try {
+                compileExpression(rule.getScriptContent());
+            } catch (Exception ex) {
+                throw new IllegalStateException("接入映射运行态 AVIATOR 表达式非法，sourceCode="
+                        + sourceCode + ", eventCode=" + eventCode + ", targetField="
+                        + rule.getTargetFieldName() + ", message=" + ex.getMessage(), ex);
+            }
         }
     }
 
