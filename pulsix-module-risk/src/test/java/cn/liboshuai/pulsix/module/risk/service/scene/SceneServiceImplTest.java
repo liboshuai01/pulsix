@@ -26,6 +26,23 @@ class SceneServiceImplTest {
     private SceneServiceImpl sceneService;
 
     @Test
+    void createScene_defaultsToDisable() {
+        SceneSaveReqVO reqVO = new SceneSaveReqVO();
+        reqVO.setSceneCode("TEST_RISK");
+        reqVO.setSceneName("测试场景");
+        reqVO.setRuntimeMode(SceneRuntimeModeEnum.ASYNC_DECISION.name());
+        reqVO.setDefaultPolicyCode("TEST_POLICY");
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        reqVO.setDescription("测试描述");
+
+        sceneService.createScene(reqVO);
+
+        ArgumentCaptor<SceneDO> captor = ArgumentCaptor.forClass(SceneDO.class);
+        verify(sceneMapper).insert(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(CommonStatusEnum.DISABLE.getStatus());
+    }
+
+    @Test
     void updateScene_preservesExistingStatus() {
         SceneDO scene = new SceneDO();
         scene.setId(10L);

@@ -72,7 +72,7 @@ CREATE TABLE `scene_def` (
   `scene_name` varchar(128) NOT NULL COMMENT '场景名称',
   `runtime_mode` varchar(32) NOT NULL DEFAULT 'ASYNC_DECISION' COMMENT '运行模式',
   `default_policy_code` varchar(64) DEFAULT NULL COMMENT '默认策略编码',
-  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
   `description` varchar(512) DEFAULT NULL COMMENT '描述',
   `creator` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

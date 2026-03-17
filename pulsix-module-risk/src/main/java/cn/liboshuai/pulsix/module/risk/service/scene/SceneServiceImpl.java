@@ -1,6 +1,7 @@
 package cn.liboshuai.pulsix.module.risk.service.scene;
 
 import cn.hutool.core.util.ObjectUtil;
+import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo.ScenePageReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo.SceneSaveReqVO;
@@ -29,6 +30,7 @@ public class SceneServiceImpl implements SceneService {
         validateSceneCodeUnique(null, createReqVO.getSceneCode());
 
         SceneDO scene = SceneConvert.INSTANCE.convert(createReqVO);
+        scene.setStatus(CommonStatusEnum.DISABLE.getStatus());
         sceneMapper.insert(scene);
         return scene.getId();
     }

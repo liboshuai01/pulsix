@@ -95,7 +95,7 @@
       />
       <el-table-column label="操作" align="center" width="260" fixed="right">
         <template #default="scope">
-          <el-button link type="primary" @click="openDetail(scope.row.id)">查看详情</el-button>
+          <el-button link type="primary" @click="openDetail(scope.row.id)">详情</el-button>
           <el-button
             link
             type="primary"
