@@ -13,5 +13,6 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
+    <description>业务后端高性能接入 SDK</description>
 
 </project>
