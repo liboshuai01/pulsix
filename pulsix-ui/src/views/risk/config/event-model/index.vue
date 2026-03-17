@@ -43,15 +43,6 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="接入类型" prop="sourceType">
-        <el-input
-          v-model="queryParams.sourceType"
-          placeholder="请输入接入类型"
-          clearable
-          class="!w-220px"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable class="!w-220px">
           <el-option
@@ -83,14 +74,29 @@
       <el-table-column label="事件编码" align="center" prop="eventCode" min-width="170" />
       <el-table-column label="事件名称" align="center" prop="eventName" min-width="160" />
       <el-table-column label="事件类型" align="center" prop="eventType" min-width="150" />
-      <el-table-column label="接入类型" align="center" prop="sourceType" min-width="120" />
-      <el-table-column
-        label="标准 Topic"
-        align="center"
-        prop="topicName"
-        min-width="200"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column label="接入绑定" align="center" min-width="260">
+        <template #default="scope">
+          <div v-if="scope.row.bindingSources?.length" class="risk-event-model__binding-summary">
+            <el-tag
+              v-for="bindingSource in scope.row.bindingSources.slice(0, 2)"
+              :key="bindingSource.sourceCode"
+              effect="plain"
+              class="mr-6px mb-6px"
+            >
+              {{ bindingSource.sourceName }}
+            </el-tag>
+            <el-tag
+              v-if="scope.row.bindingSources.length > 2"
+              type="info"
+              effect="plain"
+              class="mr-6px mb-6px"
+            >
+              +{{ scope.row.bindingSources.length - 2 }}
+            </el-tag>
+          </div>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="版本" align="center" prop="version" width="90" />
       <el-table-column label="状态" align="center" prop="status" width="100">
         <template #default="scope">
@@ -192,7 +198,6 @@ const queryParams = reactive({
   eventCode: undefined,
   eventName: undefined,
   eventType: undefined,
-  sourceType: undefined,
   status: undefined
 })
 
@@ -261,13 +266,17 @@ onMounted(() => {
 <style scoped lang="scss">
 .risk-event-model__actions {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 12px;
+  flex-wrap: wrap;
 }
 
 .risk-event-model__action-btn {
   margin-left: 0 !important;
-  padding: 0;
+}
+
+.risk-event-model__binding-summary {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 </style>

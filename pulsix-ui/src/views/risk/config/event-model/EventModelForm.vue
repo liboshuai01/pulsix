@@ -18,6 +18,7 @@
                     placeholder="请选择场景"
                     filterable
                     :disabled="formType === 'update'"
+                    @change="handleSceneChange"
                   >
                     <el-option
                       v-for="scene in sceneOptions"
@@ -56,18 +57,6 @@
             </el-row>
             <el-row :gutter="18">
               <el-col :span="12">
-                <el-form-item label="接入类型" prop="sourceType">
-                  <el-input v-model="formData.sourceType" placeholder="例如 HTTP / SDK" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="标准 Topic" prop="topicName">
-                  <el-input v-model="formData.topicName" placeholder="请输入标准事件 Topic" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row :gutter="18">
-              <el-col :span="12">
                 <el-form-item v-if="formType === 'create'" label="状态" prop="status">
                   <el-radio-group v-model="formData.status">
                     <el-radio
@@ -99,6 +88,67 @@
             </el-form-item>
           </el-tab-pane>
 
+          <el-tab-pane label="接入绑定" name="binding">
+            <div class="mb-12px flex items-center justify-between gap-12px">
+              <div class="text-13px text-[var(--el-text-color-secondary)]">
+                事件模型负责维护接入绑定。请先选择场景，再从当前场景允许的接入源中至少选择一个。
+              </div>
+              <el-tag type="primary" effect="plain">
+                已选 {{ formData.bindingSourceCodes.length }} 个接入源
+              </el-tag>
+            </div>
+            <el-form-item
+              label-width="0"
+              prop="bindingSourceCodes"
+              class="risk-event-model-form__binding-form-item"
+            >
+              <el-alert
+                v-if="!formData.sceneCode"
+                title="请先在基础信息中选择场景编码，再维护接入绑定。"
+                type="info"
+                :closable="false"
+              />
+              <div v-else v-loading="bindingLoading" class="risk-event-model-form__binding-panel">
+                <el-table
+                  v-if="bindingSourceOptions.length"
+                  ref="bindingTableRef"
+                  :data="bindingSourceOptions"
+                  row-key="sourceCode"
+                  border
+                  class="risk-event-model-form__binding-table"
+                  @selection-change="handleBindingSelectionChange"
+                >
+                  <el-table-column type="selection" width="55" reserve-selection />
+                  <el-table-column label="接入源名称" prop="sourceName" min-width="180" />
+                  <el-table-column label="接入源编码" prop="sourceCode" min-width="180" />
+                  <el-table-column label="接入类型" min-width="120">
+                    <template #default="{ row }">
+                      <dict-tag :type="DICT_TYPE.RISK_ACCESS_SOURCE_TYPE" :value="row.sourceType" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="标准 Topic" min-width="180">
+                    <template #default="{ row }">
+                      <dict-tag :type="DICT_TYPE.RISK_ACCESS_TOPIC_NAME" :value="row.topicName" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="状态" width="100" align="center">
+                    <template #default="{ row }">
+                      <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="row.status" />
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-empty
+                  v-else-if="!bindingLoading"
+                  description="当前场景下暂无可绑定的接入源"
+                  :image-size="72"
+                />
+              </div>
+            </el-form-item>
+            <div class="text-13px text-[var(--el-text-color-secondary)]">
+              只在《事件模型》页维护事件与接入源的关系；已停用但仍被当前事件绑定的接入源，也会保留展示。
+            </div>
+          </el-tab-pane>
+
           <el-tab-pane label="字段定义" name="fields">
             <div class="mb-12px flex items-center justify-between">
               <div class="text-13px text-[var(--el-text-color-secondary)]">
@@ -126,17 +176,17 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="字段名" width="180">
+              <el-table-column label="字段名" width="170">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldName" placeholder="fieldName" />
                 </template>
               </el-table-column>
-              <el-table-column label="显示名" width="180">
+              <el-table-column label="显示名" width="170">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldLabel" placeholder="字段显示名" />
                 </template>
               </el-table-column>
-              <el-table-column label="字段类型" width="160">
+              <el-table-column label="字段类型" width="150">
                 <template #default="{ row }">
                   <el-select v-model="row.fieldType" placeholder="请选择字段类型">
                     <el-option
@@ -153,22 +203,28 @@
                   <el-switch v-model="row.requiredFlag" :active-value="1" :inactive-value="0" />
                 </template>
               </el-table-column>
-              <el-table-column label="默认值" width="180">
+              <el-table-column label="默认值" width="170">
                 <template #default="{ row }">
                   <el-input v-model="row.defaultValue" placeholder="默认值" />
                 </template>
               </el-table-column>
-              <el-table-column label="样例值" width="200">
+              <el-table-column label="样例值" width="190">
                 <template #default="{ row }">
                   <el-input v-model="row.sampleValue" placeholder="样例值" />
                 </template>
               </el-table-column>
-              <el-table-column label="描述" width="240">
+              <el-table-column label="描述" width="210">
                 <template #default="{ row }">
                   <el-input v-model="row.description" placeholder="字段描述" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="150" align="center" header-align="center">
+              <el-table-column
+                label="操作"
+                width="164"
+                fixed="right"
+                align="center"
+                header-align="center"
+              >
                 <template #default="{ $index }">
                   <div class="risk-event-model-form__row-actions">
                     <el-button
@@ -322,14 +378,18 @@ import { CommonStatusEnum } from '@/utils/constants'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SceneApi from '@/api/risk/scene'
 import * as EventModelApi from '@/api/risk/event-model'
+import * as AccessSourceApi from '@/api/risk/access-source'
 import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
-import { EVENT_FIELD_TYPE_OPTIONS, EVENT_MODEL_DEFAULT_TOPIC } from './constants'
+import { EVENT_FIELD_TYPE_OPTIONS } from './constants'
 import type { FormRules } from 'element-plus'
 
 defineOptions({ name: 'RiskEventModelForm' })
 
 type EventFieldRow = EventModelApi.EventFieldItemVO & { __key: string }
-type EventModelFormData = Omit<EventModelApi.EventModelVO, 'fields'> & { fields: EventFieldRow[] }
+type EventModelFormData = EventModelApi.EventModelSaveReqVO & {
+  fields: EventFieldRow[]
+  version?: number
+}
 
 const { t } = useI18n()
 const message = useMessage()
@@ -338,10 +398,14 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formLoading = ref(false)
 const previewLoading = ref(false)
+const bindingLoading = ref(false)
 const formType = ref<'create' | 'update'>('create')
 const activeTab = ref('basic')
 const formRef = ref()
+const bindingTableRef = ref()
 const sceneOptions = ref<SceneApi.SceneVO[]>([])
+const bindingSourceOptions = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
+const currentBoundSourceFallback = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
 
 const extJsonDialogVisible = ref(false)
 const extJsonText = ref('')
@@ -366,8 +430,7 @@ const createDefaultFormData = (): EventModelFormData => ({
   eventCode: '',
   eventName: '',
   eventType: '',
-  sourceType: '',
-  topicName: EVENT_MODEL_DEFAULT_TOPIC,
+  bindingSourceCodes: [],
   sampleEventJson: {},
   version: undefined,
   status: CommonStatusEnum.ENABLE,
@@ -375,9 +438,7 @@ const createDefaultFormData = (): EventModelFormData => ({
   fields: []
 })
 
-const formData = ref<EventModelFormData>(createDefaultFormData())
-const sampleEventJsonText = ref('{}')
-const previewResult = ref<EventModelApi.EventModelPreviewVO>({
+const createEmptyPreviewResult = (): EventModelApi.EventModelPreviewVO => ({
   standardEventJson: {},
   requiredFields: [],
   optionalFields: [],
@@ -385,9 +446,21 @@ const previewResult = ref<EventModelApi.EventModelPreviewVO>({
   validationMessages: []
 })
 
+const formData = ref<EventModelFormData>(createDefaultFormData())
+const sampleEventJsonText = ref('{}')
+const previewResult = ref<EventModelApi.EventModelPreviewVO>(createEmptyPreviewResult())
+
 const previewJsonText = computed(() =>
   JSON.stringify(previewResult.value.standardEventJson ?? {}, null, 2)
 )
+
+const validateBindingSourceCodes = (_rule: any, value: string[], callback: (error?: Error) => void) => {
+  if (value?.length) {
+    callback()
+    return
+  }
+  callback(new Error('请至少绑定一个接入源'))
+}
 
 const formRules = reactive<FormRules>({
   sceneCode: [{ required: true, message: '场景编码不能为空', trigger: 'change' }],
@@ -401,7 +474,7 @@ const formRules = reactive<FormRules>({
   ],
   eventName: [{ required: true, message: '事件名称不能为空', trigger: 'blur' }],
   eventType: [{ required: true, message: '事件类型不能为空', trigger: 'blur' }],
-  topicName: [{ required: true, message: '标准 Topic 不能为空', trigger: 'blur' }],
+  bindingSourceCodes: [{ validator: validateBindingSourceCodes, trigger: 'change' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
 })
 
@@ -409,27 +482,101 @@ const loadSceneOptions = async () => {
   sceneOptions.value = await SceneApi.getSimpleSceneList()
 }
 
+const toSimpleAccessSource = (
+  source: EventModelApi.EventBindingSourceItemVO
+): AccessSourceApi.AccessSourceSimpleVO => ({
+  sourceCode: source.sourceCode,
+  sourceName: source.sourceName,
+  sourceType: source.sourceType,
+  topicName: source.topicName,
+  status: source.status
+})
+
+const mergeBindingSourceOptions = (
+  preferred: AccessSourceApi.AccessSourceSimpleVO[],
+  fallback: AccessSourceApi.AccessSourceSimpleVO[]
+) => {
+  const mergedMap = new Map<string, AccessSourceApi.AccessSourceSimpleVO>()
+  preferred.forEach((item) => mergedMap.set(item.sourceCode, item))
+  fallback.forEach((item) => {
+    if (!mergedMap.has(item.sourceCode)) {
+      mergedMap.set(item.sourceCode, item)
+    }
+  })
+  return Array.from(mergedMap.values())
+}
+
+const syncBindingSelection = async () => {
+  await nextTick()
+  if (!bindingTableRef.value) {
+    return
+  }
+  bindingTableRef.value.clearSelection()
+  const selectedSourceCodeSet = new Set(formData.value.bindingSourceCodes)
+  bindingSourceOptions.value.forEach((item) => {
+    if (selectedSourceCodeSet.has(item.sourceCode)) {
+      bindingTableRef.value.toggleRowSelection(item, true)
+    }
+  })
+}
+
+const loadBindingSourceOptions = async (
+  sceneCode: string,
+  fallbackSources: AccessSourceApi.AccessSourceSimpleVO[] = currentBoundSourceFallback.value
+) => {
+  if (!sceneCode) {
+    bindingSourceOptions.value = []
+    formData.value.bindingSourceCodes = []
+    await syncBindingSelection()
+    return
+  }
+
+  bindingLoading.value = true
+  try {
+    const enabledSources = await AccessSourceApi.getSimpleAccessSourceList(sceneCode)
+    bindingSourceOptions.value = mergeBindingSourceOptions(enabledSources, fallbackSources)
+    const availableSourceCodes = new Set(
+      bindingSourceOptions.value.map((item) => item.sourceCode)
+    )
+    formData.value.bindingSourceCodes = formData.value.bindingSourceCodes.filter((sourceCode) =>
+      availableSourceCodes.has(sourceCode)
+    )
+    await syncBindingSelection()
+  } finally {
+    bindingLoading.value = false
+  }
+}
+
+const handleSceneChange = async (sceneCode: string) => {
+  currentBoundSourceFallback.value = []
+  formData.value.bindingSourceCodes = []
+  await loadBindingSourceOptions(sceneCode, [])
+}
+
 const open = async (type: 'create' | 'update', id?: number) => {
   dialogVisible.value = true
   dialogTitle.value = type === 'create' ? t('action.create') : t('action.update')
   formType.value = type
   activeTab.value = 'basic'
-  previewResult.value = {
-    standardEventJson: {},
-    requiredFields: [],
-    optionalFields: [],
-    fieldTypes: {},
-    validationMessages: []
-  }
+  previewResult.value = createEmptyPreviewResult()
   resetForm()
   await loadSceneOptions()
   if (id) {
     formLoading.value = true
     try {
       const data = await EventModelApi.getEventModel(id)
+      currentBoundSourceFallback.value = (data.bindingSources || []).map(toSimpleAccessSource)
       formData.value = {
-        ...data,
-        topicName: data.topicName || EVENT_MODEL_DEFAULT_TOPIC,
+        id: data.id,
+        sceneCode: data.sceneCode,
+        eventCode: data.eventCode,
+        eventName: data.eventName,
+        eventType: data.eventType,
+        bindingSourceCodes: currentBoundSourceFallback.value.map((item) => item.sourceCode),
+        sampleEventJson: data.sampleEventJson ?? {},
+        version: data.version,
+        status: data.status,
+        description: data.description || '',
         fields: (data.fields || []).map((field, index) => ({
           ...field,
           sortNo: field.sortNo ?? index + 1,
@@ -437,11 +584,13 @@ const open = async (type: 'create' | 'update', id?: number) => {
         }))
       }
       sampleEventJsonText.value = JSON.stringify(data.sampleEventJson ?? {}, null, 2)
+      await loadBindingSourceOptions(formData.value.sceneCode)
     } finally {
       formLoading.value = false
     }
   }
 }
+
 defineExpose({ open })
 
 const emit = defineEmits(['success'])
@@ -517,6 +666,11 @@ const syncFieldSortNo = () => {
   })
 }
 
+const handleBindingSelectionChange = (selection: AccessSourceApi.AccessSourceSimpleVO[]) => {
+  formData.value.bindingSourceCodes = selection.map((item) => item.sourceCode)
+  formRef.value?.clearValidate?.('bindingSourceCodes')
+}
+
 const openExtJsonDialog = (index: number) => {
   activeExtJsonRowIndex.value = index
   const row = formData.value.fields[index]
@@ -575,7 +729,7 @@ const parseSampleJsonText = () => {
   }
 }
 
-const buildPayload = () => {
+const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
   let sampleEventJson: Record<string, any>
   try {
     sampleEventJson = parseSampleJsonText()
@@ -585,10 +739,22 @@ const buildPayload = () => {
     return null
   }
 
+  if (!formData.value.bindingSourceCodes.length) {
+    message.warning('请至少绑定一个接入源')
+    activeTab.value = 'binding'
+    return null
+  }
+
   return {
-    ...formData.value,
-    topicName: formData.value.topicName || EVENT_MODEL_DEFAULT_TOPIC,
+    id: formData.value.id,
+    sceneCode: formData.value.sceneCode,
+    eventCode: formData.value.eventCode,
+    eventName: formData.value.eventName,
+    eventType: formData.value.eventType,
+    bindingSourceCodes: Array.from(new Set(formData.value.bindingSourceCodes)),
     sampleEventJson,
+    status: formData.value.status,
+    description: formData.value.description || undefined,
     fields: formData.value.fields.map((field: EventFieldRow) => {
       const { __key: _key, ...fieldData } = field
       return {
@@ -601,10 +767,20 @@ const buildPayload = () => {
           fieldData.extJson && Object.keys(fieldData.extJson).length ? fieldData.extJson : undefined
       }
     })
-  } as EventModelApi.EventModelVO
+  }
 }
 
 const refreshPreview = async () => {
+  if (!formData.value.sceneCode) {
+    message.warning('请先选择场景，再维护接入绑定')
+    activeTab.value = 'basic'
+    return
+  }
+  if (!formData.value.bindingSourceCodes.length) {
+    message.warning('请至少选择一个接入源后再预览')
+    activeTab.value = 'binding'
+    return
+  }
   const payload = buildPayload()
   if (!payload) {
     return
@@ -620,9 +796,15 @@ const refreshPreview = async () => {
 const resetForm = () => {
   formData.value = createDefaultFormData()
   sampleEventJsonText.value = '{}'
+  previewResult.value = createEmptyPreviewResult()
+  bindingSourceOptions.value = []
+  currentBoundSourceFallback.value = []
   extJsonText.value = ''
   activeExtJsonRowIndex.value = undefined
   formRef.value?.resetFields()
+  nextTick(() => {
+    bindingTableRef.value?.clearSelection?.()
+  })
 }
 </script>
 
@@ -637,8 +819,22 @@ const resetForm = () => {
   width: 100%;
 }
 
+.risk-event-model-form__binding-form-item {
+  :deep(.el-form-item__content) {
+    width: 100%;
+  }
+}
+
+.risk-event-model-form__binding-table {
+  width: 100%;
+}
+
+.risk-event-model-form__binding-panel {
+  min-height: 120px;
+}
+
 .risk-event-model-form__field-table {
-  min-width: 1502px;
+  min-width: 1410px;
 
   :deep(.el-input),
   :deep(.el-select),

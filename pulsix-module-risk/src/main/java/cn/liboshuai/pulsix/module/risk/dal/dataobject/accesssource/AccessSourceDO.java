@@ -1,4 +1,4 @@
-package cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel;
+package cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource;
 
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
@@ -12,58 +12,51 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Map;
+import java.util.List;
 
 /**
- * 事件模型定义 DO
+ * 接入源定义 DO
  */
-@TableName(value = "event_schema", autoResultMap = true)
-@KeySequence("event_schema_seq")
+@TableName(value = "access_source_def", autoResultMap = true)
+@KeySequence("access_source_def_seq")
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @TenantIgnore
-public class EventSchemaDO extends BaseDO {
+public class AccessSourceDO extends BaseDO {
 
-    /**
-     * 主键
-     */
     @TableId
     private Long id;
+
+    private String sourceCode;
+
+    private String sourceName;
+
+    private String sourceType;
+
+    private String topicName;
+
+    private String accessProtocol;
+
+    private String appId;
+
+    private String ownerName;
+
+    private String contactEmail;
+
+    private Integer rateLimitQps;
+
+    @TableField(value = "allowed_scene_codes_json", typeHandler = JacksonTypeHandler.class)
+    private List<String> allowedSceneCodes;
+
+    @TableField(value = "ip_whitelist_json", typeHandler = JacksonTypeHandler.class)
+    private List<String> ipWhitelist;
+
     /**
-     * 场景编码
-     */
-    private String sceneCode;
-    /**
-     * 事件编码
-     */
-    private String eventCode;
-    /**
-     * 事件名称
-     */
-    private String eventName;
-    /**
-     * 事件类型
-     */
-    private String eventType;
-    /**
-     * 样例事件
-     */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> sampleEventJson;
-    /**
-     * 版本
-     */
-    private Integer version;
-    /**
-     * 状态
-     *
      * 枚举 {@link CommonStatusEnum}
      */
     private Integer status;
-    /**
-     * 描述
-     */
+
     private String description;
 
 }

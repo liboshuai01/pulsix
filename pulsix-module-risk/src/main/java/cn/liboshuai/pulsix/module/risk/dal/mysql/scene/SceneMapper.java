@@ -58,4 +58,12 @@ public interface SceneMapper extends BaseMapperX<SceneDO> {
     @Select("SELECT COUNT(1) FROM alert_rule_def WHERE scene_code = #{sceneCode} AND deleted = b'0'")
     long selectAlertRuleCountBySceneCode(@Param("sceneCode") String sceneCode);
 
+    @Select("""
+            SELECT COUNT(1)
+            FROM access_source_def
+            WHERE deleted = b'0'
+              AND JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
+            """)
+    long selectAccessSourceCountBySceneCode(@Param("sceneCode") String sceneCode);
+
 }

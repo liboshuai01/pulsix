@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS `alert_template_def`;
 DROP TABLE IF EXISTS `alert_channel_def`;
 DROP TABLE IF EXISTS `risk_error_log`;
 DROP TABLE IF EXISTS `access_auth_conf`;
+DROP TABLE IF EXISTS `event_access_binding`;
 DROP TABLE IF EXISTS `access_source_def`;
 DROP TABLE IF EXISTS `risk_event`;
 DROP TABLE IF EXISTS `rule_hit_log`;
@@ -106,8 +107,6 @@ CREATE TABLE `event_schema` (
   `event_code` varchar(64) NOT NULL COMMENT '事件编码',
   `event_name` varchar(128) NOT NULL COMMENT '事件名称',
   `event_type` varchar(64) NOT NULL COMMENT '事件类型',
-  `source_type` varchar(32) DEFAULT NULL COMMENT '接入类型',
-  `topic_name` varchar(128) DEFAULT NULL COMMENT '标准事件 Topic',
   `sample_event_json` json DEFAULT NULL COMMENT '样例事件',
   `version` int NOT NULL DEFAULT 1 COMMENT '版本',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
@@ -519,6 +518,7 @@ CREATE TABLE `access_source_def` (
   `source_code` varchar(64) NOT NULL COMMENT '接入源编码',
   `source_name` varchar(128) NOT NULL COMMENT '接入源名称',
   `source_type` varchar(32) NOT NULL COMMENT '接入源类型',
+  `topic_name` varchar(128) NOT NULL COMMENT '标准事件 Topic',
   `access_protocol` varchar(32) NOT NULL COMMENT '接入协议',
   `app_id` varchar(64) DEFAULT NULL COMMENT '应用标识',
   `owner_name` varchar(64) DEFAULT NULL COMMENT '负责人',
@@ -537,6 +537,21 @@ CREATE TABLE `access_source_def` (
   UNIQUE KEY `uk_source_code` (`source_code`),
   KEY `idx_source_type_status` (`source_type`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='接入源定义表';
+
+CREATE TABLE `event_access_binding` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `event_code` varchar(64) NOT NULL COMMENT '事件编码',
+  `source_code` varchar(64) NOT NULL COMMENT '接入源编码',
+  `creator` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updater` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_event_source` (`event_code`, `source_code`),
+  KEY `idx_source_code` (`source_code`),
+  KEY `idx_event_code` (`event_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='事件接入绑定表';
 
 CREATE TABLE `access_auth_conf` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
@@ -705,10 +720,10 @@ INSERT INTO `entity_type_def` (`id`, `entity_type`, `entity_name`, `key_field_na
 (5, 'WITHDRAW_ACCOUNT', '提现账户', 'withdrawAccountId', 'WACC_88001', 1, '提现账户维度，适用于账户关联分析', 'admin', '2026-03-08 09:32:00', 'admin', '2026-03-08 09:32:00', b'0'),
 (6, 'ORDER', '订单', 'orderNo', 'ORD202603080001', 1, '订单维度，适用于订单后置风控追踪', 'admin', '2026-03-08 09:32:00', 'admin', '2026-03-08 09:32:00', b'0');
 
-INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `event_type`, `source_type`, `topic_name`, `sample_event_json`, `version`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', 'HTTP', 'pulsix.event.standard', '{"eventId":"E_PROMO_0001","traceId":"T_PROMO_0001","sceneCode":"PROMOTION_RISK","eventType":"promotion_grant","eventTime":"2026-03-08T10:00:00","userId":"U20001","deviceId":"DVC_PROMO_001","ip":"203.0.113.10","channel":"APP","bizNo":"PROMO_REQ_202603080001","activityId":"ACT_INVITE_202603","promotionType":"INVITE_REWARD","rewardType":"COUPON","rewardValue":30,"grantStatus":"ACCEPTED","ext":{"inviteUserId":"U18888","campaignCode":"SPRING_GROWTH"}}', 1, 1, '营销受理标准事件模型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
-(2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', 'HTTP', 'pulsix.event.standard', '{"eventId":"E_WD_0001","traceId":"T_WD_0001","sceneCode":"WITHDRAW_RISK","eventType":"withdraw_apply","eventTime":"2026-03-08T11:00:00","userId":"U30001","deviceId":"DVC_WD_001","ip":"198.51.100.21","channel":"APP","bizNo":"WD_REQ_202603080001","withdrawNo":"WD202603080001","withdrawAmount":3500,"currency":"CNY","withdrawAccountId":"WACC_88001","accountType":"BANK_CARD","bankCode":"ICBC","withdrawStatus":"CREATED","ext":{"city":"Hangzhou","bankCardTail":"1024"}}', 1, 1, '提现申请标准事件模型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
-(3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', 'SDK', 'pulsix.event.standard', '{"eventId":"E_ORDER_0001","traceId":"T_ORDER_0001","sceneCode":"ORDER_RISK","eventType":"order_paid","eventTime":"2026-03-08T12:00:00","userId":"U40001","deviceId":"DVC_ORDER_001","ip":"192.0.2.18","channel":"APP","bizNo":"ORD202603080001","orderNo":"ORD202603080001","orderAmount":1299,"payAmount":1299,"currency":"CNY","merchantId":"MCH_3001","fulfillmentType":"EXPRESS","orderStatus":"PAID","ext":{"skuCount":2,"receiverCity":"Shanghai"}}', 1, 1, '订单支付成功标准事件模型', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
+INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `event_type`, `sample_event_json`, `version`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', '{"eventId":"E_PROMO_0001","traceId":"T_PROMO_0001","sceneCode":"PROMOTION_RISK","eventType":"promotion_grant","eventTime":"2026-03-08T10:00:00","userId":"U20001","deviceId":"DVC_PROMO_001","ip":"203.0.113.10","channel":"APP","bizNo":"PROMO_REQ_202603080001","activityId":"ACT_INVITE_202603","promotionType":"INVITE_REWARD","rewardType":"COUPON","rewardValue":30,"grantStatus":"ACCEPTED","ext":{"inviteUserId":"U18888","campaignCode":"SPRING_GROWTH"}}', 1, 1, '营销受理标准事件模型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', '{"eventId":"E_WD_0001","traceId":"T_WD_0001","sceneCode":"WITHDRAW_RISK","eventType":"withdraw_apply","eventTime":"2026-03-08T11:00:00","userId":"U30001","deviceId":"DVC_WD_001","ip":"198.51.100.21","channel":"APP","bizNo":"WD_REQ_202603080001","withdrawNo":"WD202603080001","withdrawAmount":3500,"currency":"CNY","withdrawAccountId":"WACC_88001","accountType":"BANK_CARD","bankCode":"ICBC","withdrawStatus":"CREATED","ext":{"city":"Hangzhou","bankCardTail":"1024"}}', 1, 1, '提现申请标准事件模型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', '{"eventId":"E_ORDER_0001","traceId":"T_ORDER_0001","sceneCode":"ORDER_RISK","eventType":"order_paid","eventTime":"2026-03-08T12:00:00","userId":"U40001","deviceId":"DVC_ORDER_001","ip":"192.0.2.18","channel":"APP","bizNo":"ORD202603080001","orderNo":"ORD202603080001","orderAmount":1299,"payAmount":1299,"currency":"CNY","merchantId":"MCH_3001","fulfillmentType":"EXPRESS","orderStatus":"PAID","ext":{"skuCount":2,"receiverCity":"Shanghai"}}', 1, 1, '订单支付成功标准事件模型', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
 
 INSERT INTO `event_field_def` (`id`, `event_code`, `field_name`, `field_label`, `field_type`, `required_flag`, `default_value`, `sample_value`, `description`, `sort_no`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (101, 'PROMOTION_EVENT', 'eventId', '事件ID', 'STRING', 1, NULL, 'E_PROMO_0001', '事件唯一标识', 1, NULL, 'admin', '2026-03-08 10:01:00', 'admin', '2026-03-08 10:01:00', b'0'),
@@ -868,10 +883,15 @@ INSERT INTO `risk_event` (`id`, `risk_event_no`, `scene_code`, `trace_id`, `even
 (13002, 'RISK_EVT_20260308_002', 'WITHDRAW_RISK', 'T_WD_0002', 'E_WD_0002', 11004, 'DECISION_RESULT', 'REVIEW', 'HIGH', 2, '["WITHDRAW_R001"]', '大额重复提现命中审核规则，已暂停打款等待运营处理', 'REVIEWING', 'finance.review', '2026-03-08 11:18:01', '2026-03-08 11:18:01', '{"category":"WITHDRAW","nextStep":"hold_payment"}', 'system', '2026-03-08 11:18:01', 'finance.review', '2026-03-08 11:20:00', b'0'),
 (13003, 'RISK_EVT_20260308_003', 'ORDER_RISK', 'T_ORDER_0002', 'E_ORDER_0002', 11006, 'DECISION_RESULT', 'REJECT', 'HIGH', 1, '["ORDER_R001"]', '黑名单设备下单，订单系统需取消订单并释放库存', 'OPEN', 'order.ops', '2026-03-08 12:12:01', '2026-03-08 12:12:01', '{"category":"ORDER","nextStep":"cancel_order"}', 'system', '2026-03-08 12:12:01', 'system', '2026-03-08 12:12:01', b'0');
 
-INSERT INTO `access_source_def` (`id`, `source_code`, `source_name`, `source_type`, `access_protocol`, `app_id`, `owner_name`, `contact_email`, `rate_limit_qps`, `allowed_scene_codes_json`, `ip_whitelist_json`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'HTTP', 'marketing-center', '张三', 'marketing-risk@example.com', 300, '["PROMOTION_RISK"]', '["10.30.0.0/16","172.16.10.0/24"]', 1, '服务营销受理事件的 HTTP 接入源', 'admin', '2026-03-08 09:58:00', 'admin', '2026-03-08 09:58:00', b'0'),
-(14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'HTTP', 'account-center', '李四', 'finance-risk@example.com', 200, '["WITHDRAW_RISK"]', '["10.40.0.0/16","192.168.20.0/24"]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00', 'admin', '2026-03-08 10:58:00', b'0'),
-(14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'TCP', 'order-center', '王五', 'order-risk@example.com', 500, '["ORDER_RISK"]', '["172.20.8.0/24"]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin', '2026-03-08 11:58:00', b'0');
+INSERT INTO `access_source_def` (`id`, `source_code`, `source_name`, `source_type`, `topic_name`, `access_protocol`, `app_id`, `owner_name`, `contact_email`, `rate_limit_qps`, `allowed_scene_codes_json`, `ip_whitelist_json`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'marketing-center', '张三', 'marketing-risk@example.com', 300, '["PROMOTION_RISK"]', '["10.30.0.0/16","172.16.10.0/24"]', 1, '服务营销受理事件的 HTTP 接入源', 'admin', '2026-03-08 09:58:00', 'admin', '2026-03-08 09:58:00', b'0'),
+(14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'account-center', '李四', 'finance-risk@example.com', 200, '["WITHDRAW_RISK"]', '["10.40.0.0/16","192.168.20.0/24"]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00', 'admin', '2026-03-08 10:58:00', b'0'),
+(14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'pulsix.event.standard', 'TCP', 'order-center', '王五', 'order-risk@example.com', 500, '["ORDER_RISK"]', '["172.20.8.0/24"]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin', '2026-03-08 11:58:00', b'0');
+
+INSERT INTO `event_access_binding` (`id`, `event_code`, `source_code`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14101, 'PROMOTION_EVENT', 'PROMOTION_CENTER_HTTP', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(14102, 'WITHDRAW_EVENT', 'WITHDRAW_CENTER_HTTP', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(14103, 'ORDER_EVENT', 'ORDER_CENTER_SDK', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
 
 INSERT INTO `access_auth_conf` (`id`, `source_code`, `auth_type`, `app_key`, `app_secret`, `sign_algo`, `signature_header`, `nonce_ttl_seconds`, `effective_from`, `expire_at`, `status`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (15001, 'PROMOTION_CENTER_HTTP', 'API_KEY', 'promo_http_key', 'promo_http_secret_demo', 'NONE', 'X-API-Key', 0, '2026-03-08 10:00:00', NULL, 1, '{"headers":["X-API-Key"]}', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),

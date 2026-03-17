@@ -142,6 +142,9 @@ public class SceneServiceImpl implements SceneService {
         if (sceneMapper.selectAlertRuleCountBySceneCode(sceneCode) > 0) {
             return "告警规则";
         }
+        if (sceneMapper.selectAccessSourceCountBySceneCode(sceneCode) > 0) {
+            return "接入源";
+        }
         return null;
     }
 

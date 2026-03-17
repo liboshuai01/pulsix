@@ -43,13 +43,9 @@ public class EventModelSaveReqVO {
     @Size(max = 64, message = "事件类型长度不能超过 64 个字符")
     private String eventType;
 
-    @Schema(description = "接入类型", example = "HTTP")
-    @Size(max = 32, message = "接入类型长度不能超过 32 个字符")
-    private String sourceType;
-
-    @Schema(description = "标准事件 Topic", example = "pulsix.event.standard")
-    @Size(max = 128, message = "标准事件 Topic 长度不能超过 128 个字符")
-    private String topicName;
+    @Schema(description = "绑定接入源编码列表", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(message = "绑定接入源不能为空")
+    private List<String> bindingSourceCodes;
 
     @Schema(description = "样例事件", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "样例事件不能为空")

@@ -18,17 +18,29 @@ export interface EventModelVO {
   eventCode: string
   eventName: string
   eventType: string
-  sourceType?: string
-  topicName?: string
   sampleEventJson: Record<string, any>
   version?: number
   status: number
   description?: string
   fields: EventFieldItemVO[]
+  bindingSources?: EventBindingSourceItemVO[]
   creator?: string
   createTime?: Date
   updater?: string
   updateTime?: Date
+}
+
+export interface EventModelSaveReqVO {
+  id?: number
+  sceneCode: string
+  eventCode: string
+  eventName: string
+  eventType: string
+  bindingSourceCodes: string[]
+  sampleEventJson: Record<string, any>
+  status: number
+  description?: string
+  fields: EventFieldItemVO[]
 }
 
 export interface EventModelSimpleVO {
@@ -36,6 +48,14 @@ export interface EventModelSimpleVO {
   eventCode: string
   eventName: string
   eventType: string
+}
+
+export interface EventBindingSourceItemVO {
+  sourceCode: string
+  sourceName: string
+  sourceType: string
+  topicName: string
+  status: number
 }
 
 export interface EventModelPreviewVO {
@@ -48,12 +68,12 @@ export interface EventModelPreviewVO {
 
 // 查询事件模型分页
 export const getEventModelPage = (params: PageParam) => {
-  return request.get({ url: '/risk/event-model/page', params })
+  return request.get({ url: '/risk/event-model/page', params }) as Promise<PageResult<EventModelVO[]>>
 }
 
 // 查询事件模型详情
 export const getEventModel = (id: number) => {
-  return request.get({ url: '/risk/event-model/get?id=' + id })
+  return request.get({ url: '/risk/event-model/get?id=' + id }) as Promise<EventModelVO>
 }
 
 // 查询启用中的事件模型精简列表
@@ -62,12 +82,12 @@ export const getSimpleEventModelList = (sceneCode?: string): Promise<EventModelS
 }
 
 // 新增事件模型
-export const createEventModel = (data: EventModelVO) => {
+export const createEventModel = (data: EventModelSaveReqVO) => {
   return request.post({ url: '/risk/event-model/create', data })
 }
 
 // 修改事件模型
-export const updateEventModel = (data: EventModelVO) => {
+export const updateEventModel = (data: EventModelSaveReqVO) => {
   return request.put({ url: '/risk/event-model/update', data })
 }
 
@@ -82,6 +102,6 @@ export const deleteEventModel = (id: number) => {
 }
 
 // 预览标准事件
-export const previewStandardEvent = (data: EventModelVO): Promise<EventModelPreviewVO> => {
+export const previewStandardEvent = (data: EventModelSaveReqVO): Promise<EventModelPreviewVO> => {
   return request.post({ url: '/risk/event-model/preview-standard', data })
 }

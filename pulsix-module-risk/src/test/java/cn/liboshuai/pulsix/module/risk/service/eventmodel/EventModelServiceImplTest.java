@@ -4,9 +4,13 @@ import cn.liboshuai.pulsix.framework.common.exception.ServiceException;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventFieldItemVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPreviewRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelSaveReqVO;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.AccessSourceDO;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.EventAccessBindingDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventFieldDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
+import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.AccessSourceMapper;
+import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.EventAccessBindingMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventFieldDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
@@ -44,6 +48,10 @@ class EventModelServiceImplTest {
     @Mock
     private EventFieldDefMapper eventFieldDefMapper;
     @Mock
+    private AccessSourceMapper accessSourceMapper;
+    @Mock
+    private EventAccessBindingMapper eventAccessBindingMapper;
+    @Mock
     private SceneMapper sceneMapper;
 
     @InjectMocks
@@ -52,6 +60,8 @@ class EventModelServiceImplTest {
     @BeforeEach
     void setUp() {
         lenient().when(sceneMapper.selectBySceneCode(anyString())).thenReturn(createScene("TRADE_RISK"));
+        lenient().when(accessSourceMapper.selectListBySourceCodes(anyCollection()))
+                .thenReturn(List.of(createAccessSource("TRADE_HTTP", "TRADE_RISK")));
     }
 
     @Test
@@ -74,6 +84,12 @@ class EventModelServiceImplTest {
         assertThat(insertedFields).allMatch(field -> "TRADE_EVENT".equals(field.getEventCode()));
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
                 .containsExactly(1, 2, 3, 4, 5, 6);
+
+        ArgumentCaptor<Collection<EventAccessBindingDO>> bindingCaptor = ArgumentCaptor.forClass(Collection.class);
+        verify(eventAccessBindingMapper).insertBatch(bindingCaptor.capture());
+        assertThat(new ArrayList<>(bindingCaptor.getValue()))
+                .extracting(EventAccessBindingDO::getSourceCode)
+                .containsExactly("TRADE_HTTP");
     }
 
     @Test
@@ -186,6 +202,57 @@ class EventModelServiceImplTest {
     }
 
     @Test
+    void createEventModel_bindingRequired_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setBindingSourceCodes(List.of());
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+
+        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_106);
+    }
+
+    @Test
+    void createEventModel_duplicateBinding_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setBindingSourceCodes(List.of("TRADE_HTTP", "TRADE_HTTP"));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+
+        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_107);
+    }
+
+    @Test
+    void createEventModel_bindingSourceNotExists_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setBindingSourceCodes(List.of("UNKNOWN_SOURCE"));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+        when(accessSourceMapper.selectListBySourceCodes(anyCollection())).thenReturn(List.of());
+
+        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_108);
+    }
+
+    @Test
+    void createEventModel_bindingSceneMismatch_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setBindingSourceCodes(List.of("ORDER_HTTP"));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+        when(accessSourceMapper.selectListBySourceCodes(anyCollection()))
+                .thenReturn(List.of(createAccessSource("ORDER_HTTP", "ORDER_RISK")));
+
+        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_109);
+    }
+
+    @Test
     void previewStandardEvent_typeConversionCorrect() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
         reqVO.getFields().stream()
@@ -219,6 +286,7 @@ class EventModelServiceImplTest {
                 .extracting("code")
                 .isEqualTo(1_003_000_103);
         verify(eventFieldDefMapper, never()).deleteByEventCode(anyString());
+        verify(eventAccessBindingMapper, never()).deleteByEventCodePhysically(anyString());
     }
 
     private EventModelSaveReqVO createBaseReqVO() {
@@ -227,8 +295,7 @@ class EventModelServiceImplTest {
         reqVO.setEventCode("TRADE_EVENT");
         reqVO.setEventName("交易事件");
         reqVO.setEventType("trade");
-        reqVO.setSourceType("HTTP");
-        reqVO.setTopicName("pulsix.event.standard");
+        reqVO.setBindingSourceCodes(List.of("TRADE_HTTP"));
         reqVO.setStatus(0);
         reqVO.setDescription("交易标准事件模型");
 
@@ -282,6 +349,18 @@ class EventModelServiceImplTest {
         scene.setSceneCode(sceneCode);
         scene.setSceneName("测试场景");
         return scene;
+    }
+
+    private AccessSourceDO createAccessSource(String sourceCode, String sceneCode) {
+        AccessSourceDO accessSource = new AccessSourceDO();
+        accessSource.setId(1L);
+        accessSource.setSourceCode(sourceCode);
+        accessSource.setSourceName("测试接入源");
+        accessSource.setSourceType("HTTP");
+        accessSource.setTopicName("pulsix.event.standard");
+        accessSource.setAllowedSceneCodes(List.of(sceneCode));
+        accessSource.setStatus(1);
+        return accessSource;
     }
 
 }

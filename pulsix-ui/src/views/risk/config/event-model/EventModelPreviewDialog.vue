@@ -76,6 +76,7 @@ import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
 
 defineOptions({ name: 'RiskEventModelPreviewDialog' })
 
+const message = useMessage()
 const dialogVisible = ref(false)
 const loading = ref(false)
 const detail = ref<EventModelApi.EventModelVO>()
@@ -84,6 +85,19 @@ const previewResult = ref<EventModelApi.EventModelPreviewVO>()
 const standardJsonText = computed(() =>
   JSON.stringify(previewResult.value?.standardEventJson ?? {}, null, 2)
 )
+
+const buildPreviewPayload = (eventModel: EventModelApi.EventModelVO): EventModelApi.EventModelSaveReqVO => ({
+  id: eventModel.id,
+  sceneCode: eventModel.sceneCode,
+  eventCode: eventModel.eventCode,
+  eventName: eventModel.eventName,
+  eventType: eventModel.eventType,
+  bindingSourceCodes: (eventModel.bindingSources || []).map((item) => item.sourceCode),
+  sampleEventJson: eventModel.sampleEventJson ?? {},
+  status: eventModel.status,
+  description: eventModel.description,
+  fields: eventModel.fields || []
+})
 
 const open = async (id: number) => {
   dialogVisible.value = true
@@ -95,7 +109,11 @@ const open = async (id: number) => {
     if (!detail.value) {
       return
     }
-    previewResult.value = await EventModelApi.previewStandardEvent(detail.value)
+    if (!detail.value.bindingSources?.length) {
+      message.warning('当前事件模型未绑定接入源，暂时无法预览')
+      return
+    }
+    previewResult.value = await EventModelApi.previewStandardEvent(buildPreviewPayload(detail.value))
   } finally {
     loading.value = false
   }

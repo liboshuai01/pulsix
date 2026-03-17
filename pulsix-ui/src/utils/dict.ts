@@ -112,6 +112,8 @@ export enum DICT_TYPE {
   COMMON_STATUS = 'common_status',
   TERMINAL = 'terminal', // 终端
   DATE_INTERVAL = 'date_interval', // 数据间隔
+  RISK_ACCESS_SOURCE_TYPE = 'risk_access_source_type', // 风控接入源类型
+  RISK_ACCESS_TOPIC_NAME = 'risk_access_topic_name', // 风控标准 Topic
 
   // ========== SYSTEM 模块 ==========
   SYSTEM_USER_SEX = 'system_user_sex',

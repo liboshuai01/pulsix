@@ -78,6 +78,10 @@ INSERT INTO `system_menu` (
   (6078, '事件模型查询', 'risk:event-model:query', 3, 1, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6079, '事件模型新增', 'risk:event-model:create', 3, 2, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
   (6080, '事件模型修改', 'risk:event-model:update', 3, 3, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
-  (6081, '事件模型删除', 'risk:event-model:delete', 3, 4, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
+  (6081, '事件模型删除', 'risk:event-model:delete', 3, 4, 6021, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6082, '接入源查询', 'risk:access-source:query', 3, 1, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6083, '接入源新增', 'risk:access-source:create', 3, 2, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6084, '接入源修改', 'risk:access-source:update', 3, 3, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0'),
+  (6085, '接入源删除', 'risk:access-source:delete', 3, 4, 6070, '', '', '', NULL, 0, b'1', b'1', b'1', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, b'0');
 
 COMMIT;

@@ -26,12 +26,6 @@ public class EventModelRespVO {
     @Schema(description = "事件类型", example = "promotion_grant")
     private String eventType;
 
-    @Schema(description = "接入类型", example = "HTTP")
-    private String sourceType;
-
-    @Schema(description = "标准事件 Topic", example = "pulsix.event.standard")
-    private String topicName;
-
     @Schema(description = "样例事件")
     private Map<String, Object> sampleEventJson;
 
@@ -46,6 +40,9 @@ public class EventModelRespVO {
 
     @Schema(description = "字段定义")
     private List<EventFieldItemVO> fields;
+
+    @Schema(description = "接入绑定")
+    private List<EventBindingSourceItemVO> bindingSources;
 
     @Schema(description = "创建者", example = "admin")
     private String creator;

@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel;
 
 import cn.liboshuai.pulsix.framework.common.pojo.CommonResult;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
+import cn.liboshuai.pulsix.module.risk.convert.accesssource.AccessSourceConvert;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPageReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPreviewRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelRespVO;
@@ -9,7 +10,9 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModel
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelSimpleRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelUpdateStatusReqVO;
 import cn.liboshuai.pulsix.module.risk.convert.eventmodel.EventModelConvert;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.AccessSourceDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventSchemaDO;
+import cn.liboshuai.pulsix.module.risk.service.accesssource.AccessSourceService;
 import cn.liboshuai.pulsix.module.risk.service.eventmodel.EventModelService;
 import cn.liboshuai.pulsix.module.system.api.user.AdminUserApi;
 import cn.liboshuai.pulsix.module.system.api.user.dto.AdminUserRespDTO;
@@ -45,6 +48,8 @@ public class EventModelController {
 
     @Resource
     private EventModelService eventModelService;
+    @Resource
+    private AccessSourceService accessSourceService;
     @Resource
     private AdminUserApi adminUserApi;
 
@@ -91,6 +96,7 @@ public class EventModelController {
         }
         EventModelRespVO respVO = EventModelConvert.INSTANCE.convert(schema);
         respVO.setFields(EventModelConvert.INSTANCE.convertFieldList(eventModelService.getEventFieldList(schema.getEventCode())));
+        fillBindingSources(Collections.singletonList(respVO));
         translateAuditUsers(Collections.singletonList(respVO));
         return success(respVO);
     }
@@ -105,6 +111,7 @@ public class EventModelController {
             respVO.setFields(null);
             respVO.setSampleEventJson(null);
         }
+        fillBindingSources(respVOPage.getList());
         translateAuditUsers(respVOPage.getList());
         return success(respVOPage);
     }
@@ -122,6 +129,28 @@ public class EventModelController {
     @PreAuthorize("@ss.hasPermission('risk:event-model:query')")
     public CommonResult<EventModelPreviewRespVO> previewStandardEvent(@Valid @RequestBody EventModelSaveReqVO reqVO) {
         return success(eventModelService.previewStandardEvent(reqVO));
+    }
+
+    private void fillBindingSources(List<EventModelRespVO> eventModels) {
+        if (eventModels == null || eventModels.isEmpty()) {
+            return;
+        }
+
+        Set<String> eventCodes = new HashSet<>();
+        for (EventModelRespVO eventModel : eventModels) {
+            if (eventModel.getEventCode() != null) {
+                eventCodes.add(eventModel.getEventCode());
+            }
+        }
+        if (eventCodes.isEmpty()) {
+            return;
+        }
+
+        Map<String, List<AccessSourceDO>> bindingSourceMap = accessSourceService.getBindingSourceMap(eventCodes);
+        for (EventModelRespVO eventModel : eventModels) {
+            List<AccessSourceDO> bindingSources = bindingSourceMap.getOrDefault(eventModel.getEventCode(), Collections.emptyList());
+            eventModel.setBindingSources(AccessSourceConvert.INSTANCE.convertBindingItemList(bindingSources));
+        }
     }
 
     private void translateAuditUsers(List<EventModelRespVO> eventModels) {

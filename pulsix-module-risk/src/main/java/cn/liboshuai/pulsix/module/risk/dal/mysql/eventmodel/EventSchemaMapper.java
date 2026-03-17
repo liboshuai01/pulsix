@@ -25,7 +25,6 @@ public interface EventSchemaMapper extends BaseMapperX<EventSchemaDO> {
                 .likeIfPresent(EventSchemaDO::getEventCode, reqVO.getEventCode())
                 .likeIfPresent(EventSchemaDO::getEventName, reqVO.getEventName())
                 .likeIfPresent(EventSchemaDO::getEventType, reqVO.getEventType())
-                .likeIfPresent(EventSchemaDO::getSourceType, reqVO.getSourceType())
                 .eqIfPresent(EventSchemaDO::getStatus, reqVO.getStatus())
                 .orderByDesc(EventSchemaDO::getId));
     }

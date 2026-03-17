@@ -1,5 +1,3 @@
-export const EVENT_MODEL_DEFAULT_TOPIC = 'pulsix.event.standard'
-
 export const EVENT_FIELD_TYPE_OPTIONS = [
   { label: '字符串', value: 'STRING' },
   { label: '整数', value: 'INTEGER' },

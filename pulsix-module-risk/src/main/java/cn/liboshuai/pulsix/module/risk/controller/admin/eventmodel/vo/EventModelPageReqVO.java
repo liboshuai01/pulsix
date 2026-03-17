@@ -22,9 +22,6 @@ public class EventModelPageReqVO extends PageParam {
     @Schema(description = "事件类型，模糊匹配", example = "promotion_grant")
     private String eventType;
 
-    @Schema(description = "接入类型，模糊匹配", example = "HTTP")
-    private String sourceType;
-
     @Schema(description = "状态", example = "0")
     @InEnum(value = CommonStatusEnum.class, message = "状态必须是 {value}")
     private Integer status;

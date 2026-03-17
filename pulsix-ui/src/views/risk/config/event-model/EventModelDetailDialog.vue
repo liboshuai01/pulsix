@@ -20,12 +20,6 @@
         <el-descriptions-item label="事件类型">
           {{ detail?.eventType || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="接入类型">
-          {{ detail?.sourceType || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="标准 Topic">
-          {{ detail?.topicName || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="版本">
           {{ detail?.version ?? '-' }}
         </el-descriptions-item>
@@ -37,6 +31,33 @@
           <span class="risk-event-model-detail__multiline">{{ detail?.description || '-' }}</span>
         </el-descriptions-item>
       </el-descriptions>
+
+      <el-card header="接入绑定" class="mt-18px" shadow="never">
+        <el-empty
+          v-if="!detail?.bindingSources?.length"
+          description="当前事件模型暂无接入绑定"
+          :image-size="60"
+        />
+        <el-table v-else :data="detail.bindingSources" border>
+          <el-table-column label="接入源名称" prop="sourceName" min-width="160" />
+          <el-table-column label="接入源编码" prop="sourceCode" min-width="180" />
+          <el-table-column label="接入类型" min-width="120">
+            <template #default="{ row }">
+              <dict-tag :type="DICT_TYPE.RISK_ACCESS_SOURCE_TYPE" :value="row.sourceType" />
+            </template>
+          </el-table-column>
+          <el-table-column label="标准 Topic" min-width="180">
+            <template #default="{ row }">
+              <dict-tag :type="DICT_TYPE.RISK_ACCESS_TOPIC_NAME" :value="row.topicName" />
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="100" align="center">
+            <template #default="{ row }">
+              <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="row.status" />
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
 
       <el-card header="字段定义" class="mt-18px" shadow="never">
         <el-table :data="detail?.fields || []" border>

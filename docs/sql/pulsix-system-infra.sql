@@ -487,6 +487,7 @@ CREATE TABLE `access_source_def`
     `source_code`              varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '接入源编码',
     `source_name`              varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '接入源名称',
     `source_type`              varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '接入源类型',
+    `topic_name`               varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标准事件 Topic',
     `access_protocol`          varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '接入协议',
     `app_id`                   varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT NULL COMMENT '应用标识',
     `owner_name`               varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT NULL COMMENT '负责人',
@@ -514,7 +515,7 @@ CREATE TABLE `access_source_def`
 -- Records of access_source_def
 -- ----------------------------
 INSERT INTO `access_source_def`
-VALUES (14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'HTTP', 'marketing-center', '张三',
+VALUES (14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'marketing-center', '张三',
         'marketing-risk@example.com', 300, '[
     \"PROMOTION_RISK\"
   ]', '[
@@ -523,7 +524,7 @@ VALUES (14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'HTT
   ]', 1, '服务营销受理事件的 HTTP 接入源', 'admin', '2026-03-08 09:58:00',
         'admin', '2026-03-08 09:58:00', b'0');
 INSERT INTO `access_source_def`
-VALUES (14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'HTTP', 'account-center', '李四',
+VALUES (14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'account-center', '李四',
         'finance-risk@example.com', 200, '[
     \"WITHDRAW_RISK\"
   ]', '[
@@ -532,13 +533,50 @@ VALUES (14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'HTTP
   ]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00',
         'admin', '2026-03-08 10:58:00', b'0');
 INSERT INTO `access_source_def`
-VALUES (14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'TCP', 'order-center', '王五', 'order-risk@example.com',
+VALUES (14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'pulsix.event.standard', 'TCP', 'order-center', '王五', 'order-risk@example.com',
         500, '[
     \"ORDER_RISK\"
   ]', '[
     \"172.20.8.0/24\"
   ]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin',
         '2026-03-08 11:58:00', b'0');
+
+-- ----------------------------
+-- Table structure for event_access_binding
+-- ----------------------------
+DROP TABLE IF EXISTS `event_access_binding`;
+CREATE TABLE `event_access_binding`
+(
+    `id`          bigint                                                       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `event_code`  varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '事件编码',
+    `source_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '接入源编码',
+    `creator`     varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT '' COMMENT '创建者',
+    `create_time` datetime                                                     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updater`     varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT '' COMMENT '更新者',
+    `update_time` datetime                                                     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`     bit(1)                                                       NOT NULL DEFAULT b'0' COMMENT '是否删除',
+    PRIMARY KEY (`id`) USING BTREE,
+    UNIQUE INDEX `uk_event_source` (`event_code` ASC, `source_code` ASC) USING BTREE,
+    INDEX `idx_source_code` (`source_code` ASC) USING BTREE,
+    INDEX `idx_event_code` (`event_code` ASC) USING BTREE
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 14104
+  CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT = '事件接入绑定表'
+  ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of event_access_binding
+-- ----------------------------
+INSERT INTO `event_access_binding`
+VALUES (14101, 'PROMOTION_EVENT', 'PROMOTION_CENTER_HTTP', 'admin', '2026-03-08 10:00:00', 'admin',
+        '2026-03-08 10:00:00', b'0');
+INSERT INTO `event_access_binding`
+VALUES (14102, 'WITHDRAW_EVENT', 'WITHDRAW_CENTER_HTTP', 'admin', '2026-03-08 11:00:00', 'admin',
+        '2026-03-08 11:00:00', b'0');
+INSERT INTO `event_access_binding`
+VALUES (14103, 'ORDER_EVENT', 'ORDER_CENTER_SDK', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00',
+        b'0');
 
 -- ----------------------------
 -- Table structure for alert_channel_def
@@ -1266,8 +1304,6 @@ CREATE TABLE `event_schema`
     `event_code`        varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '事件编码',
     `event_name`        varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '事件名称',
     `event_type`        varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '事件类型',
-    `source_type`       varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL     DEFAULT NULL COMMENT '接入类型',
-    `topic_name`        varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL     DEFAULT NULL COMMENT '标准事件 Topic',
     `sample_event_json` json                                                          NULL COMMENT '样例事件',
     `version`           int                                                           NOT NULL DEFAULT 1 COMMENT '版本',
     `status`            tinyint                                                       NOT NULL DEFAULT 1 COMMENT '状态',
@@ -1290,7 +1326,7 @@ CREATE TABLE `event_schema`
 -- Records of event_schema
 -- ----------------------------
 INSERT INTO `event_schema`
-VALUES (1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', 'HTTP', 'pulsix.event.standard', '{
+VALUES (1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', '{
   \"ip\": \"203.0.113.10\",
   \"ext\": {
     \"campaignCode\": \"SPRING_GROWTH\",
@@ -1313,7 +1349,7 @@ VALUES (1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion
 }',
         1, 1, '营销受理标准事件模型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0');
 INSERT INTO `event_schema`
-VALUES (2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', 'HTTP', 'pulsix.event.standard', '{
+VALUES (2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', '{
   \"ip\": \"198.51.100.21\",
   \"ext\": {
     \"city\": \"Hangzhou\",
@@ -1338,7 +1374,7 @@ VALUES (2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_ap
 }',
         1, 1, '提现申请标准事件模型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0');
 INSERT INTO `event_schema`
-VALUES (3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', 'SDK', 'pulsix.event.standard', '{
+VALUES (3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', '{
   \"ip\": \"192.0.2.18\",
   \"ext\": {
     \"skuCount\": 2,
