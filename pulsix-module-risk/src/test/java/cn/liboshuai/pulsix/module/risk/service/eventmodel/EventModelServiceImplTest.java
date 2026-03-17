@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -79,10 +78,10 @@ class EventModelServiceImplTest {
         ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
-        assertThat(insertedFields).hasSize(6);
+        assertThat(insertedFields).hasSize(5);
         assertThat(insertedFields).allMatch(field -> "TRADE_EVENT".equals(field.getEventCode()));
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
-                .containsExactly(1, 2, 3, 4, 5, 6);
+                .containsExactly(1, 2, 3, 4, 5);
 
         ArgumentCaptor<Collection<EventAccessBindingDO>> bindingCaptor = ArgumentCaptor.forClass(Collection.class);
         verify(eventAccessBindingMapper).insertBatch(bindingCaptor.capture());
@@ -171,9 +170,9 @@ class EventModelServiceImplTest {
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
         assertThat(insertedFields).extracting(EventFieldDefDO::getFieldName)
-                .containsExactly("eventId", "eventType", "sceneCode", "eventTime", "amount", "ext");
+                .containsExactly("eventId", "eventType", "sceneCode", "eventTime", "amount");
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
-                .containsExactly(1, 2, 3, 4, 5, 6);
+                .containsExactly(1, 2, 3, 4, 5);
     }
 
     @Test
@@ -195,6 +194,18 @@ class EventModelServiceImplTest {
                 .filter(field -> "amount".equals(field.getFieldName()))
                 .findFirst()
                 .ifPresent(field -> field.setSampleValue("NOT_A_NUMBER"));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+
+        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_105);
+    }
+
+    @Test
+    void createEventModel_disabledExtField_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.getFields().add(createField("ext", "扩展字段", "JSON", 0, null, "{\"foo\":\"bar\"}", 6));
         when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
 
         assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
@@ -261,10 +272,6 @@ class EventModelServiceImplTest {
                 .filter(field -> "amount".equals(field.getFieldName()))
                 .findFirst()
                 .ifPresent(field -> field.setSampleValue("88.75"));
-        reqVO.getFields().stream()
-                .filter(field -> "ext".equals(field.getFieldName()))
-                .findFirst()
-                .ifPresent(field -> field.setSampleValue("{\"city\":\"Shanghai\"}"));
 
         EventModelPreviewRespVO preview = eventModelService.previewStandardEvent(reqVO);
 
@@ -273,7 +280,6 @@ class EventModelServiceImplTest {
         assertThat(preview.getStandardEventJson().get("amount")).isInstanceOf(BigDecimal.class);
         assertThat((BigDecimal) preview.getStandardEventJson().get("amount"))
                 .isEqualByComparingTo(new BigDecimal("88.75"));
-        assertThat(preview.getStandardEventJson().get("ext")).isEqualTo(Map.of("city", "Shanghai"));
         assertThat(preview.getRequiredFields()).contains("eventId", "sceneCode", "eventType", "amount");
     }
 
@@ -305,8 +311,7 @@ class EventModelServiceImplTest {
                 createField("sceneCode", "场景编码", "STRING", 1, null, "TRADE_RISK", 2),
                 createField("eventType", "事件类型", "STRING", 1, null, "trade", 3),
                 createField("eventTime", "事件时间", "DATETIME", 0, null, "2026-03-08T10:00:00", 4),
-                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 5),
-                createField("ext", "扩展信息", "JSON", 0, null, "{\"merchantId\":\"M001\"}", 6)
+                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 5)
         )));
         return reqVO;
     }

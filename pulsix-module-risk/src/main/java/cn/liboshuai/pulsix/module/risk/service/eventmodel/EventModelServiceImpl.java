@@ -54,6 +54,7 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT
 public class EventModelServiceImpl implements EventModelService {
 
     private static final Object MISSING_VALUE = new Object();
+    private static final String DISABLED_FIELD_NAME_EXT = "ext";
 
     @Resource
     private EventSchemaMapper eventSchemaMapper;
@@ -140,7 +141,17 @@ public class EventModelServiceImpl implements EventModelService {
         if (StrUtil.isBlank(eventCode)) {
             return Collections.emptyList();
         }
-        return eventFieldDefMapper.selectListByEventCode(eventCode);
+        List<EventFieldDefDO> fields = eventFieldDefMapper.selectListByEventCode(eventCode);
+        if (fields.isEmpty()) {
+            return fields;
+        }
+        List<EventFieldDefDO> filteredFields = new ArrayList<>(fields.size());
+        for (EventFieldDefDO field : fields) {
+            if (!isDisabledFieldName(field.getFieldName())) {
+                filteredFields.add(field);
+            }
+        }
+        return filteredFields;
     }
 
     @Override
@@ -248,6 +259,7 @@ public class EventModelServiceImpl implements EventModelService {
     private DraftValidationResult validateDraft(EventModelSaveReqVO reqVO) {
         List<EventFieldDefDO> normalizedFields = normalizeFields(reqVO.getFields());
         List<String> messages = new ArrayList<>();
+        List<EventFieldDefDO> activeFields = new ArrayList<>(normalizedFields.size());
         LinkedHashMap<String, EventFieldDefDO> fieldMap = new LinkedHashMap<>();
         String duplicateFieldName = null;
 
@@ -256,12 +268,17 @@ public class EventModelServiceImpl implements EventModelService {
         }
 
         for (EventFieldDefDO field : normalizedFields) {
+            if (isDisabledFieldName(field.getFieldName())) {
+                messages.add("字段名【ext】已停用，请改为具体业务字段名");
+                continue;
+            }
             EventFieldDefDO previous = fieldMap.putIfAbsent(field.getFieldName(), field);
             if (previous != null && duplicateFieldName == null) {
                 duplicateFieldName = field.getFieldName();
                 messages.add("字段【" + field.getFieldName() + "】重复定义");
             }
             validateFieldValueConfig(field, messages);
+            activeFields.add(field);
         }
 
         LinkedHashMap<String, Object> standardEventJson = new LinkedHashMap<>();
@@ -269,7 +286,7 @@ public class EventModelServiceImpl implements EventModelService {
         List<String> optionalFields = new ArrayList<>();
         LinkedHashMap<String, String> fieldTypes = new LinkedHashMap<>();
 
-        for (EventFieldDefDO field : normalizedFields) {
+        for (EventFieldDefDO field : activeFields) {
             fieldTypes.put(field.getFieldName(), field.getFieldType());
             if (Objects.equals(field.getRequiredFlag(), 1)) {
                 requiredFields.add(field.getFieldName());
@@ -285,7 +302,7 @@ public class EventModelServiceImpl implements EventModelService {
             }
         }
 
-        return new DraftValidationResult(normalizedFields, standardEventJson, requiredFields, optionalFields,
+        return new DraftValidationResult(activeFields, standardEventJson, requiredFields, optionalFields,
                 fieldTypes, messages, duplicateFieldName);
     }
 
@@ -323,10 +340,13 @@ public class EventModelServiceImpl implements EventModelService {
             clone.setSampleValue(field.getSampleValue());
             clone.setDescription(field.getDescription());
             clone.setSortNo(field.getSortNo());
-            clone.setExtJson(field.getExtJson());
             fields.add(clone);
         }
         return fields;
+    }
+
+    private boolean isDisabledFieldName(String fieldName) {
+        return StrUtil.equalsIgnoreCase(DISABLED_FIELD_NAME_EXT, StrUtil.trim(fieldName));
     }
 
     private List<EventAccessBindingDO> buildBindingDOList(String eventCode, List<String> sourceCodes) {

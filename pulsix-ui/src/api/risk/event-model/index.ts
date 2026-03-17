@@ -9,7 +9,6 @@ export interface EventFieldItemVO {
   sampleValue?: string
   description?: string
   sortNo?: number
-  extJson?: Record<string, any>
 }
 
 export interface EventModelVO {

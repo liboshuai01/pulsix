@@ -220,7 +220,7 @@
               </el-table-column>
               <el-table-column
                 label="操作"
-                width="164"
+                width="136"
                 fixed="right"
                 align="center"
                 header-align="center"
@@ -245,14 +245,6 @@
                     </el-button>
                     <el-button
                       link
-                      type="warning"
-                      class="risk-event-model-form__row-action-btn"
-                      @click="openExtJsonDialog($index)"
-                    >
-                      高级
-                    </el-button>
-                    <el-button
-                      link
                       type="danger"
                       class="risk-event-model-form__row-action-btn"
                       @click="removeField($index)"
@@ -274,26 +266,6 @@
         <el-button type="primary" :loading="formLoading" @click="submitForm">确 定</el-button>
         <el-button @click="dialogVisible = false">取 消</el-button>
       </div>
-    </template>
-  </RiskCenterDialog>
-
-  <RiskCenterDialog
-    v-model="extJsonDialogVisible"
-    title="字段高级配置"
-    :fullscreen="false"
-    width="720px"
-    max-height="calc(100vh - 360px)"
-    scroll
-  >
-    <el-input
-      v-model="extJsonText"
-      type="textarea"
-      :rows="14"
-      placeholder="请输入 extJson，留空表示清空高级配置"
-    />
-    <template #footer>
-      <el-button type="primary" @click="saveExtJson">保 存</el-button>
-      <el-button @click="extJsonDialogVisible = false">取 消</el-button>
     </template>
   </RiskCenterDialog>
 </template>
@@ -331,10 +303,6 @@ const sceneOptions = ref<SceneApi.SceneVO[]>([])
 const bindingSourceOptions = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
 const currentBoundSourceFallback = ref<AccessSourceApi.AccessSourceSimpleVO[]>([])
 
-const extJsonDialogVisible = ref(false)
-const extJsonText = ref('')
-const activeExtJsonRowIndex = ref<number | undefined>()
-
 const createFieldRow = (): EventFieldRow => ({
   __key: `${Date.now()}-${Math.random()}`,
   fieldName: '',
@@ -344,8 +312,7 @@ const createFieldRow = (): EventFieldRow => ({
   defaultValue: '',
   sampleValue: '',
   description: '',
-  sortNo: 1,
-  extJson: undefined
+  sortNo: 1
 })
 
 const createDefaultFormData = (): EventModelFormData => ({
@@ -571,39 +538,19 @@ const handleBindingSelectionChange = (selection: AccessSourceApi.AccessSourceSim
   formRef.value?.clearValidate?.('bindingSourceCodes')
 }
 
-const openExtJsonDialog = (index: number) => {
-  activeExtJsonRowIndex.value = index
-  const row = formData.value.fields[index]
-  extJsonText.value = row.extJson ? JSON.stringify(row.extJson, null, 2) : ''
-  extJsonDialogVisible.value = true
-}
-
-const saveExtJson = () => {
-  if (activeExtJsonRowIndex.value === undefined) {
-    return
-  }
-  if (!extJsonText.value.trim()) {
-    formData.value.fields[activeExtJsonRowIndex.value].extJson = undefined
-    extJsonDialogVisible.value = false
-    return
-  }
-  try {
-    const parsed = JSON.parse(extJsonText.value)
-    if (Array.isArray(parsed) || parsed === null || typeof parsed !== 'object') {
-      message.error('extJson 必须是 JSON Object')
-      return
-    }
-    formData.value.fields[activeExtJsonRowIndex.value].extJson = parsed
-    extJsonDialogVisible.value = false
-  } catch (error: any) {
-    message.error(`extJson 格式不正确：${error.message}`)
-  }
-}
-
 const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
   if (!formData.value.bindingSourceCodes.length) {
     message.warning('请至少绑定一个接入源')
     activeTab.value = 'binding'
+    return null
+  }
+
+  const hasDisabledExtField = formData.value.fields.some(
+    (field) => field.fieldName?.trim().toLowerCase() === 'ext'
+  )
+  if (hasDisabledExtField) {
+    message.warning('字段名 ext 已停用，请改为具体业务字段名')
+    activeTab.value = 'fields'
     return null
   }
 
@@ -623,9 +570,7 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
         defaultValue: fieldData.defaultValue || undefined,
         sampleValue: fieldData.sampleValue || undefined,
         description: fieldData.description || undefined,
-        fieldLabel: fieldData.fieldLabel || undefined,
-        extJson:
-          fieldData.extJson && Object.keys(fieldData.extJson).length ? fieldData.extJson : undefined
+        fieldLabel: fieldData.fieldLabel || undefined
       }
     })
   }
@@ -635,8 +580,6 @@ const resetForm = () => {
   formData.value = createDefaultFormData()
   bindingSourceOptions.value = []
   currentBoundSourceFallback.value = []
-  extJsonText.value = ''
-  activeExtJsonRowIndex.value = undefined
   formRef.value?.resetFields()
   nextTick(() => {
     bindingTableRef.value?.clearSelection?.()
@@ -685,10 +628,9 @@ const resetForm = () => {
 }
 
 .risk-event-model-form__row-actions {
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
+  display: flex;
   justify-content: center;
-  gap: 6px 12px;
+  gap: 12px;
 }
 
 .risk-event-model-form__row-action-btn {

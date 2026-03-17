@@ -4,15 +4,11 @@ import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
 import cn.liboshuai.pulsix.module.risk.enums.eventmodel.EventFieldTypeEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import java.util.Map;
 
 /**
  * 事件字段定义 DO
@@ -68,10 +64,5 @@ public class EventFieldDefDO extends BaseDO {
      * 排序
      */
     private Integer sortNo;
-    /**
-     * 扩展配置
-     */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> extJson;
 
 }

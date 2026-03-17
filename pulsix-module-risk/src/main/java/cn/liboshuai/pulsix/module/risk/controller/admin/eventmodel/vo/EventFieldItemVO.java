@@ -11,8 +11,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.util.Map;
-
 @Schema(description = "管理后台 - 事件模型字段项")
 @Data
 public class EventFieldItemVO {
@@ -53,8 +51,5 @@ public class EventFieldItemVO {
     @Schema(description = "排序号", example = "10")
     @Min(value = 0, message = "排序号不能小于 0")
     private Integer sortNo;
-
-    @Schema(description = "扩展配置")
-    private Map<String, Object> extJson;
 
 }
