@@ -12,7 +12,7 @@
  设计说明：
  1. 覆盖风险控制面一期核心表，以及主文档中已经明确列出的接入治理、错误治理、告警中心、风险事件查询相关表。
  2. 所有表统一补齐 BaseDO 字段，保持和项目内通用审计字段风格一致。
- 3. 接入指引页直接复用 event_schema.sample_event_json、event_field_def、access_source_def，不单独拆表。
+ 3. 接入指引页直接复用 event_field_def、access_source_def 与标准事件预览能力，不单独拆表。
  4. 不添加物理外键，避免影响发布快照、历史版本、异步日志与回放数据的灵活写入。
  5. 针对 feature_code 在不同场景下会重复出现的实际情况，feature_*_conf 统一增加 scene_code 作为联合唯一键。
  6. 示例数据以 docs/实时风控系统.md 中“一期代表性业务场景”为准，统一切换为 PROMOTION_RISK、WITHDRAW_RISK、ORDER_RISK 三个异步闭环场景。
@@ -107,7 +107,6 @@ CREATE TABLE `event_schema` (
   `event_code` varchar(64) NOT NULL COMMENT '事件编码',
   `event_name` varchar(128) NOT NULL COMMENT '事件名称',
   `event_type` varchar(64) NOT NULL COMMENT '事件类型',
-  `sample_event_json` json DEFAULT NULL COMMENT '样例事件',
   `version` int NOT NULL DEFAULT 1 COMMENT '版本',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
   `description` varchar(512) DEFAULT NULL COMMENT '描述',
@@ -716,10 +715,10 @@ INSERT INTO `entity_type_def` (`id`, `entity_type`, `entity_name`, `key_field_na
 (5, 'WITHDRAW_ACCOUNT', '提现账户', 'withdrawAccountId', 'WACC_88001', 1, '提现账户维度，适用于账户关联分析', 'admin', '2026-03-08 09:32:00', 'admin', '2026-03-08 09:32:00', b'0'),
 (6, 'ORDER', '订单', 'orderNo', 'ORD202603080001', 1, '订单维度，适用于订单后置风控追踪', 'admin', '2026-03-08 09:32:00', 'admin', '2026-03-08 09:32:00', b'0');
 
-INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `event_type`, `sample_event_json`, `version`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', '{"eventId":"E_PROMO_0001","traceId":"T_PROMO_0001","sceneCode":"PROMOTION_RISK","eventType":"promotion_grant","eventTime":"2026-03-08T10:00:00","userId":"U20001","deviceId":"DVC_PROMO_001","ip":"203.0.113.10","channel":"APP","bizNo":"PROMO_REQ_202603080001","activityId":"ACT_INVITE_202603","promotionType":"INVITE_REWARD","rewardType":"COUPON","rewardValue":30,"grantStatus":"ACCEPTED","ext":{"inviteUserId":"U18888","campaignCode":"SPRING_GROWTH"}}', 1, 1, '营销受理标准事件模型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
-(2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', '{"eventId":"E_WD_0001","traceId":"T_WD_0001","sceneCode":"WITHDRAW_RISK","eventType":"withdraw_apply","eventTime":"2026-03-08T11:00:00","userId":"U30001","deviceId":"DVC_WD_001","ip":"198.51.100.21","channel":"APP","bizNo":"WD_REQ_202603080001","withdrawNo":"WD202603080001","withdrawAmount":3500,"currency":"CNY","withdrawAccountId":"WACC_88001","accountType":"BANK_CARD","bankCode":"ICBC","withdrawStatus":"CREATED","ext":{"city":"Hangzhou","bankCardTail":"1024"}}', 1, 1, '提现申请标准事件模型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
-(3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', '{"eventId":"E_ORDER_0001","traceId":"T_ORDER_0001","sceneCode":"ORDER_RISK","eventType":"order_paid","eventTime":"2026-03-08T12:00:00","userId":"U40001","deviceId":"DVC_ORDER_001","ip":"192.0.2.18","channel":"APP","bizNo":"ORD202603080001","orderNo":"ORD202603080001","orderAmount":1299,"payAmount":1299,"currency":"CNY","merchantId":"MCH_3001","fulfillmentType":"EXPRESS","orderStatus":"PAID","ext":{"skuCount":2,"receiverCity":"Shanghai"}}', 1, 1, '订单支付成功标准事件模型', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
+INSERT INTO `event_schema` (`id`, `scene_code`, `event_code`, `event_name`, `event_type`, `version`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(1, 'PROMOTION_RISK', 'PROMOTION_EVENT', '营销受理事件', 'promotion_grant', 1, 1, '营销受理标准事件模型', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),
+(2, 'WITHDRAW_RISK', 'WITHDRAW_EVENT', '提现申请事件', 'withdraw_apply', 1, 1, '提现申请标准事件模型', 'admin', '2026-03-08 11:00:00', 'admin', '2026-03-08 11:00:00', b'0'),
+(3, 'ORDER_RISK', 'ORDER_EVENT', '支付成功事件', 'order_paid', 1, 1, '订单支付成功标准事件模型', 'admin', '2026-03-08 12:00:00', 'admin', '2026-03-08 12:00:00', b'0');
 
 INSERT INTO `event_field_def` (`id`, `event_code`, `field_name`, `field_label`, `field_type`, `required_flag`, `default_value`, `sample_value`, `description`, `sort_no`, `ext_json`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (101, 'PROMOTION_EVENT', 'eventId', '事件ID', 'STRING', 1, NULL, 'E_PROMO_0001', '事件唯一标识', 1, NULL, 'admin', '2026-03-08 10:01:00', 'admin', '2026-03-08 10:01:00', b'0'),

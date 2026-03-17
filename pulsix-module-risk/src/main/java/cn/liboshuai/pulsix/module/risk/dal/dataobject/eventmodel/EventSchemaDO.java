@@ -4,15 +4,11 @@ import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
 import com.baomidou.mybatisplus.annotation.KeySequence;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import java.util.Map;
 
 /**
  * 事件模型定义 DO
@@ -46,11 +42,6 @@ public class EventSchemaDO extends BaseDO {
      * 事件类型
      */
     private String eventType;
-    /**
-     * 样例事件
-     */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> sampleEventJson;
     /**
      * 版本
      */

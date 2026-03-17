@@ -22,7 +22,4 @@ public class EventModelPreviewRespVO {
     @Schema(description = "字段类型摘要")
     private Map<String, String> fieldTypes;
 
-    @Schema(description = "校验消息")
-    private List<String> validationMessages;
-
 }

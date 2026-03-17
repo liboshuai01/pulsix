@@ -19,7 +19,6 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.EventAccessBinding
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventFieldDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventSchemaMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
-import cn.liboshuai.pulsix.module.risk.enums.eventmodel.EventFieldTypeEnum;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -162,7 +161,6 @@ public class EventModelServiceImpl implements EventModelService {
         respVO.setRequiredFields(validationResult.requiredFields());
         respVO.setOptionalFields(validationResult.optionalFields());
         respVO.setFieldTypes(validationResult.fieldTypes());
-        respVO.setValidationMessages(validationResult.messages());
         return respVO;
     }
 
@@ -266,20 +264,6 @@ public class EventModelServiceImpl implements EventModelService {
             validateFieldValueConfig(field, messages);
         }
 
-        Map<String, Object> sampleEventJson = reqVO.getSampleEventJson();
-        if (sampleEventJson == null) {
-            messages.add("样例报文不能为空");
-            sampleEventJson = Collections.emptyMap();
-        }
-
-        for (String key : sampleEventJson.keySet()) {
-            if (!fieldMap.containsKey(key)) {
-                messages.add("样例报文字段【" + key + "】未在字段定义中声明");
-            }
-        }
-
-        validateSampleEventValues(sampleEventJson, fieldMap, messages);
-
         LinkedHashMap<String, Object> standardEventJson = new LinkedHashMap<>();
         List<String> requiredFields = new ArrayList<>();
         List<String> optionalFields = new ArrayList<>();
@@ -379,17 +363,6 @@ public class EventModelServiceImpl implements EventModelService {
         }
     }
 
-    private void validateSampleEventValues(Map<String, Object> sampleEventJson, Map<String, EventFieldDefDO> fieldMap,
-                                           List<String> messages) {
-        for (Map.Entry<String, Object> entry : sampleEventJson.entrySet()) {
-            EventFieldDefDO field = fieldMap.get(entry.getKey());
-            if (field == null || entry.getValue() == null) {
-                continue;
-            }
-            convertRuntimeValue(field, entry.getValue(), "样例报文", messages);
-        }
-    }
-
     private Object resolvePreviewFieldValue(EventFieldDefDO field, String sceneCode, String eventType,
                                             List<String> messages) {
         return resolveFromConfiguredSources(field, sceneCode, eventType, messages);
@@ -427,29 +400,9 @@ public class EventModelServiceImpl implements EventModelService {
         };
     }
 
-    private Object convertRuntimeValue(EventFieldDefDO field, Object rawValue, String source, List<String> messages) {
-        return switch (field.getFieldType()) {
-            case "STRING", "DATETIME" -> convertString(field.getFieldName(), rawValue, source, messages);
-            case "INTEGER" -> convertInteger(field.getFieldName(), rawValue, source, messages);
-            case "LONG" -> convertLong(field.getFieldName(), rawValue, source, messages);
-            case "DECIMAL" -> convertDecimal(field.getFieldName(), rawValue, source, messages);
-            case "BOOLEAN" -> convertBoolean(field.getFieldName(), rawValue, source, messages);
-            case "JSON" -> convertJson(field.getFieldName(), rawValue, source, messages);
-            default -> handleUnsupportedType(field.getFieldName(), field.getFieldType(), messages);
-        };
-    }
-
     private Object handleUnsupportedType(String fieldName, String fieldType, List<String> messages) {
         messages.add("字段【" + fieldName + "】使用了不支持的字段类型【" + fieldType + "】");
         return MISSING_VALUE;
-    }
-
-    private Object convertString(String fieldName, Object rawValue, String source, List<String> messages) {
-        if (rawValue instanceof Map || rawValue instanceof Collection) {
-            messages.add(source + "中的字段【" + fieldName + "】必须是字符串");
-            return MISSING_VALUE;
-        }
-        return String.valueOf(rawValue);
     }
 
     private Object convertInteger(String fieldName, Object rawValue, String source, List<String> messages) {

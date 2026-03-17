@@ -8,7 +8,7 @@
   >
     <div v-loading="formLoading" class="risk-event-model-form">
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
-        <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+        <el-tabs v-model="activeTab">
           <el-tab-pane label="基础信息" name="basic">
             <el-row :gutter="18">
               <el-col :span="12">
@@ -265,81 +265,6 @@
             </el-table>
           </el-tab-pane>
 
-          <el-tab-pane label="样例报文" name="sample">
-            <div class="mb-12px flex items-center gap-12px">
-              <el-button @click="formatSampleJson">格式化</el-button>
-              <el-button @click="validateSampleJsonText">校验 JSON</el-button>
-              <span class="text-13px text-[var(--el-text-color-secondary)]">
-                样例报文需为 JSON Object，顶层字段必须在字段定义中声明。
-              </span>
-            </div>
-            <el-input
-              v-model="sampleEventJsonText"
-              type="textarea"
-              :rows="20"
-              placeholder="请输入样例报文 JSON"
-            />
-          </el-tab-pane>
-
-          <el-tab-pane label="标准事件预览" name="preview">
-            <div class="mb-12px flex items-center gap-12px">
-              <el-button type="primary" plain :loading="previewLoading" @click="refreshPreview">
-                <Icon icon="ep:refresh" class="mr-5px" />刷新预览
-              </el-button>
-              <span class="text-13px text-[var(--el-text-color-secondary)]">
-                预览会按字段类型、默认值和固定字段推导规则组装标准事件。
-              </span>
-            </div>
-            <el-row :gutter="16">
-              <el-col :span="14">
-                <el-card header="标准事件 JSON" shadow="never">
-                  <pre class="risk-event-model-form__json">{{ previewJsonText }}</pre>
-                </el-card>
-              </el-col>
-              <el-col :span="10">
-                <el-card header="字段摘要" shadow="never">
-                  <div>
-                    <div class="mb-10px font-600">必填字段</div>
-                    <el-tag
-                      v-for="field in previewResult.requiredFields"
-                      :key="field"
-                      type="danger"
-                      effect="plain"
-                      class="mr-6px mb-6px"
-                    >
-                      {{ field }}
-                    </el-tag>
-                  </div>
-                  <div class="mt-12px">
-                    <div class="mb-10px font-600">可选字段</div>
-                    <el-tag
-                      v-for="field in previewResult.optionalFields"
-                      :key="field"
-                      effect="plain"
-                      class="mr-6px mb-6px"
-                    >
-                      {{ field }}
-                    </el-tag>
-                  </div>
-                </el-card>
-                <el-card header="校验消息" shadow="never" class="mt-16px">
-                  <el-empty
-                    v-if="!previewResult.validationMessages.length"
-                    description="当前草稿校验通过"
-                    :image-size="60"
-                  />
-                  <el-alert
-                    v-for="validationMessage in previewResult.validationMessages"
-                    :key="validationMessage"
-                    :title="validationMessage"
-                    type="warning"
-                    :closable="false"
-                    class="mb-8px"
-                  />
-                </el-card>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
         </el-tabs>
       </el-form>
     </div>
@@ -397,7 +322,6 @@ const message = useMessage()
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const formLoading = ref(false)
-const previewLoading = ref(false)
 const bindingLoading = ref(false)
 const formType = ref<'create' | 'update'>('create')
 const activeTab = ref('basic')
@@ -431,28 +355,13 @@ const createDefaultFormData = (): EventModelFormData => ({
   eventName: '',
   eventType: '',
   bindingSourceCodes: [],
-  sampleEventJson: {},
   version: undefined,
   status: CommonStatusEnum.ENABLE,
   description: '',
   fields: []
 })
 
-const createEmptyPreviewResult = (): EventModelApi.EventModelPreviewVO => ({
-  standardEventJson: {},
-  requiredFields: [],
-  optionalFields: [],
-  fieldTypes: {},
-  validationMessages: []
-})
-
 const formData = ref<EventModelFormData>(createDefaultFormData())
-const sampleEventJsonText = ref('{}')
-const previewResult = ref<EventModelApi.EventModelPreviewVO>(createEmptyPreviewResult())
-
-const previewJsonText = computed(() =>
-  JSON.stringify(previewResult.value.standardEventJson ?? {}, null, 2)
-)
 
 const validateBindingSourceCodes = (_rule: any, value: string[], callback: (error?: Error) => void) => {
   if (value?.length) {
@@ -558,7 +467,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
   dialogTitle.value = type === 'create' ? t('action.create') : t('action.update')
   formType.value = type
   activeTab.value = 'basic'
-  previewResult.value = createEmptyPreviewResult()
   resetForm()
   await loadSceneOptions()
   if (id) {
@@ -573,7 +481,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
         eventName: data.eventName,
         eventType: data.eventType,
         bindingSourceCodes: currentBoundSourceFallback.value.map((item) => item.sourceCode),
-        sampleEventJson: data.sampleEventJson ?? {},
         version: data.version,
         status: data.status,
         description: data.description || '',
@@ -583,7 +490,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
           __key: `${Date.now()}-${index}-${Math.random()}`
         }))
       }
-      sampleEventJsonText.value = JSON.stringify(data.sampleEventJson ?? {}, null, 2)
       await loadBindingSourceOptions(formData.value.sceneCode)
     } finally {
       formLoading.value = false
@@ -620,12 +526,6 @@ const submitForm = async () => {
     emit('success')
   } finally {
     formLoading.value = false
-  }
-}
-
-const handleTabChange = async (name: string | number) => {
-  if (name === 'preview') {
-    await refreshPreview()
   }
 }
 
@@ -700,45 +600,7 @@ const saveExtJson = () => {
   }
 }
 
-const formatSampleJson = () => {
-  try {
-    sampleEventJsonText.value = JSON.stringify(parseSampleJsonText(), null, 2)
-  } catch (error: any) {
-    message.error(error.message)
-  }
-}
-
-const validateSampleJsonText = () => {
-  try {
-    parseSampleJsonText()
-    message.success('样例报文格式正确')
-  } catch (error: any) {
-    message.error(error.message)
-  }
-}
-
-const parseSampleJsonText = () => {
-  try {
-    const parsed = JSON.parse(sampleEventJsonText.value || '{}')
-    if (Array.isArray(parsed) || parsed === null || typeof parsed !== 'object') {
-      throw new Error('样例报文必须是 JSON Object')
-    }
-    return parsed as Record<string, any>
-  } catch (error: any) {
-    throw new Error(`样例报文格式不正确：${error.message}`)
-  }
-}
-
 const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
-  let sampleEventJson: Record<string, any>
-  try {
-    sampleEventJson = parseSampleJsonText()
-  } catch (error: any) {
-    message.error(error.message)
-    activeTab.value = 'sample'
-    return null
-  }
-
   if (!formData.value.bindingSourceCodes.length) {
     message.warning('请至少绑定一个接入源')
     activeTab.value = 'binding'
@@ -752,7 +614,6 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
     eventName: formData.value.eventName,
     eventType: formData.value.eventType,
     bindingSourceCodes: Array.from(new Set(formData.value.bindingSourceCodes)),
-    sampleEventJson,
     status: formData.value.status,
     description: formData.value.description || undefined,
     fields: formData.value.fields.map((field: EventFieldRow) => {
@@ -770,33 +631,8 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
   }
 }
 
-const refreshPreview = async () => {
-  if (!formData.value.sceneCode) {
-    message.warning('请先选择场景，再维护接入绑定')
-    activeTab.value = 'basic'
-    return
-  }
-  if (!formData.value.bindingSourceCodes.length) {
-    message.warning('请至少选择一个接入源后再预览')
-    activeTab.value = 'binding'
-    return
-  }
-  const payload = buildPayload()
-  if (!payload) {
-    return
-  }
-  previewLoading.value = true
-  try {
-    previewResult.value = await EventModelApi.previewStandardEvent(payload)
-  } finally {
-    previewLoading.value = false
-  }
-}
-
 const resetForm = () => {
   formData.value = createDefaultFormData()
-  sampleEventJsonText.value = '{}'
-  previewResult.value = createEmptyPreviewResult()
   bindingSourceOptions.value = []
   currentBoundSourceFallback.value = []
   extJsonText.value = ''
@@ -864,14 +700,5 @@ const resetForm = () => {
   :deep(.el-input__inner) {
     text-align: center;
   }
-}
-
-.risk-event-model-form__json {
-  margin: 0;
-  min-height: 280px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 13px;
-  line-height: 1.6;
 }
 </style>

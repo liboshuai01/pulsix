@@ -18,7 +18,6 @@ export interface EventModelVO {
   eventCode: string
   eventName: string
   eventType: string
-  sampleEventJson: Record<string, any>
   version?: number
   status: number
   description?: string
@@ -37,7 +36,6 @@ export interface EventModelSaveReqVO {
   eventName: string
   eventType: string
   bindingSourceCodes: string[]
-  sampleEventJson: Record<string, any>
   status: number
   description?: string
   fields: EventFieldItemVO[]
@@ -63,7 +61,6 @@ export interface EventModelPreviewVO {
   requiredFields: string[]
   optionalFields: string[]
   fieldTypes: Record<string, string>
-  validationMessages: string[]
 }
 
 // 查询事件模型分页

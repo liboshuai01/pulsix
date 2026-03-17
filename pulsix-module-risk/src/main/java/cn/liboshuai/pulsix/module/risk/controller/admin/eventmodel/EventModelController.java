@@ -109,7 +109,6 @@ public class EventModelController {
         PageResult<EventModelRespVO> respVOPage = EventModelConvert.INSTANCE.convertPage(pageResult);
         for (EventModelRespVO respVO : respVOPage.getList()) {
             respVO.setFields(null);
-            respVO.setSampleEventJson(null);
         }
         fillBindingSources(respVOPage.getList());
         translateAuditUsers(respVOPage.getList());

@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Map;
 
 @Schema(description = "管理后台 - 事件模型创建/修改 Request VO")
 @Data
@@ -46,10 +45,6 @@ public class EventModelSaveReqVO {
     @Schema(description = "绑定接入源编码列表", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "绑定接入源不能为空")
     private List<String> bindingSourceCodes;
-
-    @Schema(description = "样例事件", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "样例事件不能为空")
-    private Map<String, Object> sampleEventJson;
 
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "状态不能为空")

@@ -48,22 +48,6 @@
               </div>
             </div>
           </el-card>
-
-          <el-card header="校验消息" shadow="never" class="mt-16px">
-            <el-empty
-              v-if="!previewResult?.validationMessages?.length"
-              description="当前草稿校验通过"
-              :image-size="60"
-            />
-            <el-alert
-              v-for="message in previewResult?.validationMessages || []"
-              :key="message"
-              :title="message"
-              type="warning"
-              :closable="false"
-              class="mb-8px"
-            />
-          </el-card>
         </el-col>
       </el-row>
     </div>
@@ -93,7 +77,6 @@ const buildPreviewPayload = (eventModel: EventModelApi.EventModelVO): EventModel
   eventName: eventModel.eventName,
   eventType: eventModel.eventType,
   bindingSourceCodes: (eventModel.bindingSources || []).map((item) => item.sourceCode),
-  sampleEventJson: eventModel.sampleEventJson ?? {},
   status: eventModel.status,
   description: eventModel.description,
   fields: eventModel.fields || []

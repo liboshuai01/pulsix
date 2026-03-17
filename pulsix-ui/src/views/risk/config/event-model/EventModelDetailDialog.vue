@@ -82,10 +82,6 @@
         </el-table>
       </el-card>
 
-      <el-card header="样例报文" class="mt-18px" shadow="never">
-        <pre class="risk-event-model-detail__json">{{ sampleJsonText }}</pre>
-      </el-card>
-
       <el-descriptions title="审计信息" :column="2" :label-width="120" border class="mt-18px">
         <el-descriptions-item label="创建人">
           {{ detail?.creator || '-' }}
@@ -116,9 +112,6 @@ defineOptions({ name: 'RiskEventModelDetailDialog' })
 const dialogVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref<EventModelApi.EventModelVO>()
-const sampleJsonText = computed(() =>
-  JSON.stringify(detail.value?.sampleEventJson ?? {}, null, 2)
-)
 
 const open = async (id: number) => {
   dialogVisible.value = true
@@ -139,15 +132,8 @@ defineExpose({ open })
   min-height: 240px;
 }
 
-.risk-event-model-detail__multiline,
-.risk-event-model-detail__json {
+.risk-event-model-detail__multiline {
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.risk-event-model-detail__json {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
 }
 </style>

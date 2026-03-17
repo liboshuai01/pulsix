@@ -25,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -190,9 +189,12 @@ class EventModelServiceImplTest {
     }
 
     @Test
-    void createEventModel_invalidSampleValue_rejected() {
+    void createEventModel_invalidFieldSampleValue_rejected() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
-        reqVO.getSampleEventJson().put("amount", "NOT_A_NUMBER");
+        reqVO.getFields().stream()
+                .filter(field -> "amount".equals(field.getFieldName()))
+                .findFirst()
+                .ifPresent(field -> field.setSampleValue("NOT_A_NUMBER"));
         when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
 
         assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
@@ -266,7 +268,6 @@ class EventModelServiceImplTest {
 
         EventModelPreviewRespVO preview = eventModelService.previewStandardEvent(reqVO);
 
-        assertThat(preview.getValidationMessages()).isEmpty();
         assertThat(preview.getStandardEventJson().get("sceneCode")).isEqualTo("TRADE_RISK");
         assertThat(preview.getStandardEventJson().get("eventType")).isEqualTo("trade");
         assertThat(preview.getStandardEventJson().get("amount")).isInstanceOf(BigDecimal.class);
@@ -298,15 +299,6 @@ class EventModelServiceImplTest {
         reqVO.setBindingSourceCodes(List.of("TRADE_HTTP"));
         reqVO.setStatus(0);
         reqVO.setDescription("交易标准事件模型");
-
-        Map<String, Object> sampleEventJson = new LinkedHashMap<>();
-        sampleEventJson.put("eventId", "E_TRADE_0001");
-        sampleEventJson.put("sceneCode", "TRADE_RISK");
-        sampleEventJson.put("eventType", "trade");
-        sampleEventJson.put("eventTime", "2026-03-08T10:00:00");
-        sampleEventJson.put("amount", 66.5);
-        sampleEventJson.put("ext", Map.of("merchantId", "M001"));
-        reqVO.setSampleEventJson(sampleEventJson);
 
         reqVO.setFields(new ArrayList<>(List.of(
                 createField("eventId", "事件ID", "STRING", 1, null, "E_TRADE_0001", 1),
