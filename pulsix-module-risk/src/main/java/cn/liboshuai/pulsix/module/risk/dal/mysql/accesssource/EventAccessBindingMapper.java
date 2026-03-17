@@ -55,7 +55,6 @@ public interface EventAccessBindingMapper extends BaseMapperX<EventAccessBinding
                 .selectAll(EventAccessBindingDO.class)
                 .selectAs(EventSchemaDO::getSceneCode, EventAccessBindingDO::getSceneCode)
                 .selectAs(EventSchemaDO::getEventName, EventAccessBindingDO::getEventName)
-                .selectAs(EventSchemaDO::getEventType, EventAccessBindingDO::getEventType)
                 .selectAs(AccessSourceDO::getSourceName, EventAccessBindingDO::getSourceName)
                 .selectAs(AccessSourceDO::getSourceType, EventAccessBindingDO::getSourceType)
                 .selectAs(AccessSourceDO::getTopicName, EventAccessBindingDO::getTopicName)
@@ -63,7 +62,6 @@ public interface EventAccessBindingMapper extends BaseMapperX<EventAccessBinding
                 .innerJoin(AccessSourceDO.class, AccessSourceDO::getSourceCode, EventAccessBindingDO::getSourceCode)
                 .likeIfPresent(EventSchemaDO::getSceneCode, reqVO.getSceneCode())
                 .likeIfPresent(EventAccessBindingDO::getEventCode, reqVO.getEventCode())
-                .likeIfPresent(EventSchemaDO::getEventType, reqVO.getEventType())
                 .likeIfPresent(EventAccessBindingDO::getSourceCode, reqVO.getSourceCode())
                 .eqIfPresent(AccessSourceDO::getSourceType, reqVO.getSourceType())
                 .orderByDesc(EventAccessBindingDO::getId);
@@ -75,7 +73,6 @@ public interface EventAccessBindingMapper extends BaseMapperX<EventAccessBinding
                 .selectAll(EventAccessBindingDO.class)
                 .selectAs(EventSchemaDO::getSceneCode, EventAccessBindingDO::getSceneCode)
                 .selectAs(EventSchemaDO::getEventName, EventAccessBindingDO::getEventName)
-                .selectAs(EventSchemaDO::getEventType, EventAccessBindingDO::getEventType)
                 .selectAs(AccessSourceDO::getSourceName, EventAccessBindingDO::getSourceName)
                 .selectAs(AccessSourceDO::getSourceType, EventAccessBindingDO::getSourceType)
                 .selectAs(AccessSourceDO::getTopicName, EventAccessBindingDO::getTopicName)
@@ -86,19 +83,18 @@ public interface EventAccessBindingMapper extends BaseMapperX<EventAccessBinding
         return CollUtil.getFirst(list);
     }
 
-    default List<EventAccessBindingDO> selectAccessMappingListBySourceCodeAndEventType(String sourceCode, String eventType) {
+    default List<EventAccessBindingDO> selectAccessMappingListBySourceCodeAndEventCode(String sourceCode, String eventCode) {
         return selectJoinList(EventAccessBindingDO.class, new MPJLambdaWrapperX<EventAccessBindingDO>()
                 .selectAll(EventAccessBindingDO.class)
                 .selectAs(EventSchemaDO::getSceneCode, EventAccessBindingDO::getSceneCode)
                 .selectAs(EventSchemaDO::getEventName, EventAccessBindingDO::getEventName)
-                .selectAs(EventSchemaDO::getEventType, EventAccessBindingDO::getEventType)
                 .selectAs(AccessSourceDO::getSourceName, EventAccessBindingDO::getSourceName)
                 .selectAs(AccessSourceDO::getSourceType, EventAccessBindingDO::getSourceType)
                 .selectAs(AccessSourceDO::getTopicName, EventAccessBindingDO::getTopicName)
                 .innerJoin(EventSchemaDO.class, EventSchemaDO::getEventCode, EventAccessBindingDO::getEventCode)
                 .innerJoin(AccessSourceDO.class, AccessSourceDO::getSourceCode, EventAccessBindingDO::getSourceCode)
                 .eq(EventAccessBindingDO::getSourceCode, sourceCode)
-                .eq(EventSchemaDO::getEventType, eventType)
+                .eq(EventAccessBindingDO::getEventCode, eventCode)
                 .orderByAsc(EventAccessBindingDO::getId));
     }
 

@@ -85,7 +85,6 @@ CREATE TABLE event_schema (
   scene_code VARCHAR(64) NOT NULL,
   event_code VARCHAR(64) NOT NULL,
   event_name VARCHAR(128) NOT NULL,
-  event_type VARCHAR(64) NOT NULL,
   version INT NOT NULL DEFAULT 1,
   status TINYINT NOT NULL DEFAULT 1,
   description VARCHAR(512) DEFAULT NULL,
@@ -221,7 +220,7 @@ CREATE TABLE feature_def (
 CREATE TABLE feature_stream_conf (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   feature_code VARCHAR(64) NOT NULL,
-  source_event_types VARCHAR(256) NOT NULL,
+  source_event_codes VARCHAR(256) NOT NULL,
   entity_key_expr VARCHAR(256) NOT NULL,
   agg_type VARCHAR(32) NOT NULL,
   value_expr VARCHAR(512) DEFAULT NULL,
@@ -243,7 +242,7 @@ CREATE TABLE feature_stream_conf (
 
 #### 说明
 
-- `source_event_types` MVP 阶段可先用逗号分隔字符串，后期可再拆表
+- `source_event_codes` MVP 阶段可先用逗号分隔字符串，后期可再拆表
 - `agg_type` 例如： `COUNT` / `SUM` / `MAX` / `LATEST` / `DISTINCT_COUNT`
 - `window_size` 建议采用字符串表达： `5m`、 `30m`、 `1h`
 
@@ -922,7 +921,7 @@ pulsix.event.standard
 事件体中带：
 
 - `sceneCode`
-- `eventType`
+- `eventCode`
 
 这是 MVP 阶段最推荐的方式。接入层完成鉴权、标准化和公共字段补齐后，再写入该 Topic。
 

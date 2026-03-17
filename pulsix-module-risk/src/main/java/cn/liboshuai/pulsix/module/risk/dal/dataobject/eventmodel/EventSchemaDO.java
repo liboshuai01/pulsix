@@ -39,10 +39,6 @@ public class EventSchemaDO extends BaseDO {
      */
     private String eventName;
     /**
-     * 事件类型
-     */
-    private String eventType;
-    /**
      * 版本
      */
     private Integer version;

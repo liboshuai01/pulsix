@@ -78,8 +78,7 @@ public class EventModelServiceImpl implements EventModelService {
     @Transactional(rollbackFor = Exception.class)
     public void updateEventModel(EventModelSaveReqVO updateReqVO) {
         EventSchemaDO schema = validateEventModelExists(updateReqVO.getId());
-        validateEventModelIdentityImmutable(schema, updateReqVO.getSceneCode(), updateReqVO.getEventCode(),
-                updateReqVO.getEventType());
+        validateEventModelIdentityImmutable(schema, updateReqVO.getSceneCode(), updateReqVO.getEventCode());
         validateSceneExists(updateReqVO.getSceneCode());
         validateEventCodeUnique(updateReqVO.getId(), updateReqVO.getEventCode());
 
@@ -197,11 +196,9 @@ public class EventModelServiceImpl implements EventModelService {
         }
     }
 
-    private void validateEventModelIdentityImmutable(EventSchemaDO schema, String sceneCode, String eventCode,
-                                                     String eventType) {
+    private void validateEventModelIdentityImmutable(EventSchemaDO schema, String sceneCode, String eventCode) {
         if (!ObjectUtil.equal(schema.getSceneCode(), sceneCode)
-                || !ObjectUtil.equal(schema.getEventCode(), eventCode)
-                || !ObjectUtil.equal(schema.getEventType(), eventType)) {
+                || !ObjectUtil.equal(schema.getEventCode(), eventCode)) {
             throw exception(EVENT_MODEL_IDENTITY_IMMUTABLE);
         }
     }
@@ -262,7 +259,7 @@ public class EventModelServiceImpl implements EventModelService {
                 optionalFields.add(field.getFieldName());
             }
 
-            Object value = resolvePreviewFieldValue(field, reqVO.getSceneCode(), reqVO.getEventType(), messages);
+            Object value = resolvePreviewFieldValue(field, reqVO.getSceneCode(), reqVO.getEventCode(), messages);
             if (value != MISSING_VALUE) {
                 standardEventJson.put(field.getFieldName(), value);
             } else if (Objects.equals(field.getRequiredFlag(), 1)) {
@@ -333,12 +330,12 @@ public class EventModelServiceImpl implements EventModelService {
         }
     }
 
-    private Object resolvePreviewFieldValue(EventFieldDefDO field, String sceneCode, String eventType,
+    private Object resolvePreviewFieldValue(EventFieldDefDO field, String sceneCode, String eventCode,
                                             List<String> messages) {
-        return resolveFromConfiguredSources(field, sceneCode, eventType, messages);
+        return resolveFromConfiguredSources(field, sceneCode, eventCode, messages);
     }
 
-    private Object resolveFromConfiguredSources(EventFieldDefDO field, String sceneCode, String eventType,
+    private Object resolveFromConfiguredSources(EventFieldDefDO field, String sceneCode, String eventCode,
                                                 List<String> messages) {
         if (StrUtil.isNotBlank(field.getSampleValue())) {
             return convertConfiguredValue(field, field.getSampleValue(), "字段样例值", messages);
@@ -349,8 +346,8 @@ public class EventModelServiceImpl implements EventModelService {
         if ("sceneCode".equals(field.getFieldName())) {
             return sceneCode;
         }
-        if ("eventType".equals(field.getFieldName())) {
-            return eventType;
+        if ("eventCode".equals(field.getFieldName())) {
+            return eventCode;
         }
         return MISSING_VALUE;
     }

@@ -11,7 +11,6 @@
         <el-descriptions-item label="场景编码">{{ detail?.sceneCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="事件编码">{{ detail?.eventCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="事件名称">{{ detail?.eventName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="事件类型">{{ detail?.eventType || '-' }}</el-descriptions-item>
       </el-descriptions>
 
       <el-row :gutter="16">
@@ -74,7 +73,6 @@ const buildPreviewPayload = (eventModel: EventModelApi.EventModelVO): EventModel
   sceneCode: eventModel.sceneCode,
   eventCode: eventModel.eventCode,
   eventName: eventModel.eventName,
-  eventType: eventModel.eventType,
   status: eventModel.status,
   description: eventModel.description,
   fields: eventModel.fields || []

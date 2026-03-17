@@ -218,7 +218,7 @@ DataStream<DecisionResult> resultStream = keyedEventStream
 
 - 事件反序列化
 - 基础字段标准化
-- sceneCode / eventType 校验
+- sceneCode / eventCode 校验
 - 字段映射与别名归一
 - 时间 / 金额 / 枚举格式转换
 - 公共字段补齐与默认值填充
@@ -949,7 +949,7 @@ public class DecisionEngineProcessFunction
 {
   "eventId": "E10001",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "userId": "U1001",
   "deviceId": "D9001",
   "ip": "1.2.3.4",

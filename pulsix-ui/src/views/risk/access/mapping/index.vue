@@ -25,15 +25,6 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="标准类型" prop="eventType">
-        <el-input
-          v-model="queryParams.eventType"
-          placeholder="请输入标准 eventType"
-          clearable
-          class="!w-220px"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item label="接入源编码" prop="sourceCode">
         <el-input
           v-model="queryParams.sourceCode"
@@ -82,7 +73,6 @@
           <div class="text-12px text-[var(--el-text-color-secondary)]">{{ row.eventCode }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="标准 eventType" align="center" prop="eventType" min-width="170" />
       <el-table-column label="接入源" min-width="220">
         <template #default="{ row }">
           <div class="font-600">{{ row.sourceName || row.sourceCode }}</div>
@@ -167,7 +157,6 @@ const queryParams = reactive({
   pageSize: 10,
   sceneCode: undefined as string | undefined,
   eventCode: undefined as string | undefined,
-  eventType: undefined as string | undefined,
   sourceCode: undefined as string | undefined,
   sourceType: undefined as string | undefined
 })
@@ -194,7 +183,6 @@ const applyRouteFilters = async () => {
   queryParams.pageNo = 1
   queryParams.sceneCode = normalizeQueryValue(route.query.sceneCode)
   queryParams.eventCode = normalizeQueryValue(route.query.eventCode)
-  queryParams.eventType = normalizeQueryValue(route.query.eventType)
   queryParams.sourceCode = normalizeQueryValue(route.query.sourceCode)
   queryParams.sourceType = normalizeQueryValue(route.query.sourceType)
   await getList()

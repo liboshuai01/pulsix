@@ -44,15 +44,6 @@
                   <el-input v-model="formData.eventName" placeholder="请输入事件名称" />
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
-                <el-form-item label="事件类型" prop="eventType">
-                  <el-input
-                    v-model="formData.eventType"
-                    placeholder="请输入事件类型"
-                    :disabled="formType === 'update'"
-                  />
-                </el-form-item>
-              </el-col>
             </el-row>
             <el-row :gutter="18">
               <el-col :span="12">
@@ -254,7 +245,6 @@ const createDefaultFormData = (): EventModelFormData => ({
   sceneCode: '',
   eventCode: '',
   eventName: '',
-  eventType: '',
   version: undefined,
   status: CommonStatusEnum.DISABLE,
   description: '',
@@ -273,8 +263,7 @@ const formRules = reactive<FormRules>({
       trigger: 'blur'
     }
   ],
-  eventName: [{ required: true, message: '事件名称不能为空', trigger: 'blur' }],
-  eventType: [{ required: true, message: '事件类型不能为空', trigger: 'blur' }]
+  eventName: [{ required: true, message: '事件名称不能为空', trigger: 'blur' }]
 })
 
 const loadSceneOptions = async () => {
@@ -297,7 +286,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
         sceneCode: data.sceneCode,
         eventCode: data.eventCode,
         eventName: data.eventName,
-        eventType: data.eventType,
         version: data.version,
         status: data.status,
         description: data.description || '',
@@ -421,7 +409,6 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
     sceneCode: formData.value.sceneCode,
     eventCode: formData.value.eventCode,
     eventName: formData.value.eventName,
-    eventType: formData.value.eventType,
     status: formData.value.status,
     description: formData.value.description || undefined,
     fields: formData.value.fields.map((field: EventFieldRow) => {

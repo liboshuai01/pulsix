@@ -70,11 +70,6 @@
 
             <el-row :gutter="18">
               <el-col :xs="24" :md="8">
-                <el-form-item label="标准 eventType">
-                  <el-input :model-value="formData.eventType || '-'" disabled />
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :md="8">
                 <el-form-item label="接入类型">
                   <el-input :model-value="sourceTypeLabel" disabled />
                 </el-form-item>
@@ -96,7 +91,7 @@
             </el-form-item>
 
             <el-alert
-              title="上游请求仍需显式携带标准 eventType，ingest 将按 sourceCode + eventType 命中唯一接入映射。"
+              title="上游请求仍需显式携带标准 eventCode，ingest 将按 sourceCode + eventCode 命中唯一接入映射。"
               type="info"
               :closable="false"
             />
@@ -386,7 +381,6 @@ type AccessMappingFormData = {
   sceneCode: string
   eventCode: string
   eventName?: string
-  eventType?: string
   sourceCode: string
   sourceName?: string
   sourceType?: string
@@ -435,7 +429,6 @@ const createDefaultFormData = (): AccessMappingFormData => ({
   sceneCode: '',
   eventCode: '',
   eventName: '',
-  eventType: '',
   sourceCode: '',
   sourceName: '',
   sourceType: '',
@@ -529,13 +522,11 @@ const loadSelectedEventDetail = async (
 ) => {
   if (!eventCode) {
     formData.value.eventName = ''
-    formData.value.eventType = ''
     formData.value.ruleRows = []
     return
   }
   const detail = await EventModelApi.getEventModelByCode(eventCode)
   formData.value.eventName = detail?.eventName || ''
-  formData.value.eventType = detail?.eventType || ''
   formData.value.ruleRows = buildRuleRows(detail?.fields || [], existingRules)
 }
 
@@ -543,7 +534,6 @@ const handleSceneChange = async (sceneCode: string) => {
   formData.value.sceneCode = sceneCode
   formData.value.eventCode = ''
   formData.value.eventName = ''
-  formData.value.eventType = ''
   formData.value.sourceCode = ''
   formData.value.sourceName = ''
   formData.value.sourceType = ''
@@ -575,8 +565,7 @@ const open = async (type: 'create' | 'update', id?: number) => {
         {
           sceneCode: detail.sceneCode,
           eventCode: detail.eventCode,
-          eventName: detail.eventName || detail.eventCode,
-          eventType: detail.eventType || ''
+          eventName: detail.eventName || detail.eventCode
         }
       ]
       sourceFallbackOptions.value = [
@@ -593,7 +582,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
         sceneCode: detail.sceneCode,
         eventCode: detail.eventCode,
         eventName: detail.eventName || '',
-        eventType: detail.eventType || '',
         sourceCode: detail.sourceCode,
         sourceName: detail.sourceName || '',
         sourceType: detail.sourceType || '',
@@ -918,7 +906,6 @@ const openPreview = async () => {
     sceneCode: formData.value.sceneCode,
     eventCode: formData.value.eventCode,
     eventName: formData.value.eventName,
-    eventType: formData.value.eventType,
     sourceCode: formData.value.sourceCode,
     sourceName: formData.value.sourceName
   })

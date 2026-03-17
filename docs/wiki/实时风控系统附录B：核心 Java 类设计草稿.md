@@ -84,7 +84,7 @@ public class SceneSnapshot {
 ```java
 public class EventSchemaSpec {
 
-    private String eventType;
+    private String eventCode;
     private List<String> requiredFields;
     private Map<String, String> fieldTypes;
 }
@@ -127,7 +127,7 @@ public enum FeatureType {
 ```java
 public class StreamFeatureSpec extends FeatureSpec {
 
-    private List<String> sourceEventTypes;
+    private List<String> sourceEventCodes;
     private String entityType;
     private String entityKeyExpr;
     private AggType aggType;

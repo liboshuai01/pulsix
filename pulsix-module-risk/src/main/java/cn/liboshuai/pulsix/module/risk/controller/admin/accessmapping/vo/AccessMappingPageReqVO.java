@@ -14,9 +14,6 @@ public class AccessMappingPageReqVO extends PageParam {
     @Schema(description = "事件编码，模糊匹配", example = "PROMOTION_EVENT")
     private String eventCode;
 
-    @Schema(description = "事件类型，模糊匹配", example = "promotion_grant")
-    private String eventType;
-
     @Schema(description = "接入源编码，模糊匹配", example = "PROMOTION_CENTER_HTTP")
     private String sourceCode;
 

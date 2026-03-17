@@ -34,15 +34,6 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="事件类型" prop="eventType">
-        <el-input
-          v-model="queryParams.eventType"
-          placeholder="请输入事件类型"
-          clearable
-          class="!w-220px"
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable class="!w-220px">
           <el-option
@@ -73,7 +64,6 @@
       <el-table-column label="场景编码" align="center" prop="sceneCode" min-width="150" />
       <el-table-column label="事件编码" align="center" prop="eventCode" min-width="170" />
       <el-table-column label="事件名称" align="center" prop="eventName" min-width="160" />
-      <el-table-column label="事件类型" align="center" prop="eventType" min-width="150" />
       <el-table-column label="接入绑定" align="center" min-width="260">
         <template #default="scope">
           <div v-if="scope.row.bindingSources?.length" class="risk-event-model__binding-summary">
@@ -207,7 +197,6 @@ const queryParams = reactive({
   sceneCode: undefined,
   eventCode: undefined,
   eventName: undefined,
-  eventType: undefined,
   status: undefined
 })
 

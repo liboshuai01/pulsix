@@ -23,9 +23,6 @@ public class AccessMappingRespVO {
     @Schema(description = "事件名称", example = "营销受理事件")
     private String eventName;
 
-    @Schema(description = "事件类型", example = "promotion_grant")
-    private String eventType;
-
     @Schema(description = "接入源编码", example = "PROMOTION_CENTER_HTTP")
     private String sourceCode;
 

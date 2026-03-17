@@ -22,9 +22,6 @@ public class EventModelRespVO {
     @Schema(description = "事件名称", example = "营销受理事件")
     private String eventName;
 
-    @Schema(description = "事件类型", example = "promotion_grant")
-    private String eventType;
-
     @Schema(description = "版本", example = "1")
     private Integer version;
 

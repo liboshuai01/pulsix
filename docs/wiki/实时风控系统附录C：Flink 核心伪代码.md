@@ -76,7 +76,7 @@ class DecisionEvent {
     String eventId;
     String traceId;
     String sceneCode;
-    String eventType;
+    String eventCode;
     long eventTime;
 
     String userId;
@@ -475,7 +475,7 @@ private void putBaseFields(EvalContext ctx, DecisionEvent event) {
     ctx.put("eventId", event.getEventId());
     ctx.put("traceId", event.getTraceId());
     ctx.put("sceneCode", event.getSceneCode());
-    ctx.put("eventType", event.getEventType());
+    ctx.put("eventCode", event.getEventType());
     ctx.put("eventTime", event.getEventTime());
 
     ctx.put("userId", event.getUserId());

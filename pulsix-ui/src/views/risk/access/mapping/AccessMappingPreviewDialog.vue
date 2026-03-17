@@ -11,9 +11,6 @@
         <el-descriptions-item label="场景编码">{{ previewMeta.sceneCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="事件编码">{{ previewMeta.eventCode || '-' }}</el-descriptions-item>
         <el-descriptions-item label="事件名称">{{ previewMeta.eventName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="标准 eventType">
-          {{ previewMeta.eventType || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="接入源编码">
           {{ previewMeta.sourceCode || '-' }}
         </el-descriptions-item>
@@ -62,10 +59,7 @@ import { getFieldSourceLabel } from './constants'
 defineOptions({ name: 'RiskAccessMappingPreviewDialog' })
 
 type PreviewMeta = Partial<
-  Pick<
-    AccessMappingApi.AccessMappingVO,
-    'sceneCode' | 'eventCode' | 'eventName' | 'eventType' | 'sourceCode' | 'sourceName'
-  >
+  Pick<AccessMappingApi.AccessMappingVO, 'sceneCode' | 'eventCode' | 'eventName' | 'sourceCode' | 'sourceName'>
 >
 
 const dialogVisible = ref(false)
@@ -109,7 +103,6 @@ const openById = async (id: number) => {
       sceneCode: detail.sceneCode,
       eventCode: detail.eventCode,
       eventName: detail.eventName,
-      eventType: detail.eventType,
       sourceCode: detail.sourceCode,
       sourceName: detail.sourceName
     }

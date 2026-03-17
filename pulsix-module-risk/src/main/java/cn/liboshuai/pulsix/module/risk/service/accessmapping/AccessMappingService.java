@@ -29,6 +29,6 @@ public interface AccessMappingService {
 
     AccessMappingPreviewRespVO previewStandardEvent(AccessMappingSaveReqVO reqVO);
 
-    AccessMappingRuntimeBO getRuntimeAccessMapping(String sourceCode, String eventType);
+    AccessMappingRuntimeBO getRuntimeAccessMapping(String sourceCode, String eventCode);
 
 }

@@ -17,9 +17,6 @@
         <el-descriptions-item label="事件名称">
           {{ detail?.eventName || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="事件类型">
-          {{ detail?.eventType || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="版本">
           {{ detail?.version ?? '-' }}
         </el-descriptions-item>

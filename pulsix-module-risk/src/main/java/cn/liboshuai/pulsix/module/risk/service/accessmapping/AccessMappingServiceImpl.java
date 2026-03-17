@@ -60,7 +60,6 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MA
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_PUBLIC_FIELD_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_RAW_FIELD_PATH_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_RAW_FIELD_PATH_INVALID;
-import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_ROUTE_CONFLICT;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_RULE_CONFIG_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_SCENE_MISMATCH;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_MAPPING_SCRIPT_ENGINE_UNSUPPORTED;
@@ -77,7 +76,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
     private static final String FIELD_SOURCE_MAPPING = "MAPPING";
     private static final String FIELD_SOURCE_EVENT_DEFAULT = "EVENT_DEFAULT";
     private static final String FIELD_SOURCE_SYSTEM_FILL = "SYSTEM_FILL";
-    private static final Set<String> FIXED_PUBLIC_FIELDS = Set.of("sceneCode", "eventType");
+    private static final Set<String> FIXED_PUBLIC_FIELDS = Set.of("sceneCode", "eventCode");
     private static final ExpressionParser EXPRESSION_PARSER = new SpelExpressionParser();
 
     @Resource
@@ -100,7 +99,6 @@ public class AccessMappingServiceImpl implements AccessMappingService {
         AccessSourceDO accessSource = validateSourceExists(createReqVO.getSourceCode());
         validateSceneCompatibility(eventSchema, accessSource);
         validateBindingUnique(null, eventSchema.getEventCode(), accessSource.getSourceCode());
-        validateRouteUnique(null, accessSource.getSourceCode(), eventSchema.getEventType());
 
         DraftValidationResult validationResult = validateDraft(createReqVO, eventSchema, accessSource);
         throwIfInvalid(validationResult);
@@ -122,7 +120,6 @@ public class AccessMappingServiceImpl implements AccessMappingService {
         AccessSourceDO accessSource = validateSourceExists(updateReqVO.getSourceCode());
         validateSceneCompatibility(eventSchema, accessSource);
         validateBindingUnique(existing.getId(), eventSchema.getEventCode(), accessSource.getSourceCode());
-        validateRouteUnique(existing.getId(), accessSource.getSourceCode(), eventSchema.getEventType());
 
         DraftValidationResult validationResult = validateDraft(updateReqVO, eventSchema, accessSource);
         throwIfInvalid(validationResult);
@@ -195,16 +192,16 @@ public class AccessMappingServiceImpl implements AccessMappingService {
     }
 
     @Override
-    public AccessMappingRuntimeBO getRuntimeAccessMapping(String sourceCode, String eventType) {
-        if (StrUtil.isBlank(sourceCode) || StrUtil.isBlank(eventType)) {
+    public AccessMappingRuntimeBO getRuntimeAccessMapping(String sourceCode, String eventCode) {
+        if (StrUtil.isBlank(sourceCode) || StrUtil.isBlank(eventCode)) {
             return null;
         }
-        List<EventAccessBindingDO> bindings = eventAccessBindingMapper.selectAccessMappingListBySourceCodeAndEventType(sourceCode, eventType);
+        List<EventAccessBindingDO> bindings = eventAccessBindingMapper.selectAccessMappingListBySourceCodeAndEventCode(sourceCode, eventCode);
         if (bindings.isEmpty()) {
             return null;
         }
         if (bindings.size() > 1) {
-            throw new IllegalStateException("接入映射路由冲突，sourceCode=" + sourceCode + ", eventType=" + eventType);
+            throw new IllegalStateException("接入映射路由冲突，sourceCode=" + sourceCode + ", eventCode=" + eventCode);
         }
 
         EventAccessBindingDO binding = bindings.get(0);
@@ -265,14 +262,6 @@ public class AccessMappingServiceImpl implements AccessMappingService {
         }
         if (id == null || !ObjectUtil.equal(binding.getId(), id)) {
             throw exception(ACCESS_MAPPING_BINDING_DUPLICATE, eventCode, sourceCode);
-        }
-    }
-
-    private void validateRouteUnique(Long id, String sourceCode, String eventType) {
-        for (EventAccessBindingDO binding : eventAccessBindingMapper.selectAccessMappingListBySourceCodeAndEventType(sourceCode, eventType)) {
-            if (id == null || !ObjectUtil.equal(binding.getId(), id)) {
-                throw exception(ACCESS_MAPPING_ROUTE_CONFLICT, sourceCode, eventType);
-            }
         }
     }
 
@@ -340,7 +329,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
         LinkedHashMap<String, String> fieldSourceMap = new LinkedHashMap<>();
         EvaluationContextBundle contextBundle = new EvaluationContextBundle(reqVO.getRawSampleJson(),
                 reqVO.getSampleHeadersJson(), accessSource.getSourceCode(), eventSchema.getSceneCode(),
-                eventSchema.getEventCode(), eventSchema.getEventType());
+                eventSchema.getEventCode());
 
         for (EventFieldDefDO standardField : standardFields) {
             EventAccessMappingRuleDO rule = ruleMap.get(standardField.getFieldName());
@@ -384,7 +373,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
             }
             String expectedValue = switch (fieldName) {
                 case "sceneCode" -> eventSchema.getSceneCode();
-                case "eventType" -> eventSchema.getEventType();
+                case "eventCode" -> eventSchema.getEventCode();
                 default -> null;
             };
             Object actualValue = standardEventJson.get(fieldName);
@@ -488,7 +477,6 @@ public class AccessMappingServiceImpl implements AccessMappingService {
             root.put("sourceCode", contextBundle.sourceCode());
             root.put("sceneCode", contextBundle.sceneCode());
             root.put("eventCode", contextBundle.eventCode());
-            root.put("eventType", contextBundle.eventType());
             context.setRootObject(root);
             context.setVariables(root);
             return expression.getValue(context);
@@ -501,9 +489,9 @@ public class AccessMappingServiceImpl implements AccessMappingService {
     private Object resolveSystemFieldValue(EventFieldDefDO field, EventSchemaDO eventSchema) {
         return switch (field.getFieldName()) {
             case "sceneCode" -> eventSchema.getSceneCode();
-            case "eventType" -> eventSchema.getEventType();
-            case "eventId" -> "AUTO_" + eventSchema.getEventType() + "_EVENT_ID";
-            case "traceId" -> "AUTO_" + eventSchema.getEventType() + "_TRACE_ID";
+            case "eventCode" -> eventSchema.getEventCode();
+            case "eventId" -> "AUTO_" + eventSchema.getEventCode() + "_EVENT_ID";
+            case "traceId" -> "AUTO_" + eventSchema.getEventCode() + "_TRACE_ID";
             case "eventTime" -> LocalDateTime.now().withNano(0).toString();
             default -> MISSING_VALUE;
         };
@@ -780,8 +768,7 @@ public class AccessMappingServiceImpl implements AccessMappingService {
             Map<String, Object> headers,
             String sourceCode,
             String sceneCode,
-            String eventCode,
-            String eventType
+            String eventCode
     ) {
         private EvaluationContextBundle {
             rawPayload = rawPayload == null ? Collections.emptyMap() : rawPayload;

@@ -54,7 +54,7 @@
 - `eventId`
 - `traceId`
 - `sceneCode`
-- `eventType`
+- `eventCode`
 - `eventTime`
 - `userId`
 - `deviceId`
@@ -89,9 +89,9 @@
 
 ## 3.2 事件定义
 
-### 事件类型
+### 标准事件编码
 
-- `login`
+- `LOGIN_EVENT`
 
 ### 样例事件 JSON
 
@@ -100,7 +100,7 @@
   "eventId": "E_LOGIN_0001",
   "traceId": "T_LOGIN_0001",
   "sceneCode": "LOGIN_RISK",
-  "eventType": "login",
+  "eventCode": "LOGIN_EVENT",
   "eventTime": "2026-03-07T09:00:00",
   "userId": "U1001",
   "deviceId": "D9001",
@@ -289,7 +289,7 @@ device_login_user_cnt_1h >= 5
   "eventId": "E_LOGIN_0002",
   "traceId": "T_LOGIN_0002",
   "sceneCode": "LOGIN_RISK",
-  "eventType": "login",
+  "eventCode": "LOGIN_EVENT",
   "eventTime": "2026-03-07T09:10:00",
   "userId": "U2001",
   "deviceId": "D2001",
@@ -314,7 +314,7 @@ device_login_user_cnt_1h >= 5
   "eventId": "E_LOGIN_0003",
   "traceId": "T_LOGIN_0003",
   "sceneCode": "LOGIN_RISK",
-  "eventType": "login",
+  "eventCode": "LOGIN_EVENT",
   "eventTime": "2026-03-07T09:20:00",
   "userId": "U1001",
   "deviceId": "D9002",
@@ -361,9 +361,9 @@ device_login_user_cnt_1h >= 5
 
 ## 4.2 事件定义
 
-### 事件类型
+### 标准事件编码
 
-- `register`
+- `REGISTER_EVENT`
 
 ### 样例事件 JSON
 
@@ -372,7 +372,7 @@ device_login_user_cnt_1h >= 5
   "eventId": "E_REG_0001",
   "traceId": "T_REG_0001",
   "sceneCode": "REGISTER_ANTI_FRAUD",
-  "eventType": "register",
+  "eventCode": "REGISTER_EVENT",
   "eventTime": "2026-03-07T10:00:00",
   "userId": "U3001",
   "deviceId": "D_REG_001",
@@ -524,7 +524,7 @@ mobile_in_risk_list == true
   "eventId": "E_REG_0002",
   "traceId": "T_REG_0002",
   "sceneCode": "REGISTER_ANTI_FRAUD",
-  "eventType": "register",
+  "eventCode": "REGISTER_EVENT",
   "eventTime": "2026-03-07T10:30:00",
   "userId": "U3002",
   "deviceId": "D_REG_002",
@@ -548,7 +548,7 @@ mobile_in_risk_list == true
   "eventId": "E_REG_0003",
   "traceId": "T_REG_0003",
   "sceneCode": "REGISTER_ANTI_FRAUD",
-  "eventType": "register",
+  "eventCode": "REGISTER_EVENT",
   "eventTime": "2026-03-07T10:35:00",
   "userId": "U3999",
   "deviceId": "D_REG_001",
@@ -590,9 +590,9 @@ mobile_in_risk_list == true
 
 ## 5.2 事件定义
 
-### 事件类型
+### 标准事件编码
 
-- `trade`
+- `TRADE_EVENT`
 
 ### 样例事件 JSON
 
@@ -601,7 +601,7 @@ mobile_in_risk_list == true
   "eventId": "E_TRADE_0001",
   "traceId": "T_TRADE_0001",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T11:00:00",
   "userId": "U5001",
   "deviceId": "D5001",
@@ -801,7 +801,7 @@ merchant_risk_level == 'HIGH' && ip_trade_cnt_10m >= 10
   "eventId": "E_TRADE_0002",
   "traceId": "T_TRADE_0002",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T11:10:00",
   "userId": "U5002",
   "deviceId": "D5002",
@@ -828,7 +828,7 @@ merchant_risk_level == 'HIGH' && ip_trade_cnt_10m >= 10
   "eventId": "E_TRADE_0003",
   "traceId": "T_TRADE_0003",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T11:15:00",
   "userId": "U5001",
   "deviceId": "D5001",
@@ -863,7 +863,7 @@ merchant_risk_level == 'HIGH' && ip_trade_cnt_10m >= 10
   "eventId": "E_TRADE_0004",
   "traceId": "T_TRADE_0004",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T11:20:00",
   "userId": "U5003",
   "deviceId": "D_BLACK_001",
@@ -895,7 +895,7 @@ merchant_risk_level == 'HIGH' && ip_trade_cnt_10m >= 10
   "eventId": "E_TRADE_0005",
   "traceId": "T_TRADE_0005",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T11:25:00",
   "userId": "U5004",
   "deviceId": "D_MULTI_001",

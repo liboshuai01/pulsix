@@ -17,9 +17,6 @@
         <el-descriptions-item label="事件名称">
           {{ detail?.eventName || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="标准 eventType">
-          {{ detail?.eventType || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="接入源编码">
           {{ detail?.sourceCode || '-' }}
         </el-descriptions-item>

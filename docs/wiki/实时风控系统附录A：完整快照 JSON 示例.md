@@ -33,11 +33,11 @@
 
   "eventSchema": {
     "eventCode": "TRADE_EVENT",
-    "eventType": "trade",
+    "eventCode": "TRADE_EVENT",
     "requiredFields": [
       "eventId",
       "sceneCode",
-      "eventType",
+      "eventCode",
       "eventTime",
       "userId",
       "deviceId",
@@ -58,7 +58,7 @@
     "baseFields": [
       "eventId",
       "sceneCode",
-      "eventType",
+      "eventCode",
       "eventTime",
       "traceId",
       "userId",
@@ -77,7 +77,7 @@
     {
       "code": "user_trade_cnt_5m",
       "name": "用户5分钟交易次数",
-      "sourceEventTypes": ["trade"],
+      "sourceEventCodes": ["TRADE_EVENT"],
       "entityType": "USER",
       "entityKeyExpr": "userId",
       "aggType": "COUNT",
@@ -93,7 +93,7 @@
     {
       "code": "user_trade_amt_sum_30m",
       "name": "用户30分钟交易金额和",
-      "sourceEventTypes": ["trade"],
+      "sourceEventCodes": ["TRADE_EVENT"],
       "entityType": "USER",
       "entityKeyExpr": "userId",
       "aggType": "SUM",
@@ -109,7 +109,7 @@
     {
       "code": "device_bind_user_cnt_1h",
       "name": "设备1小时关联用户数",
-      "sourceEventTypes": ["trade", "login"],
+      "sourceEventCodes": ["TRADE_EVENT", "LOGIN_EVENT"],
       "entityType": "DEVICE",
       "entityKeyExpr": "deviceId",
       "aggType": "DISTINCT_COUNT",

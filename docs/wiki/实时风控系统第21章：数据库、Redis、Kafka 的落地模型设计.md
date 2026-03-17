@@ -568,15 +568,15 @@ Redis 不适合用来做：
 事件体中包含：
 
 - `sceneCode`
-- `eventType`
+- `eventCode`
 - `eventId`
 - `eventTime`
 - 业务字段
 
 补充一个一期约束：
 
-- 上游请求仍显式携带标准 `eventType`
-- `pulsix-ingest` 按 `sourceCode + eventType` 装载唯一接入映射，再完成标准化
+- 上游请求仍显式携带标准 `eventCode`
+- `pulsix-ingest` 按 `sourceCode + eventCode` 装载唯一接入映射，再完成标准化
 
 #### 为什么一期建议统一 Topic
 
@@ -923,7 +923,7 @@ Topic 规划千万不要随意。建议遵循下面几个原则。
   "traceId": "T10001",
   "eventId": "E10001",
   "sceneCode": "TRADE_RISK",
-  "eventType": "trade",
+  "eventCode": "TRADE_EVENT",
   "eventTime": "2026-03-07T10:00:00",
   "payload": {
     "userId": "U1001",

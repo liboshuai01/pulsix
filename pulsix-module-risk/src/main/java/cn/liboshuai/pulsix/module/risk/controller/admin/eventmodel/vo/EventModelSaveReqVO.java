@@ -37,11 +37,6 @@ public class EventModelSaveReqVO {
     @Size(max = 128, message = "事件名称长度不能超过 128 个字符")
     private String eventName;
 
-    @Schema(description = "事件类型", requiredMode = Schema.RequiredMode.REQUIRED, example = "promotion_grant")
-    @NotBlank(message = "事件类型不能为空")
-    @Size(max = 64, message = "事件类型长度不能超过 64 个字符")
-    private String eventType;
-
     @Schema(description = "状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "0")
     @NotNull(message = "状态不能为空")
     @InEnum(value = CommonStatusEnum.class, message = "状态必须是 {value}")

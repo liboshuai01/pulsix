@@ -28,7 +28,6 @@ export interface AccessMappingVO {
   sceneCode: string
   eventCode: string
   eventName?: string
-  eventType?: string
   sourceCode: string
   sourceName?: string
   sourceType?: string

@@ -16,7 +16,6 @@ export interface EventModelVO {
   sceneCode: string
   eventCode: string
   eventName: string
-  eventType: string
   version?: number
   status: number
   description?: string
@@ -33,7 +32,6 @@ export interface EventModelSaveReqVO {
   sceneCode: string
   eventCode: string
   eventName: string
-  eventType: string
   status: number
   description?: string
   fields: EventFieldItemVO[]
@@ -43,7 +41,6 @@ export interface EventModelSimpleVO {
   sceneCode: string
   eventCode: string
   eventName: string
-  eventType: string
 }
 
 export interface EventBindingSourceItemVO {

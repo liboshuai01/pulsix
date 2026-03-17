@@ -5,12 +5,9 @@ import cn.liboshuai.pulsix.framework.common.exception.ServiceException;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventFieldItemVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPreviewRespVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelSaveReqVO;
-import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.AccessSourceDO;
-import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.EventAccessBindingDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventFieldDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventSchemaDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
-import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.AccessSourceMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.accesssource.EventAccessBindingMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventFieldDefMapper;
 import cn.liboshuai.pulsix.module.risk.dal.mysql.eventmodel.EventSchemaMapper;
@@ -31,7 +28,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
@@ -47,8 +43,6 @@ class EventModelServiceImplTest {
     @Mock
     private EventFieldDefMapper eventFieldDefMapper;
     @Mock
-    private AccessSourceMapper accessSourceMapper;
-    @Mock
     private EventAccessBindingMapper eventAccessBindingMapper;
     @Mock
     private SceneMapper sceneMapper;
@@ -59,8 +53,6 @@ class EventModelServiceImplTest {
     @BeforeEach
     void setUp() {
         lenient().when(sceneMapper.selectBySceneCode(anyString())).thenReturn(createScene("TRADE_RISK"));
-        lenient().when(accessSourceMapper.selectListBySourceCodes(anyCollection()))
-                .thenReturn(List.of(createAccessSource("TRADE_HTTP", "TRADE_RISK")));
     }
 
     @Test
@@ -79,6 +71,7 @@ class EventModelServiceImplTest {
         ArgumentCaptor<EventSchemaDO> schemaCaptor = ArgumentCaptor.forClass(EventSchemaDO.class);
         verify(eventSchemaMapper).insert(schemaCaptor.capture());
         assertThat(schemaCaptor.getValue().getStatus()).isEqualTo(CommonStatusEnum.DISABLE.getStatus());
+
         ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
@@ -86,18 +79,13 @@ class EventModelServiceImplTest {
         assertThat(insertedFields).allMatch(field -> "TRADE_EVENT".equals(field.getEventCode()));
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
                 .containsExactly(1, 2, 3, 4, 5);
-
-        ArgumentCaptor<Collection<EventAccessBindingDO>> bindingCaptor = ArgumentCaptor.forClass(Collection.class);
-        verify(eventAccessBindingMapper).insertBatch(bindingCaptor.capture());
-        assertThat(new ArrayList<>(bindingCaptor.getValue()))
-                .extracting(EventAccessBindingDO::getSourceCode)
-                .containsExactly("TRADE_HTTP");
     }
 
     @Test
     void createEventModel_duplicateEventCode_rejected() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
-        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(createEventSchema(1L, "TRADE_RISK", "TRADE_EVENT"));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode()))
+                .thenReturn(createEventSchema(1L, "TRADE_RISK", "TRADE_EVENT"));
 
         assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
                 .isInstanceOf(ServiceException.class)
@@ -119,10 +107,10 @@ class EventModelServiceImplTest {
     }
 
     @Test
-    void updateEventModel_eventTypeChanged_rejected() {
+    void updateEventModel_eventCodeChanged_rejected() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
         reqVO.setId(10L);
-        reqVO.setEventType("order_paid");
+        reqVO.setEventCode("ORDER_EVENT");
         when(eventSchemaMapper.selectById(10L)).thenReturn(createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT"));
 
         assertThatThrownBy(() -> eventModelService.updateEventModel(reqVO))
@@ -163,7 +151,7 @@ class EventModelServiceImplTest {
                 .findFirst()
                 .ifPresent(field -> field.setSortNo(3));
         reqVO.getFields().stream()
-                .filter(field -> "eventType".equals(field.getFieldName()))
+                .filter(field -> "eventCode".equals(field.getFieldName()))
                 .findFirst()
                 .ifPresent(field -> field.setSortNo(2));
 
@@ -174,7 +162,7 @@ class EventModelServiceImplTest {
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
         assertThat(insertedFields).extracting(EventFieldDefDO::getFieldName)
-                .containsExactly("eventId", "eventType", "sceneCode", "eventTime", "amount");
+                .containsExactly("eventId", "eventCode", "sceneCode", "eventTime", "amount");
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
                 .containsExactly(1, 2, 3, 4, 5);
     }
@@ -219,57 +207,6 @@ class EventModelServiceImplTest {
     }
 
     @Test
-    void createEventModel_bindingRequired_rejected() {
-        EventModelSaveReqVO reqVO = createBaseReqVO();
-        reqVO.setBindingSourceCodes(List.of());
-        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
-
-        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
-                .isInstanceOf(ServiceException.class)
-                .extracting("code")
-                .isEqualTo(1_003_000_106);
-    }
-
-    @Test
-    void createEventModel_duplicateBinding_rejected() {
-        EventModelSaveReqVO reqVO = createBaseReqVO();
-        reqVO.setBindingSourceCodes(List.of("TRADE_HTTP", "TRADE_HTTP"));
-        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
-
-        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
-                .isInstanceOf(ServiceException.class)
-                .extracting("code")
-                .isEqualTo(1_003_000_107);
-    }
-
-    @Test
-    void createEventModel_bindingSourceNotExists_rejected() {
-        EventModelSaveReqVO reqVO = createBaseReqVO();
-        reqVO.setBindingSourceCodes(List.of("UNKNOWN_SOURCE"));
-        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
-        when(accessSourceMapper.selectListBySourceCodes(anyCollection())).thenReturn(List.of());
-
-        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
-                .isInstanceOf(ServiceException.class)
-                .extracting("code")
-                .isEqualTo(1_003_000_108);
-    }
-
-    @Test
-    void createEventModel_bindingSceneMismatch_rejected() {
-        EventModelSaveReqVO reqVO = createBaseReqVO();
-        reqVO.setBindingSourceCodes(List.of("ORDER_HTTP"));
-        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
-        when(accessSourceMapper.selectListBySourceCodes(anyCollection()))
-                .thenReturn(List.of(createAccessSource("ORDER_HTTP", "ORDER_RISK")));
-
-        assertThatThrownBy(() -> eventModelService.createEventModel(reqVO))
-                .isInstanceOf(ServiceException.class)
-                .extracting("code")
-                .isEqualTo(1_003_000_109);
-    }
-
-    @Test
     void previewStandardEvent_typeConversionCorrect() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
         reqVO.getFields().stream()
@@ -280,11 +217,11 @@ class EventModelServiceImplTest {
         EventModelPreviewRespVO preview = eventModelService.previewStandardEvent(reqVO);
 
         assertThat(preview.getStandardEventJson().get("sceneCode")).isEqualTo("TRADE_RISK");
-        assertThat(preview.getStandardEventJson().get("eventType")).isEqualTo("trade");
+        assertThat(preview.getStandardEventJson().get("eventCode")).isEqualTo("TRADE_EVENT");
         assertThat(preview.getStandardEventJson().get("amount")).isInstanceOf(BigDecimal.class);
         assertThat((BigDecimal) preview.getStandardEventJson().get("amount"))
                 .isEqualByComparingTo(new BigDecimal("88.75"));
-        assertThat(preview.getRequiredFields()).contains("eventId", "sceneCode", "eventType", "amount");
+        assertThat(preview.getRequiredFields()).contains("eventId", "sceneCode", "eventCode", "amount");
     }
 
     @Test
@@ -300,20 +237,31 @@ class EventModelServiceImplTest {
         verify(eventAccessBindingMapper, never()).deleteByEventCodePhysically(anyString());
     }
 
+    @Test
+    void deleteEventModel_withAccessMappingReference_rejected() {
+        when(eventSchemaMapper.selectById(10L)).thenReturn(createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT"));
+        when(eventSchemaMapper.selectFeatureCountByEventCode("TRADE_EVENT")).thenReturn(0L);
+        when(eventAccessBindingMapper.selectCountByEventCode("TRADE_EVENT")).thenReturn(1L);
+
+        assertThatThrownBy(() -> eventModelService.deleteEventModel(10L))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_103);
+        verify(eventFieldDefMapper, never()).deleteByEventCode(anyString());
+    }
+
     private EventModelSaveReqVO createBaseReqVO() {
         EventModelSaveReqVO reqVO = new EventModelSaveReqVO();
         reqVO.setSceneCode("TRADE_RISK");
         reqVO.setEventCode("TRADE_EVENT");
         reqVO.setEventName("交易事件");
-        reqVO.setEventType("trade");
-        reqVO.setBindingSourceCodes(List.of("TRADE_HTTP"));
         reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
         reqVO.setDescription("交易标准事件模型");
 
         reqVO.setFields(new ArrayList<>(List.of(
                 createField("eventId", "事件ID", "STRING", 1, null, "E_TRADE_0001", 1),
                 createField("sceneCode", "场景编码", "STRING", 1, null, "TRADE_RISK", 2),
-                createField("eventType", "事件类型", "STRING", 1, null, "trade", 3),
+                createField("eventCode", "事件编码", "STRING", 1, null, "TRADE_EVENT", 3),
                 createField("eventTime", "事件时间", "DATETIME", 0, null, "2026-03-08T10:00:00", 4),
                 createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 5)
         )));
@@ -338,7 +286,6 @@ class EventModelServiceImplTest {
         schema.setId(id);
         schema.setSceneCode(sceneCode);
         schema.setEventCode(eventCode);
-        schema.setEventType("trade");
         schema.setVersion(1);
         schema.setStatus(0);
         return schema;
@@ -350,18 +297,6 @@ class EventModelServiceImplTest {
         scene.setSceneCode(sceneCode);
         scene.setSceneName("测试场景");
         return scene;
-    }
-
-    private AccessSourceDO createAccessSource(String sourceCode, String sceneCode) {
-        AccessSourceDO accessSource = new AccessSourceDO();
-        accessSource.setId(1L);
-        accessSource.setSourceCode(sourceCode);
-        accessSource.setSourceName("测试接入源");
-        accessSource.setSourceType("HTTP");
-        accessSource.setTopicName("pulsix.event.standard");
-        accessSource.setAllowedSceneCodes(List.of(sceneCode));
-        accessSource.setStatus(1);
-        return accessSource;
     }
 
 }

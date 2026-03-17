@@ -46,9 +46,6 @@ public class EventAccessBindingDO extends BaseDO {
     private String eventName;
 
     @TableField(exist = false)
-    private String eventType;
-
-    @TableField(exist = false)
     private String sourceName;
 
     @TableField(exist = false)
