@@ -46,7 +46,11 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="事件类型" prop="eventType">
-                  <el-input v-model="formData.eventType" placeholder="请输入事件类型" />
+                  <el-input
+                    v-model="formData.eventType"
+                    placeholder="请输入事件类型"
+                    :disabled="formType === 'update'"
+                  />
                 </el-form-item>
               </el-col>
             </el-row>

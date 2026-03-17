@@ -75,7 +75,8 @@ public class EventModelServiceImpl implements EventModelService {
     @Transactional(rollbackFor = Exception.class)
     public void updateEventModel(EventModelSaveReqVO updateReqVO) {
         EventSchemaDO schema = validateEventModelExists(updateReqVO.getId());
-        validateEventModelIdentityImmutable(schema, updateReqVO.getSceneCode(), updateReqVO.getEventCode());
+        validateEventModelIdentityImmutable(schema, updateReqVO.getSceneCode(), updateReqVO.getEventCode(),
+                updateReqVO.getEventType());
         validateSceneExists(updateReqVO.getSceneCode());
         validateEventCodeUnique(updateReqVO.getId(), updateReqVO.getEventCode());
 
@@ -176,9 +177,11 @@ public class EventModelServiceImpl implements EventModelService {
         }
     }
 
-    private void validateEventModelIdentityImmutable(EventSchemaDO schema, String sceneCode, String eventCode) {
+    private void validateEventModelIdentityImmutable(EventSchemaDO schema, String sceneCode, String eventCode,
+                                                     String eventType) {
         if (!ObjectUtil.equal(schema.getSceneCode(), sceneCode)
-                || !ObjectUtil.equal(schema.getEventCode(), eventCode)) {
+                || !ObjectUtil.equal(schema.getEventCode(), eventCode)
+                || !ObjectUtil.equal(schema.getEventType(), eventType)) {
             throw exception(EVENT_MODEL_IDENTITY_IMMUTABLE);
         }
     }

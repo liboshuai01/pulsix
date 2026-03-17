@@ -18,7 +18,7 @@ public interface ErrorCodeConstants {
     // ========== 事件模型 1-003-000-100 ==========
     ErrorCode EVENT_MODEL_NOT_EXISTS = new ErrorCode(1_003_000_100, "事件模型不存在");
     ErrorCode EVENT_MODEL_CODE_DUPLICATE = new ErrorCode(1_003_000_101, "事件编码【{}】已存在");
-    ErrorCode EVENT_MODEL_IDENTITY_IMMUTABLE = new ErrorCode(1_003_000_102, "事件模型创建后不允许修改场景编码或事件编码");
+    ErrorCode EVENT_MODEL_IDENTITY_IMMUTABLE = new ErrorCode(1_003_000_102, "事件模型创建后不允许修改场景编码、事件编码或事件类型");
     ErrorCode EVENT_MODEL_DELETE_DENIED = new ErrorCode(1_003_000_103, "事件模型【{}】存在关联特征，无法删除");
     ErrorCode EVENT_MODEL_FIELD_DUPLICATE = new ErrorCode(1_003_000_104, "字段【{}】重复定义");
     ErrorCode EVENT_MODEL_FIELD_INVALID = new ErrorCode(1_003_000_105, "事件模型字段配置非法：{}");

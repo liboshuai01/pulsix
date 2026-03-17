@@ -101,6 +101,19 @@ class EventModelServiceImplTest {
     }
 
     @Test
+    void updateEventModel_eventTypeChanged_rejected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setId(10L);
+        reqVO.setEventType("order_paid");
+        when(eventSchemaMapper.selectById(10L)).thenReturn(createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT"));
+
+        assertThatThrownBy(() -> eventModelService.updateEventModel(reqVO))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_102);
+    }
+
+    @Test
     void updateEventModel_preservesExistingStatus() {
         EventModelSaveReqVO reqVO = createBaseReqVO();
         reqVO.setId(10L);
@@ -257,6 +270,7 @@ class EventModelServiceImplTest {
         schema.setId(id);
         schema.setSceneCode(sceneCode);
         schema.setEventCode(eventCode);
+        schema.setEventType("trade");
         schema.setVersion(1);
         schema.setStatus(0);
         return schema;
