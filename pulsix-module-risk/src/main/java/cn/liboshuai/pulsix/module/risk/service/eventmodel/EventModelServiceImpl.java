@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.module.risk.service.eventmodel;
 
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.framework.common.util.json.JsonUtils;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventFieldItemVO;
@@ -79,6 +80,7 @@ public class EventModelServiceImpl implements EventModelService {
 
         EventSchemaDO schema = EventModelConvert.INSTANCE.convert(createReqVO);
         schema.setVersion(1);
+        schema.setStatus(CommonStatusEnum.DISABLE.getStatus());
         eventSchemaMapper.insert(schema);
         insertFieldList(buildFieldDOList(createReqVO.getEventCode(), validationResult.normalizedFields()));
         insertBindingList(buildBindingDOList(createReqVO.getEventCode(), createReqVO.getBindingSourceCodes()));

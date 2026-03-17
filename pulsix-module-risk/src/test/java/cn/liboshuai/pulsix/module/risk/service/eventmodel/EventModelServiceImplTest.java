@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.module.risk.service.eventmodel;
 
+import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.exception.ServiceException;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventFieldItemVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModelPreviewRespVO;
@@ -75,6 +76,9 @@ class EventModelServiceImplTest {
         Long id = eventModelService.createEventModel(reqVO);
 
         assertThat(id).isEqualTo(100L);
+        ArgumentCaptor<EventSchemaDO> schemaCaptor = ArgumentCaptor.forClass(EventSchemaDO.class);
+        verify(eventSchemaMapper).insert(schemaCaptor.capture());
+        assertThat(schemaCaptor.getValue().getStatus()).isEqualTo(CommonStatusEnum.DISABLE.getStatus());
         ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
@@ -303,7 +307,7 @@ class EventModelServiceImplTest {
         reqVO.setEventName("交易事件");
         reqVO.setEventType("trade");
         reqVO.setBindingSourceCodes(List.of("TRADE_HTTP"));
-        reqVO.setStatus(0);
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
         reqVO.setDescription("交易标准事件模型");
 
         reqVO.setFields(new ArrayList<>(List.of(

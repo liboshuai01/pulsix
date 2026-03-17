@@ -57,19 +57,16 @@
             </el-row>
             <el-row :gutter="18">
               <el-col :span="12">
-                <el-form-item v-if="formType === 'create'" label="状态" prop="status">
-                  <el-radio-group v-model="formData.status">
-                    <el-radio
-                      v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
-                      :key="dict.value"
-                      :value="dict.value"
+                <el-form-item label="状态">
+                  <div class="flex items-center gap-8px flex-wrap">
+                    <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
+                    <span
+                      v-if="formType === 'create'"
+                      class="text-12px text-[var(--el-text-color-secondary)]"
                     >
-                      {{ dict.label }}
-                    </el-radio>
-                  </el-radio-group>
-                </el-form-item>
-                <el-form-item v-else label="状态">
-                  <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
+                      新增默认关闭，创建后可在列表中启用
+                    </span>
+                  </div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -272,7 +269,7 @@
 
 <script setup lang="ts">
 import { CommonStatusEnum } from '@/utils/constants'
-import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import { DICT_TYPE } from '@/utils/dict'
 import * as SceneApi from '@/api/risk/scene'
 import * as EventModelApi from '@/api/risk/event-model'
 import * as AccessSourceApi from '@/api/risk/access-source'
@@ -323,20 +320,12 @@ const createDefaultFormData = (): EventModelFormData => ({
   eventType: '',
   bindingSourceCodes: [],
   version: undefined,
-  status: CommonStatusEnum.ENABLE,
+  status: CommonStatusEnum.DISABLE,
   description: '',
   fields: []
 })
 
 const formData = ref<EventModelFormData>(createDefaultFormData())
-
-const validateBindingSourceCodes = (_rule: any, value: string[], callback: (error?: Error) => void) => {
-  if (value?.length) {
-    callback()
-    return
-  }
-  callback(new Error('请至少绑定一个接入源'))
-}
 
 const formRules = reactive<FormRules>({
   sceneCode: [{ required: true, message: '场景编码不能为空', trigger: 'change' }],
@@ -349,9 +338,7 @@ const formRules = reactive<FormRules>({
     }
   ],
   eventName: [{ required: true, message: '事件名称不能为空', trigger: 'blur' }],
-  eventType: [{ required: true, message: '事件类型不能为空', trigger: 'blur' }],
-  bindingSourceCodes: [{ validator: validateBindingSourceCodes, trigger: 'change' }],
-  status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
+  eventType: [{ required: true, message: '事件类型不能为空', trigger: 'blur' }]
 })
 
 const loadSceneOptions = async () => {
@@ -468,12 +455,36 @@ defineExpose({ open })
 
 const emit = defineEmits(['success'])
 
+const validateSubmitSections = async () => {
+  if (!formData.value.bindingSourceCodes.length) {
+    activeTab.value = 'binding'
+    await nextTick()
+    message.warning('请先在【接入绑定】中至少选择一个接入源')
+    return false
+  }
+  if (!formData.value.fields.length) {
+    activeTab.value = 'fields'
+    await nextTick()
+    message.warning('请先在【字段定义】中至少新增一个字段')
+    return false
+  }
+  return true
+}
+
 const submitForm = async () => {
   if (!formRef.value) {
     return
   }
-  const valid = await formRef.value.validate()
-  if (!valid) {
+  try {
+    await formRef.value.validate()
+  } catch {
+    activeTab.value = 'basic'
+    await nextTick()
+    message.warning('请先完善【基础信息】中的必填项')
+    return
+  }
+  const sectionsValid = await validateSubmitSections()
+  if (!sectionsValid) {
     return
   }
   const payload = buildPayload()
@@ -540,8 +551,13 @@ const handleBindingSelectionChange = (selection: AccessSourceApi.AccessSourceSim
 
 const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
   if (!formData.value.bindingSourceCodes.length) {
-    message.warning('请至少绑定一个接入源')
+    message.warning('请先在【接入绑定】中至少选择一个接入源')
     activeTab.value = 'binding'
+    return null
+  }
+  if (!formData.value.fields.length) {
+    message.warning('请先在【字段定义】中至少新增一个字段')
+    activeTab.value = 'fields'
     return null
   }
 

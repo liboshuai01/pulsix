@@ -138,7 +138,7 @@
               class="risk-access-source__action-btn"
               @click="openDetail(scope.row.id!)"
             >
-              查看详情
+              详情
             </el-button>
             <el-button
               link

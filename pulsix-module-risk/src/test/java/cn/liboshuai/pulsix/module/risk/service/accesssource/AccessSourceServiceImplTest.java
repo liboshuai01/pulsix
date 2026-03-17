@@ -1,5 +1,6 @@
 package cn.liboshuai.pulsix.module.risk.service.accesssource;
 
+import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.exception.ServiceException;
 import cn.liboshuai.pulsix.module.risk.controller.admin.accesssource.vo.AccessSourceSaveReqVO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource.AccessSourceDO;
@@ -10,12 +11,14 @@ import cn.liboshuai.pulsix.module.risk.dal.mysql.scene.SceneMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -108,7 +111,9 @@ class AccessSourceServiceImplTest {
 
         accessSourceService.createAccessSource(reqVO);
 
-        verify(accessSourceMapper).insert(any(AccessSourceDO.class));
+        ArgumentCaptor<AccessSourceDO> captor = ArgumentCaptor.forClass(AccessSourceDO.class);
+        verify(accessSourceMapper).insert(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(CommonStatusEnum.DISABLE.getStatus());
     }
 
     private AccessSourceSaveReqVO createBaseReqVO() {
@@ -120,7 +125,7 @@ class AccessSourceServiceImplTest {
         reqVO.setRateLimitQps(500);
         reqVO.setAllowedSceneCodes(List.of("ORDER_RISK"));
         reqVO.setIpWhitelist(List.of("172.20.8.0/24"));
-        reqVO.setStatus(1);
+        reqVO.setStatus(CommonStatusEnum.ENABLE.getStatus());
         reqVO.setDescription("服务订单支付事件的后端 SDK 接入源");
         return reqVO;
     }

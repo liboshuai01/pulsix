@@ -2,6 +2,7 @@ package cn.liboshuai.pulsix.module.risk.service.accesssource;
 
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
 import cn.liboshuai.pulsix.framework.common.pojo.PageResult;
 import cn.liboshuai.pulsix.module.risk.controller.admin.accesssource.vo.AccessSourcePageReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.accesssource.vo.AccessSourceSaveReqVO;
@@ -54,6 +55,7 @@ public class AccessSourceServiceImpl implements AccessSourceService {
         AccessSourceDO accessSource = AccessSourceConvert.INSTANCE.convert(createReqVO);
         accessSource.setAllowedSceneCodes(allowedSceneCodes);
         accessSource.setIpWhitelist(normalizeStringList(createReqVO.getIpWhitelist()));
+        accessSource.setStatus(CommonStatusEnum.DISABLE.getStatus());
         accessSourceMapper.insert(accessSource);
         return accessSource.getId();
     }

@@ -119,7 +119,7 @@
               class="risk-event-model__action-btn"
               @click="openDetail(scope.row.id!)"
             >
-              查看详情
+              详情
             </el-button>
             <el-button
               link
@@ -127,7 +127,7 @@
               class="risk-event-model__action-btn"
               @click="openPreview(scope.row.id!)"
             >
-              预览标准事件
+              预览
             </el-button>
             <el-button
               link

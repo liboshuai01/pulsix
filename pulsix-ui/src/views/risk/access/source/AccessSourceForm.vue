@@ -90,19 +90,16 @@
           </el-form-item>
         </el-col>
         <el-col :xs="24" :md="12">
-          <el-form-item v-if="formType === 'create'" label="状态" prop="status">
-            <el-radio-group v-model="formData.status">
-              <el-radio
-                v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
-                :key="dict.value"
-                :value="dict.value"
+          <el-form-item label="状态">
+            <div class="flex items-center gap-8px flex-wrap">
+              <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
+              <span
+                v-if="formType === 'create'"
+                class="text-12px text-[var(--el-text-color-secondary)]"
               >
-                {{ dict.label }}
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item v-else label="状态">
-            <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
+                新增默认关闭，创建后可在列表中启用
+              </span>
+            </div>
           </el-form-item>
         </el-col>
       </el-row>
@@ -185,7 +182,7 @@
 
 <script setup lang="ts">
 import { CommonStatusEnum } from '@/utils/constants'
-import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
+import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as SceneApi from '@/api/risk/scene'
 import * as AccessSourceApi from '@/api/risk/access-source'
 import RiskCenterDialog from '../../components/RiskCenterDialog.vue'
@@ -224,7 +221,7 @@ const createDefaultFormData = (): AccessSourceFormData => ({
   ipWhitelist: [],
   ipWhitelistMode: 'ALL',
   ipWhitelistDraft: '',
-  status: CommonStatusEnum.ENABLE,
+  status: CommonStatusEnum.DISABLE,
   description: ''
 })
 
@@ -267,8 +264,7 @@ const formRules = reactive<FormRules>({
   sourceType: [{ required: true, message: '接入类型不能为空', trigger: 'change' }],
   topicName: [{ required: true, message: '标准 Topic 不能为空', trigger: 'change' }],
   allowedSceneCodes: [{ required: true, message: '至少选择一个允许场景', trigger: 'change' }],
-  ipWhitelist: [{ validator: validateIpWhitelist, trigger: 'change' }],
-  status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
+  ipWhitelist: [{ validator: validateIpWhitelist, trigger: 'change' }]
 })
 
 const loadSceneOptions = async () => {
