@@ -127,7 +127,7 @@ const goToAccessMapping = (sourceCode?: string) => {
   if (!sourceCode) {
     return
   }
-  router.push({ path: '/risk/access/mapping/index', query: { sourceCode } })
+  router.push({ path: '/risk/access/mapping', query: { sourceCode } })
 }
 
 defineExpose({ open })

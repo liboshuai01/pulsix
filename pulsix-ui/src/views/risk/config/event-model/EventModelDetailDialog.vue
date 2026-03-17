@@ -138,7 +138,7 @@ const goToAccessMapping = (eventCode?: string) => {
   if (!eventCode) {
     return
   }
-  router.push({ path: '/risk/access/mapping/index', query: { eventCode } })
+  router.push({ path: '/risk/access/mapping', query: { eventCode } })
 }
 
 defineExpose({ open })
