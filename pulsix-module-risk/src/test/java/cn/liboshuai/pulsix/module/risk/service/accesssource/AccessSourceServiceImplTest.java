@@ -117,10 +117,6 @@ class AccessSourceServiceImplTest {
         reqVO.setSourceName("订单中心 SDK 接入");
         reqVO.setSourceType("SDK");
         reqVO.setTopicName("pulsix.event.standard");
-        reqVO.setAccessProtocol("TCP");
-        reqVO.setAppId("order-center");
-        reqVO.setOwnerName("王五");
-        reqVO.setContactEmail("order-risk@example.com");
         reqVO.setRateLimitQps(500);
         reqVO.setAllowedSceneCodes(List.of("ORDER_RISK"));
         reqVO.setIpWhitelist(List.of("172.20.8.0/24"));

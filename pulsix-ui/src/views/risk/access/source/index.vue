@@ -94,7 +94,6 @@
           <dict-tag :type="DICT_TYPE.RISK_ACCESS_TOPIC_NAME" :value="scope.row.topicName" />
         </template>
       </el-table-column>
-      <el-table-column label="接入协议" align="center" prop="accessProtocol" min-width="120" />
       <el-table-column label="允许场景" align="center" min-width="220">
         <template #default="scope">
           <div v-if="scope.row.allowedSceneCodes?.length" class="risk-access-source__tag-list">

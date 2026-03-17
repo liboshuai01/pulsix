@@ -25,18 +25,6 @@ public class AccessSourceRespVO {
     @Schema(description = "标准事件 Topic", example = "pulsix.event.standard")
     private String topicName;
 
-    @Schema(description = "接入协议", example = "HTTP")
-    private String accessProtocol;
-
-    @Schema(description = "应用标识", example = "marketing-center")
-    private String appId;
-
-    @Schema(description = "负责人", example = "张三")
-    private String ownerName;
-
-    @Schema(description = "联系邮箱", example = "marketing-risk@example.com")
-    private String contactEmail;
-
     @Schema(description = "限流 QPS", example = "300")
     private Integer rateLimitQps;
 

@@ -6,10 +6,6 @@ export interface AccessSourceVO {
   sourceName: string
   sourceType: string
   topicName: string
-  accessProtocol: string
-  appId?: string
-  ownerName?: string
-  contactEmail?: string
   rateLimitQps?: number
   allowedSceneCodes: string[]
   ipWhitelist?: string[]

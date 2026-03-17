@@ -3,7 +3,7 @@
     v-model="dialogVisible"
     :title="dialogTitle"
     :fullscreen="false"
-    width="1080px"
+    width="min(960px, calc(100vw - 48px))"
     max-height="calc(100vh - 220px)"
     scroll
   >
@@ -12,15 +12,16 @@
       v-loading="formLoading"
       :model="formData"
       :rules="formRules"
-      label-width="110px"
+      label-width="100px"
+      class="risk-access-source-form"
     >
       <el-row :gutter="18">
-        <el-col :span="12">
+        <el-col :xs="24" :md="12">
           <el-form-item label="接入源名称" prop="sourceName">
             <el-input v-model="formData.sourceName" placeholder="请输入接入源名称" />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :xs="24" :md="12">
           <el-form-item label="接入源编码" prop="sourceCode">
             <el-input
               v-model="formData.sourceCode"
@@ -32,7 +33,7 @@
       </el-row>
 
       <el-row :gutter="18">
-        <el-col :span="12">
+        <el-col :xs="24" :md="12">
           <el-form-item label="接入类型" prop="sourceType">
             <el-select v-model="formData.sourceType" placeholder="请选择接入类型">
               <el-option
@@ -44,7 +45,7 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :xs="24" :md="12">
           <el-form-item label="标准 Topic" prop="topicName">
             <el-select v-model="formData.topicName" placeholder="请选择标准 Topic">
               <el-option
@@ -54,62 +55,6 @@
                 :value="dict.value"
               />
             </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="18">
-        <el-col :span="12">
-          <el-form-item label="接入协议" prop="accessProtocol">
-            <el-input v-model="formData.accessProtocol" placeholder="请输入接入协议" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="应用标识" prop="appId">
-            <el-input v-model="formData.appId" placeholder="请输入应用标识" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="18">
-        <el-col :span="12">
-          <el-form-item label="负责人" prop="ownerName">
-            <el-input v-model="formData.ownerName" placeholder="请输入负责人" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联系邮箱" prop="contactEmail">
-            <el-input v-model="formData.contactEmail" placeholder="请输入联系邮箱" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="18">
-        <el-col :span="12">
-          <el-form-item label="限流 QPS" prop="rateLimitQps">
-            <el-input-number
-              v-model="formData.rateLimitQps"
-              :min="1"
-              :precision="0"
-              controls-position="right"
-              class="risk-access-source-form__number"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item v-if="formType === 'create'" label="状态" prop="status">
-            <el-radio-group v-model="formData.status">
-              <el-radio
-                v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
-                :key="dict.value"
-                :value="dict.value"
-              >
-                {{ dict.label }}
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item v-else label="状态">
-            <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -132,23 +77,59 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="IP 白名单" prop="ipWhitelistText">
-        <el-input
-          v-model="formData.ipWhitelistText"
-          type="textarea"
-          :rows="5"
-          placeholder='请输入 JSON 数组，例如 ["10.0.0.1","172.20.8.0/24"]'
-        />
-      </el-form-item>
+      <el-row :gutter="18">
+        <el-col :xs="24" :md="12">
+          <el-form-item label="限流 QPS" prop="rateLimitQps">
+            <el-input-number
+              v-model="formData.rateLimitQps"
+              :min="1"
+              :precision="0"
+              controls-position="right"
+              class="risk-access-source-form__number"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :xs="24" :md="12">
+          <el-form-item v-if="formType === 'create'" label="状态" prop="status">
+            <el-radio-group v-model="formData.status">
+              <el-radio
+                v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)"
+                :key="dict.value"
+                :value="dict.value"
+              >
+                {{ dict.label }}
+              </el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-else label="状态">
+            <dict-tag :type="DICT_TYPE.COMMON_STATUS" :value="formData.status" />
+          </el-form-item>
+        </el-col>
+      </el-row>
 
-      <el-form-item label="描述" prop="description">
-        <el-input
-          v-model="formData.description"
-          type="textarea"
-          :rows="4"
-          placeholder="请输入接入源描述"
-        />
-      </el-form-item>
+      <el-row :gutter="18">
+        <el-col :xs="24" :md="12">
+          <el-form-item label="IP 白名单" prop="ipWhitelistText">
+            <el-input
+              v-model="formData.ipWhitelistText"
+              type="textarea"
+              :rows="6"
+              placeholder='请输入 JSON 数组，例如 ["10.0.0.1","172.20.8.0/24"]'
+              class="risk-access-source-form__code-input"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :xs="24" :md="12">
+          <el-form-item label="描述" prop="description">
+            <el-input
+              v-model="formData.description"
+              type="textarea"
+              :rows="6"
+              placeholder="请输入接入源描述"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
 
     <template #footer>
@@ -191,10 +172,6 @@ const createDefaultFormData = (): AccessSourceFormData => ({
   sourceName: '',
   sourceType: '',
   topicName: '',
-  accessProtocol: '',
-  appId: '',
-  ownerName: '',
-  contactEmail: '',
   rateLimitQps: undefined,
   allowedSceneCodes: [],
   ipWhitelist: [],
@@ -248,8 +225,6 @@ const formRules = reactive<FormRules>({
   ],
   sourceType: [{ required: true, message: '接入类型不能为空', trigger: 'change' }],
   topicName: [{ required: true, message: '标准 Topic 不能为空', trigger: 'change' }],
-  accessProtocol: [{ required: true, message: '接入协议不能为空', trigger: 'blur' }],
-  contactEmail: [{ type: 'email', message: '联系邮箱格式不正确', trigger: 'blur' }],
   allowedSceneCodes: [{ required: true, message: '至少选择一个允许场景', trigger: 'change' }],
   ipWhitelistText: [{ validator: validateIpWhitelistText, trigger: 'blur' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
@@ -275,10 +250,6 @@ const open = async (type: 'create' | 'update', id?: number) => {
         sourceName: data.sourceName || '',
         sourceType: data.sourceType || '',
         topicName: data.topicName || '',
-        accessProtocol: data.accessProtocol || '',
-        appId: data.appId || '',
-        ownerName: data.ownerName || '',
-        contactEmail: data.contactEmail || '',
         allowedSceneCodes: data.allowedSceneCodes || [],
         ipWhitelist: data.ipWhitelist || [],
         ipWhitelistText: JSON.stringify(data.ipWhitelist || [], null, 2),
@@ -303,10 +274,6 @@ const buildPayload = (): AccessSourceApi.AccessSourceVO | null => {
       sourceName: formData.value.sourceName,
       sourceType: formData.value.sourceType,
       topicName: formData.value.topicName,
-      accessProtocol: formData.value.accessProtocol,
-      appId: formData.value.appId || undefined,
-      ownerName: formData.value.ownerName || undefined,
-      contactEmail: formData.value.contactEmail || undefined,
       rateLimitQps: formData.value.rateLimitQps ?? undefined,
       allowedSceneCodes: Array.from(new Set(formData.value.allowedSceneCodes)),
       ipWhitelist: ipWhitelist.length ? ipWhitelist : undefined,
@@ -354,7 +321,20 @@ const resetForm = () => {
 </script>
 
 <style scoped lang="scss">
+.risk-access-source-form {
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+}
+
 .risk-access-source-form__number {
   width: 100%;
+}
+
+.risk-access-source-form__code-input {
+  :deep(.el-textarea__inner) {
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    line-height: 1.6;
+  }
 }
 </style>

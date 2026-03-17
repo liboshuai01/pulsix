@@ -22,7 +22,7 @@ const props = defineProps({
   maxHeight: propTypes.oneOfType([String, Number]).def('calc(100vh - 240px)'),
   fullscreen: propTypes.bool.def(true),
   scroll: propTypes.bool.def(true),
-  closeOnClickModal: propTypes.bool.def(true)
+  closeOnClickModal: propTypes.bool.def(false)
 })
 
 const isFullscreen = ref(false)

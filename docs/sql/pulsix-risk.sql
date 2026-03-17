@@ -519,10 +519,6 @@ CREATE TABLE `access_source_def` (
   `source_name` varchar(128) NOT NULL COMMENT '接入源名称',
   `source_type` varchar(32) NOT NULL COMMENT '接入源类型',
   `topic_name` varchar(128) NOT NULL COMMENT '标准事件 Topic',
-  `access_protocol` varchar(32) NOT NULL COMMENT '接入协议',
-  `app_id` varchar(64) DEFAULT NULL COMMENT '应用标识',
-  `owner_name` varchar(64) DEFAULT NULL COMMENT '负责人',
-  `contact_email` varchar(128) DEFAULT NULL COMMENT '联系邮箱',
   `rate_limit_qps` int DEFAULT NULL COMMENT '限流 QPS',
   `allowed_scene_codes_json` json DEFAULT NULL COMMENT '允许场景',
   `ip_whitelist_json` json DEFAULT NULL COMMENT 'IP 白名单',
@@ -883,10 +879,10 @@ INSERT INTO `risk_event` (`id`, `risk_event_no`, `scene_code`, `trace_id`, `even
 (13002, 'RISK_EVT_20260308_002', 'WITHDRAW_RISK', 'T_WD_0002', 'E_WD_0002', 11004, 'DECISION_RESULT', 'REVIEW', 'HIGH', 2, '["WITHDRAW_R001"]', '大额重复提现命中审核规则，已暂停打款等待运营处理', 'REVIEWING', 'finance.review', '2026-03-08 11:18:01', '2026-03-08 11:18:01', '{"category":"WITHDRAW","nextStep":"hold_payment"}', 'system', '2026-03-08 11:18:01', 'finance.review', '2026-03-08 11:20:00', b'0'),
 (13003, 'RISK_EVT_20260308_003', 'ORDER_RISK', 'T_ORDER_0002', 'E_ORDER_0002', 11006, 'DECISION_RESULT', 'REJECT', 'HIGH', 1, '["ORDER_R001"]', '黑名单设备下单，订单系统需取消订单并释放库存', 'OPEN', 'order.ops', '2026-03-08 12:12:01', '2026-03-08 12:12:01', '{"category":"ORDER","nextStep":"cancel_order"}', 'system', '2026-03-08 12:12:01', 'system', '2026-03-08 12:12:01', b'0');
 
-INSERT INTO `access_source_def` (`id`, `source_code`, `source_name`, `source_type`, `topic_name`, `access_protocol`, `app_id`, `owner_name`, `contact_email`, `rate_limit_qps`, `allowed_scene_codes_json`, `ip_whitelist_json`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
-(14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'marketing-center', '张三', 'marketing-risk@example.com', 300, '["PROMOTION_RISK"]', '["10.30.0.0/16","172.16.10.0/24"]', 1, '服务营销受理事件的 HTTP 接入源', 'admin', '2026-03-08 09:58:00', 'admin', '2026-03-08 09:58:00', b'0'),
-(14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 'HTTP', 'account-center', '李四', 'finance-risk@example.com', 200, '["WITHDRAW_RISK"]', '["10.40.0.0/16","192.168.20.0/24"]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00', 'admin', '2026-03-08 10:58:00', b'0'),
-(14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'pulsix.event.standard', 'TCP', 'order-center', '王五', 'order-risk@example.com', 500, '["ORDER_RISK"]', '["172.20.8.0/24"]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin', '2026-03-08 11:58:00', b'0');
+INSERT INTO `access_source_def` (`id`, `source_code`, `source_name`, `source_type`, `topic_name`, `rate_limit_qps`, `allowed_scene_codes_json`, `ip_whitelist_json`, `status`, `description`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+(14001, 'PROMOTION_CENTER_HTTP', '营销中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 300, '["PROMOTION_RISK"]', '["10.30.0.0/16","172.16.10.0/24"]', 1, '服务营销受理事件的 HTTP 接入源', 'admin', '2026-03-08 09:58:00', 'admin', '2026-03-08 09:58:00', b'0'),
+(14002, 'WITHDRAW_CENTER_HTTP', '资金中心 HTTP 接入', 'HTTP', 'pulsix.event.standard', 200, '["WITHDRAW_RISK"]', '["10.40.0.0/16","192.168.20.0/24"]', 1, '服务提现申请事件的 HTTP 接入源', 'admin', '2026-03-08 10:58:00', 'admin', '2026-03-08 10:58:00', b'0'),
+(14003, 'ORDER_CENTER_SDK', '订单中心 SDK 接入', 'SDK', 'pulsix.event.standard', 500, '["ORDER_RISK"]', '["172.20.8.0/24"]', 1, '服务订单支付事件的后端 SDK 接入源', 'admin', '2026-03-08 11:58:00', 'admin', '2026-03-08 11:58:00', b'0');
 
 INSERT INTO `event_access_binding` (`id`, `event_code`, `source_code`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
 (14101, 'PROMOTION_EVENT', 'PROMOTION_CENTER_HTTP', 'admin', '2026-03-08 10:00:00', 'admin', '2026-03-08 10:00:00', b'0'),

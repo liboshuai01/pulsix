@@ -36,14 +36,6 @@ public class AccessSourceDO extends BaseDO {
 
     private String topicName;
 
-    private String accessProtocol;
-
-    private String appId;
-
-    private String ownerName;
-
-    private String contactEmail;
-
     private Integer rateLimitQps;
 
     @TableField(value = "allowed_scene_codes_json", typeHandler = JacksonTypeHandler.class)

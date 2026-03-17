@@ -5,7 +5,6 @@ import cn.liboshuai.pulsix.framework.common.validation.InEnum;
 import cn.liboshuai.pulsix.framework.dict.validation.InDict;
 import cn.liboshuai.pulsix.module.risk.enums.DictTypeConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -43,24 +42,6 @@ public class AccessSourceSaveReqVO {
     @NotBlank(message = "标准事件 Topic 不能为空")
     @InDict(type = DictTypeConstants.RISK_ACCESS_TOPIC_NAME)
     private String topicName;
-
-    @Schema(description = "接入协议", requiredMode = Schema.RequiredMode.REQUIRED, example = "TCP")
-    @NotBlank(message = "接入协议不能为空")
-    @Size(max = 32, message = "接入协议长度不能超过 32 个字符")
-    private String accessProtocol;
-
-    @Schema(description = "应用标识", example = "order-center")
-    @Size(max = 64, message = "应用标识长度不能超过 64 个字符")
-    private String appId;
-
-    @Schema(description = "负责人", example = "王五")
-    @Size(max = 64, message = "负责人长度不能超过 64 个字符")
-    private String ownerName;
-
-    @Schema(description = "联系邮箱", example = "order-risk@example.com")
-    @Size(max = 128, message = "联系邮箱长度不能超过 128 个字符")
-    @Email(message = "联系邮箱格式不正确")
-    private String contactEmail;
 
     @Schema(description = "限流 QPS", example = "500")
     @Positive(message = "限流 QPS 必须大于 0")

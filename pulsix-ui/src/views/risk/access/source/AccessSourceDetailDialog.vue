@@ -30,18 +30,6 @@
           />
           <span v-else>-</span>
         </el-descriptions-item>
-        <el-descriptions-item label="接入协议">
-          {{ detail?.accessProtocol || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="应用标识">
-          {{ detail?.appId || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="负责人">
-          {{ detail?.ownerName || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="联系邮箱">
-          {{ detail?.contactEmail || '-' }}
-        </el-descriptions-item>
         <el-descriptions-item label="限流 QPS">
           {{ detail?.rateLimitQps ?? '-' }}
         </el-descriptions-item>
