@@ -138,7 +138,7 @@
               scrollbar-always-on
               class="risk-access-mapping-form__raw-table"
             >
-              <el-table-column label="排序" width="86" align="center">
+              <el-table-column label="排序" width="96" align="center" header-align="center">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="row.sortNo"
@@ -148,22 +148,22 @@
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="字段名" width="140">
+              <el-table-column label="字段名" width="150">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldName" placeholder="fieldName" />
                 </template>
               </el-table-column>
-              <el-table-column label="显示名" width="150">
+              <el-table-column label="显示名" width="160">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldLabel" placeholder="字段显示名" />
                 </template>
               </el-table-column>
-              <el-table-column label="字段路径" width="200">
+              <el-table-column label="字段路径" width="220">
                 <template #default="{ row }">
                   <el-input v-model="row.fieldPath" placeholder="order.user.id" />
                 </template>
               </el-table-column>
-              <el-table-column label="字段类型" width="130">
+              <el-table-column label="字段类型" width="140">
                 <template #default="{ row }">
                   <el-select v-model="row.fieldType" placeholder="请选择字段类型">
                     <el-option
@@ -175,27 +175,48 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="必填" width="86" align="center">
+              <el-table-column label="必填" width="90" align="center">
                 <template #default="{ row }">
                   <el-switch v-model="row.requiredFlag" :active-value="1" :inactive-value="0" />
                 </template>
               </el-table-column>
-              <el-table-column label="样例值" width="180">
+              <el-table-column label="样例值" width="200">
                 <template #default="{ row }">
                   <el-input v-model="row.sampleValue" placeholder="样例值" />
                 </template>
               </el-table-column>
-              <el-table-column label="描述" width="190">
+              <el-table-column label="描述" width="240">
                 <template #default="{ row }">
                   <el-input v-model="row.description" placeholder="字段描述" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="136" fixed="right" align="center">
+              <el-table-column label="操作" width="156" fixed="right" align="center" header-align="center">
                 <template #default="{ $index }">
                   <div class="risk-access-mapping-form__row-actions">
-                    <el-button link type="primary" @click="moveRawFieldUp($index)">上移</el-button>
-                    <el-button link type="primary" @click="moveRawFieldDown($index)">下移</el-button>
-                    <el-button link type="danger" @click="removeRawField($index)">删除</el-button>
+                    <el-button
+                      link
+                      type="primary"
+                      class="risk-access-mapping-form__row-action-btn"
+                      @click="moveRawFieldUp($index)"
+                    >
+                      上移
+                    </el-button>
+                    <el-button
+                      link
+                      type="primary"
+                      class="risk-access-mapping-form__row-action-btn"
+                      @click="moveRawFieldDown($index)"
+                    >
+                      下移
+                    </el-button>
+                    <el-button
+                      link
+                      type="danger"
+                      class="risk-access-mapping-form__row-action-btn"
+                      @click="removeRawField($index)"
+                    >
+                      删除
+                    </el-button>
                   </div>
                 </template>
               </el-table-column>
@@ -965,7 +986,7 @@ const resetForm = () => {
 }
 
 .risk-access-mapping-form__raw-table {
-  min-width: 1360px;
+  min-width: 1500px;
 }
 
 .risk-access-mapping-form__rule-table {
@@ -981,10 +1002,20 @@ const resetForm = () => {
 .risk-access-mapping-form__row-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.risk-access-mapping-form__row-action-btn {
+  margin-left: 0 !important;
+  padding: 0;
 }
 
 .risk-access-mapping-form__sort-input {
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+
   :deep(.el-input__inner) {
     text-align: center;
   }
