@@ -27,4 +27,6 @@ public interface AccessSourceService {
 
     Map<String, List<AccessSourceDO>> getBindingSourceMap(Collection<String> eventCodes);
 
+    String getDeleteBlockedReason(AccessSourceDO accessSource);
+
 }

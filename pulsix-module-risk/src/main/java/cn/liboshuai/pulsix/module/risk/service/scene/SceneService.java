@@ -23,4 +23,6 @@ public interface SceneService {
 
     List<SceneDO> getSimpleSceneList();
 
+    String getDeleteBlockedReason(SceneDO scene);
+
 }

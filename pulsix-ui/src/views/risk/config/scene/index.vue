@@ -112,14 +112,23 @@
           >
             {{ scope.row.status === CommonStatusEnum.ENABLE ? '停用' : '启用' }}
           </el-button>
-          <el-button
-            link
-            type="danger"
-            @click="handleDelete(scope.row.id)"
-            v-hasPermi="['risk:scene:delete']"
+          <el-tooltip
+            :disabled="!isDeleteDisabled(scope.row)"
+            :content="getDeleteBlockedReason(scope.row)"
+            placement="top"
           >
-            删除
-          </el-button>
+            <span class="risk-scene__delete-trigger">
+              <el-button
+                link
+                type="danger"
+                :disabled="isDeleteDisabled(scope.row)"
+                @click="handleDelete(scope.row)"
+                v-hasPermi="['risk:scene:delete']"
+              >
+                删除
+              </el-button>
+            </span>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -205,10 +214,19 @@ const handleStatusChange = async (row: SceneApi.SceneVO) => {
   } catch {}
 }
 
-const handleDelete = async (id: number) => {
+const isDeleteDisabled = (row: SceneApi.SceneVO) => row.deletable === false
+
+const getDeleteBlockedReason = (row: SceneApi.SceneVO) => {
+  return row.deleteBlockedReason || '当前不可删除'
+}
+
+const handleDelete = async (row: SceneApi.SceneVO) => {
+  if (isDeleteDisabled(row)) {
+    return
+  }
   try {
     await message.delConfirm()
-    await SceneApi.deleteScene(id)
+    await SceneApi.deleteScene(row.id!)
     message.success('删除成功')
     await getList()
   } catch {}
@@ -218,3 +236,9 @@ onMounted(() => {
   getList()
 })
 </script>
+
+<style scoped lang="scss">
+.risk-scene__delete-trigger {
+  display: inline-flex;
+}
+</style>

@@ -22,6 +22,10 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.*;
 @Validated
 public class SceneServiceImpl implements SceneService {
 
+    private static final String DELETE_BLOCKED_REASON_ENABLED = "当前为启用状态，请先停用后再删除";
+    private static final String DELETE_BLOCKED_REASON_DEPENDENCY_PREFIX = "当前存在关联";
+    private static final String DELETE_BLOCKED_REASON_DEPENDENCY_SUFFIX = "，无法删除";
+
     @Resource
     private SceneMapper sceneMapper;
 
@@ -81,6 +85,18 @@ public class SceneServiceImpl implements SceneService {
         return sceneMapper.selectEnabledList();
     }
 
+    @Override
+    public String getDeleteBlockedReason(SceneDO scene) {
+        if (scene == null) {
+            return null;
+        }
+        if (ObjectUtil.equal(scene.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            return DELETE_BLOCKED_REASON_ENABLED;
+        }
+        String dependencyName = findFirstDependency(scene.getSceneCode());
+        return dependencyName == null ? null : buildDependencyDeleteBlockedReason(dependencyName);
+    }
+
     @VisibleForTesting
     public SceneDO validateSceneExists(Long id) {
         if (id == null) {
@@ -113,10 +129,17 @@ public class SceneServiceImpl implements SceneService {
 
     @VisibleForTesting
     public void validateSceneDeleteAllowed(SceneDO scene) {
+        if (ObjectUtil.equal(scene.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            throw exception(SCENE_DELETE_ENABLED_DENIED);
+        }
         String dependencyName = findFirstDependency(scene.getSceneCode());
         if (dependencyName != null) {
             throw exception(SCENE_DELETE_DENIED, scene.getSceneName(), dependencyName);
         }
+    }
+
+    private String buildDependencyDeleteBlockedReason(String dependencyName) {
+        return DELETE_BLOCKED_REASON_DEPENDENCY_PREFIX + dependencyName + DELETE_BLOCKED_REASON_DEPENDENCY_SUFFIX;
     }
 
     private String findFirstDependency(String sceneCode) {

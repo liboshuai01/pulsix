@@ -89,6 +89,7 @@ public class SceneController {
             return success(null);
         }
         SceneRespVO respVO = SceneConvert.INSTANCE.convert(scene);
+        fillDeleteState(Collections.singletonList(scene), Collections.singletonList(respVO));
         translateAuditUsers(Collections.singletonList(respVO));
         return success(respVO);
     }
@@ -99,6 +100,7 @@ public class SceneController {
     public CommonResult<PageResult<SceneRespVO>> getScenePage(@Valid ScenePageReqVO pageReqVO) {
         PageResult<SceneDO> pageResult = sceneService.getScenePage(pageReqVO);
         PageResult<SceneRespVO> respVOPage = SceneConvert.INSTANCE.convertPage(pageResult);
+        fillDeleteState(pageResult.getList(), respVOPage.getList());
         translateAuditUsers(respVOPage.getList());
         return success(respVOPage);
     }
@@ -108,6 +110,17 @@ public class SceneController {
     @PreAuthorize("@ss.hasPermission('risk:scene:query')")
     public CommonResult<List<SceneSimpleRespVO>> getSimpleSceneList() {
         return success(SceneConvert.INSTANCE.convertSimpleList(sceneService.getSimpleSceneList()));
+    }
+
+    private void fillDeleteState(List<SceneDO> scenes, List<SceneRespVO> respVOs) {
+        if (scenes == null || respVOs == null) {
+            return;
+        }
+        for (int i = 0; i < Math.min(scenes.size(), respVOs.size()); i++) {
+            String blockedReason = sceneService.getDeleteBlockedReason(scenes.get(i));
+            respVOs.get(i).setDeletable(blockedReason == null);
+            respVOs.get(i).setDeleteBlockedReason(blockedReason);
+        }
     }
 
     private void translateAuditUsers(List<SceneRespVO> scenes) {

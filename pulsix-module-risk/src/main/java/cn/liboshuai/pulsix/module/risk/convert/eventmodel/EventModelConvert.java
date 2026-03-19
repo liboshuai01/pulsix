@@ -8,6 +8,7 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.eventmodel.vo.EventModel
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventFieldDefDO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.eventmodel.EventSchemaDO;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
@@ -23,6 +24,10 @@ public interface EventModelConvert {
 
     List<EventFieldDefDO> convertFieldDOList(List<EventFieldItemVO> list);
 
+    @Mapping(target = "fields", ignore = true)
+    @Mapping(target = "bindingSources", ignore = true)
+    @Mapping(target = "deletable", ignore = true)
+    @Mapping(target = "deleteBlockedReason", ignore = true)
     EventModelRespVO convert(EventSchemaDO bean);
 
     EventFieldItemVO convert(EventFieldDefDO bean);

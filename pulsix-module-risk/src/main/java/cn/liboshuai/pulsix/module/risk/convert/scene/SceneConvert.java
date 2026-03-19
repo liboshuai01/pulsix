@@ -6,6 +6,7 @@ import cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo.SceneSaveReqVO;
 import cn.liboshuai.pulsix.module.risk.controller.admin.scene.vo.SceneSimpleRespVO;
 import cn.liboshuai.pulsix.module.risk.dal.dataobject.scene.SceneDO;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.util.List;
@@ -17,6 +18,8 @@ public interface SceneConvert {
 
     SceneDO convert(SceneSaveReqVO bean);
 
+    @Mapping(target = "deletable", ignore = true)
+    @Mapping(target = "deleteBlockedReason", ignore = true)
     SceneRespVO convert(SceneDO bean);
 
     SceneSimpleRespVO convertSimple(SceneDO bean);

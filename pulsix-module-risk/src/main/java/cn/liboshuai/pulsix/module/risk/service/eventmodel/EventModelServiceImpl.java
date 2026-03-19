@@ -36,6 +36,7 @@ import java.util.Objects;
 import static cn.liboshuai.pulsix.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_DELETE_DENIED;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_DELETE_ENABLED_DENIED;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_FIELD_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_FIELD_INVALID;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.EVENT_MODEL_IDENTITY_IMMUTABLE;
@@ -47,6 +48,9 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.SCENE_NOT
 public class EventModelServiceImpl implements EventModelService {
 
     private static final Object MISSING_VALUE = new Object();
+    private static final String DELETE_BLOCKED_REASON_ENABLED = "当前为启用状态，请先停用后再删除";
+    private static final String DELETE_BLOCKED_REASON_FEATURE = "当前存在关联特征，无法删除";
+    private static final String DELETE_BLOCKED_REASON_ACCESS_MAPPING = "当前存在关联接入映射，无法删除";
     private static final String DISABLED_FIELD_NAME_EXT = "ext";
     private static final String FIELD_EVENT_ID = "eventId";
     private static final String FIELD_TRACE_ID = "traceId";
@@ -182,6 +186,23 @@ public class EventModelServiceImpl implements EventModelService {
         return respVO;
     }
 
+    @Override
+    public String getDeleteBlockedReason(EventSchemaDO schema) {
+        if (schema == null) {
+            return null;
+        }
+        if (ObjectUtil.equal(schema.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            return DELETE_BLOCKED_REASON_ENABLED;
+        }
+        if (eventSchemaMapper.selectFeatureCountByEventCode(schema.getEventCode()) > 0) {
+            return DELETE_BLOCKED_REASON_FEATURE;
+        }
+        if (eventAccessBindingMapper.selectCountByEventCode(schema.getEventCode()) > 0) {
+            return DELETE_BLOCKED_REASON_ACCESS_MAPPING;
+        }
+        return null;
+    }
+
     private void validateSceneExists(String sceneCode) {
         SceneDO scene = sceneMapper.selectBySceneCode(sceneCode);
         if (scene == null) {
@@ -218,11 +239,14 @@ public class EventModelServiceImpl implements EventModelService {
     }
 
     private void validateEventModelDeleteAllowed(EventSchemaDO schema) {
+        if (ObjectUtil.equal(schema.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            throw exception(EVENT_MODEL_DELETE_ENABLED_DENIED);
+        }
         if (eventSchemaMapper.selectFeatureCountByEventCode(schema.getEventCode()) > 0) {
-            throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode());
+            throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode(), "特征");
         }
         if (eventAccessBindingMapper.selectCountByEventCode(schema.getEventCode()) > 0) {
-            throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode());
+            throw exception(EVENT_MODEL_DELETE_DENIED, schema.getEventCode(), "接入映射");
         }
     }
 

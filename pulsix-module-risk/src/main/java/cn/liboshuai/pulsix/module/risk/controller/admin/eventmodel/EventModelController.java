@@ -96,6 +96,7 @@ public class EventModelController {
         }
         EventModelRespVO respVO = EventModelConvert.INSTANCE.convert(schema);
         respVO.setFields(EventModelConvert.INSTANCE.convertFieldList(eventModelService.getEventFieldList(schema.getEventCode())));
+        fillDeleteState(Collections.singletonList(schema), Collections.singletonList(respVO));
         fillBindingSources(Collections.singletonList(respVO));
         translateAuditUsers(Collections.singletonList(respVO));
         return success(respVO);
@@ -112,6 +113,7 @@ public class EventModelController {
         }
         EventModelRespVO respVO = EventModelConvert.INSTANCE.convert(schema);
         respVO.setFields(EventModelConvert.INSTANCE.convertFieldList(eventModelService.getEventFieldList(schema.getEventCode())));
+        fillDeleteState(Collections.singletonList(schema), Collections.singletonList(respVO));
         fillBindingSources(Collections.singletonList(respVO));
         translateAuditUsers(Collections.singletonList(respVO));
         return success(respVO);
@@ -126,6 +128,7 @@ public class EventModelController {
         for (EventModelRespVO respVO : respVOPage.getList()) {
             respVO.setFields(null);
         }
+        fillDeleteState(pageResult.getList(), respVOPage.getList());
         fillBindingSources(respVOPage.getList());
         translateAuditUsers(respVOPage.getList());
         return success(respVOPage);
@@ -144,6 +147,17 @@ public class EventModelController {
     @PreAuthorize("@ss.hasPermission('risk:event-model:query')")
     public CommonResult<EventModelPreviewRespVO> previewStandardEvent(@Valid @RequestBody EventModelSaveReqVO reqVO) {
         return success(eventModelService.previewStandardEvent(reqVO));
+    }
+
+    private void fillDeleteState(List<EventSchemaDO> schemas, List<EventModelRespVO> respVOs) {
+        if (schemas == null || respVOs == null) {
+            return;
+        }
+        for (int i = 0; i < Math.min(schemas.size(), respVOs.size()); i++) {
+            String blockedReason = eventModelService.getDeleteBlockedReason(schemas.get(i));
+            respVOs.get(i).setDeletable(blockedReason == null);
+            respVOs.get(i).setDeleteBlockedReason(blockedReason);
+        }
     }
 
     private void fillBindingSources(List<EventModelRespVO> eventModels) {

@@ -89,6 +89,7 @@ public class AccessSourceController {
             return success(null);
         }
         AccessSourceRespVO respVO = AccessSourceConvert.INSTANCE.convert(accessSource);
+        fillDeleteState(Collections.singletonList(accessSource), Collections.singletonList(respVO));
         translateAuditUsers(Collections.singletonList(respVO));
         return success(respVO);
     }
@@ -99,6 +100,7 @@ public class AccessSourceController {
     public CommonResult<PageResult<AccessSourceRespVO>> getAccessSourcePage(@Valid AccessSourcePageReqVO pageReqVO) {
         PageResult<AccessSourceDO> pageResult = accessSourceService.getAccessSourcePage(pageReqVO);
         PageResult<AccessSourceRespVO> respVOPage = AccessSourceConvert.INSTANCE.convertPage(pageResult);
+        fillDeleteState(pageResult.getList(), respVOPage.getList());
         translateAuditUsers(respVOPage.getList());
         return success(respVOPage);
     }
@@ -109,6 +111,17 @@ public class AccessSourceController {
     public CommonResult<List<AccessSourceSimpleRespVO>> getSimpleAccessSourceList(
             @RequestParam(value = "sceneCode", required = false) String sceneCode) {
         return success(AccessSourceConvert.INSTANCE.convertSimpleList(accessSourceService.getSimpleAccessSourceList(sceneCode)));
+    }
+
+    private void fillDeleteState(List<AccessSourceDO> accessSources, List<AccessSourceRespVO> respVOs) {
+        if (accessSources == null || respVOs == null) {
+            return;
+        }
+        for (int i = 0; i < Math.min(accessSources.size(), respVOs.size()); i++) {
+            String blockedReason = accessSourceService.getDeleteBlockedReason(accessSources.get(i));
+            respVOs.get(i).setDeletable(blockedReason == null);
+            respVOs.get(i).setDeleteBlockedReason(blockedReason);
+        }
     }
 
     private void translateAuditUsers(List<AccessSourceRespVO> accessSources) {

@@ -40,6 +40,12 @@ public class AccessSourceRespVO {
     @Schema(description = "描述", example = "服务营销受理事件的 HTTP 接入源")
     private String description;
 
+    @Schema(description = "是否可删除", example = "false")
+    private Boolean deletable;
+
+    @Schema(description = "删除阻断原因", example = "当前存在关联接入映射，无法删除")
+    private String deleteBlockedReason;
+
     @Schema(description = "创建者", example = "admin")
     private String creator;
 

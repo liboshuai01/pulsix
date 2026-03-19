@@ -31,4 +31,6 @@ public interface EventModelService {
 
     EventModelPreviewRespVO previewStandardEvent(EventModelSaveReqVO reqVO);
 
+    String getDeleteBlockedReason(EventSchemaDO schema);
+
 }

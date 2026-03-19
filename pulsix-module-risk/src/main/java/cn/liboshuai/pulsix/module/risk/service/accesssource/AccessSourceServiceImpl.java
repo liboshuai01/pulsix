@@ -33,11 +33,15 @@ import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SO
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SOURCE_CODE_DUPLICATE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SOURCE_CODE_IMMUTABLE;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SOURCE_DELETE_DENIED;
+import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SOURCE_DELETE_ENABLED_DENIED;
 import static cn.liboshuai.pulsix.module.risk.enums.ErrorCodeConstants.ACCESS_SOURCE_NOT_EXISTS;
 
 @Service
 @Validated
 public class AccessSourceServiceImpl implements AccessSourceService {
+
+    private static final String DELETE_BLOCKED_REASON_ENABLED = "当前为启用状态，请先停用后再删除";
+    private static final String DELETE_BLOCKED_REASON_ACCESS_MAPPING = "当前存在关联接入映射，无法删除";
 
     @Resource
     private AccessSourceMapper accessSourceMapper;
@@ -89,6 +93,9 @@ public class AccessSourceServiceImpl implements AccessSourceService {
     @Override
     public void deleteAccessSource(Long id) {
         AccessSourceDO accessSource = validateAccessSourceExists(id);
+        if (ObjectUtil.equal(accessSource.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            throw exception(ACCESS_SOURCE_DELETE_ENABLED_DENIED);
+        }
         if (eventAccessBindingMapper.selectCountBySourceCode(accessSource.getSourceCode()) > 0) {
             throw exception(ACCESS_SOURCE_DELETE_DENIED, accessSource.getSourceCode());
         }
@@ -108,6 +115,20 @@ public class AccessSourceServiceImpl implements AccessSourceService {
     @Override
     public List<AccessSourceDO> getSimpleAccessSourceList(String sceneCode) {
         return accessSourceMapper.selectEnabledListBySceneCode(sceneCode);
+    }
+
+    @Override
+    public String getDeleteBlockedReason(AccessSourceDO accessSource) {
+        if (accessSource == null) {
+            return null;
+        }
+        if (ObjectUtil.equal(accessSource.getStatus(), CommonStatusEnum.ENABLE.getStatus())) {
+            return DELETE_BLOCKED_REASON_ENABLED;
+        }
+        if (eventAccessBindingMapper.selectCountBySourceCode(accessSource.getSourceCode()) > 0) {
+            return DELETE_BLOCKED_REASON_ACCESS_MAPPING;
+        }
+        return null;
     }
 
     @Override

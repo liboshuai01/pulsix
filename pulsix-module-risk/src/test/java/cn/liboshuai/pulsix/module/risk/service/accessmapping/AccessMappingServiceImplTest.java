@@ -168,6 +168,19 @@ class AccessMappingServiceImplTest {
         assertThat(runtimeBO.getMappingRules().get(0).getScriptEngine()).isEqualTo("AVIATOR");
     }
 
+    @Test
+    void deleteAccessMapping_success() {
+        EventAccessBindingDO binding = new EventAccessBindingDO();
+        binding.setId(14101L);
+        when(eventAccessBindingMapper.selectById(14101L)).thenReturn(binding);
+
+        accessMappingService.deleteAccessMapping(14101L);
+
+        verify(eventAccessRawFieldDefMapper).deleteByBindingIdPhysically(14101L);
+        verify(eventAccessMappingRuleMapper).deleteByBindingIdPhysically(14101L);
+        verify(eventAccessBindingMapper).deleteByIdPhysically(14101L);
+    }
+
     private AccessMappingSaveReqVO createBaseReqVO() {
         AccessMappingSaveReqVO reqVO = new AccessMappingSaveReqVO();
         reqVO.setEventCode("PROMOTION_EVENT");

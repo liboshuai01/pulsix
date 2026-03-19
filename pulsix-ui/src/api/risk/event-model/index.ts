@@ -21,6 +21,8 @@ export interface EventModelVO {
   description?: string
   fields: EventFieldItemVO[]
   bindingSources?: EventBindingSourceItemVO[]
+  deletable?: boolean
+  deleteBlockedReason?: string
   creator?: string
   createTime?: Date
   updater?: string

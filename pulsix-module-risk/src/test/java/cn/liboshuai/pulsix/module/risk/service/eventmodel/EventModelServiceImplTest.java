@@ -320,6 +320,20 @@ class EventModelServiceImplTest {
     }
 
     @Test
+    void deleteEventModel_enabled_rejected() {
+        EventSchemaDO schema = createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT");
+        schema.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        when(eventSchemaMapper.selectById(10L)).thenReturn(schema);
+
+        assertThatThrownBy(() -> eventModelService.deleteEventModel(10L))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_110);
+        verify(eventFieldDefMapper, never()).deleteByEventCodePhysically(anyString());
+        verify(eventAccessBindingMapper, never()).deleteByEventCodePhysically(anyString());
+    }
+
+    @Test
     void deleteEventModel_withAccessMappingReference_rejected() {
         when(eventSchemaMapper.selectById(10L)).thenReturn(createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT"));
         when(eventSchemaMapper.selectFeatureCountByEventCode("TRADE_EVENT")).thenReturn(0L);
@@ -393,7 +407,7 @@ class EventModelServiceImplTest {
         schema.setSceneCode(sceneCode);
         schema.setEventCode(eventCode);
         schema.setVersion(1);
-        schema.setStatus(0);
+        schema.setStatus(CommonStatusEnum.DISABLE.getStatus());
         return schema;
     }
 

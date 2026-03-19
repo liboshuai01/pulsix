@@ -11,6 +11,8 @@ export interface AccessSourceVO {
   ipWhitelist?: string[]
   status: number
   description?: string
+  deletable?: boolean
+  deleteBlockedReason?: string
   creator?: string
   createTime?: Date
   updater?: string

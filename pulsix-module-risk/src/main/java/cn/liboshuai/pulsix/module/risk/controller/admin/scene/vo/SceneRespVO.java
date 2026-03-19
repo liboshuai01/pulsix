@@ -30,6 +30,12 @@ public class SceneRespVO {
     @Schema(description = "描述", example = "支付成功后、发货前的异步订单风险拦截场景")
     private String description;
 
+    @Schema(description = "是否可删除", requiredMode = Schema.RequiredMode.REQUIRED, example = "false")
+    private Boolean deletable;
+
+    @Schema(description = "删除阻断原因", example = "当前为启用状态，请先停用后再删除")
+    private String deleteBlockedReason;
+
     @Schema(description = "创建者", example = "admin")
     private String creator;
 

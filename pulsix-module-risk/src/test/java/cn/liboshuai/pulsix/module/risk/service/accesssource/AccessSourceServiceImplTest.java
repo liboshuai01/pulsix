@@ -83,6 +83,29 @@ class AccessSourceServiceImplTest {
     }
 
     @Test
+    void deleteAccessSource_enabled_rejected() {
+        AccessSourceDO accessSource = createAccessSource(10L);
+        accessSource.setStatus(CommonStatusEnum.ENABLE.getStatus());
+        when(accessSourceMapper.selectById(10L)).thenReturn(accessSource);
+
+        assertThatThrownBy(() -> accessSourceService.deleteAccessSource(10L))
+                .isInstanceOf(ServiceException.class)
+                .extracting("code")
+                .isEqualTo(1_003_000_207);
+        verify(accessSourceMapper, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteAccessSource_disabledWithoutBinding_success() {
+        when(accessSourceMapper.selectById(10L)).thenReturn(createAccessSource(10L));
+        when(eventAccessBindingMapper.selectCountBySourceCode("ORDER_CENTER_SDK")).thenReturn(0L);
+
+        accessSourceService.deleteAccessSource(10L);
+
+        verify(accessSourceMapper).deleteById(10L);
+    }
+
+    @Test
     void updateAccessSource_removeBoundScene_rejected() {
         AccessSourceSaveReqVO reqVO = createBaseReqVO();
         reqVO.setId(10L);
@@ -135,7 +158,7 @@ class AccessSourceServiceImplTest {
         accessSource.setId(id);
         accessSource.setSourceCode("ORDER_CENTER_SDK");
         accessSource.setAllowedSceneCodes(List.of("ORDER_RISK"));
-        accessSource.setStatus(1);
+        accessSource.setStatus(CommonStatusEnum.DISABLE.getStatus());
         return accessSource;
     }
 

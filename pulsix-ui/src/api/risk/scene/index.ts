@@ -8,6 +8,8 @@ export interface SceneVO {
   defaultPolicyCode?: string
   status: number
   description?: string
+  deletable?: boolean
+  deleteBlockedReason?: string
   creator?: string
   createTime?: Date
   updater?: string

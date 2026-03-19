@@ -167,15 +167,24 @@
             >
               {{ scope.row.status === CommonStatusEnum.ENABLE ? '停用' : '启用' }}
             </el-button>
-            <el-button
-              link
-              type="danger"
-              class="risk-access-source__action-btn"
-              @click="handleDelete(scope.row.id!)"
-              v-hasPermi="['risk:access-source:delete']"
+            <el-tooltip
+              :disabled="!isDeleteDisabled(scope.row)"
+              :content="getDeleteBlockedReason(scope.row)"
+              placement="top"
             >
-              删除
-            </el-button>
+              <span class="risk-access-source__delete-trigger">
+                <el-button
+                  link
+                  type="danger"
+                  class="risk-access-source__action-btn"
+                  :disabled="isDeleteDisabled(scope.row)"
+                  @click="handleDelete(scope.row)"
+                  v-hasPermi="['risk:access-source:delete']"
+                >
+                  删除
+                </el-button>
+              </span>
+            </el-tooltip>
           </div>
         </template>
       </el-table-column>
@@ -270,10 +279,19 @@ const handleStatusChange = async (row: AccessSourceApi.AccessSourceVO) => {
   } catch {}
 }
 
-const handleDelete = async (id: number) => {
+const isDeleteDisabled = (row: AccessSourceApi.AccessSourceVO) => row.deletable === false
+
+const getDeleteBlockedReason = (row: AccessSourceApi.AccessSourceVO) => {
+  return row.deleteBlockedReason || '当前不可删除'
+}
+
+const handleDelete = async (row: AccessSourceApi.AccessSourceVO) => {
+  if (isDeleteDisabled(row)) {
+    return
+  }
   try {
     await message.delConfirm()
-    await AccessSourceApi.deleteAccessSource(id)
+    await AccessSourceApi.deleteAccessSource(row.id!)
     message.success('删除成功')
     await getList()
   } catch {}
@@ -293,6 +311,10 @@ onMounted(() => {
 
 .risk-access-source__action-btn {
   margin-left: 0 !important;
+}
+
+.risk-access-source__delete-trigger {
+  display: inline-flex;
 }
 
 .risk-access-source__tag-list {
