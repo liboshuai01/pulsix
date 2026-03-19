@@ -1,7 +1,7 @@
 package cn.liboshuai.pulsix.module.risk.dal.dataobject.accessmapping;
 
-import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.RiskBaseDO;
 import cn.liboshuai.pulsix.module.risk.enums.accessmapping.AccessMappingTypeEnum;
 import cn.liboshuai.pulsix.module.risk.enums.accessmapping.AccessScriptEngineEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
@@ -24,7 +24,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @TenantIgnore
-public class EventAccessMappingRuleDO extends BaseDO {
+public class EventAccessMappingRuleDO extends RiskBaseDO {
 
     @TableId
     private Long id;

@@ -1,8 +1,8 @@
 package cn.liboshuai.pulsix.module.risk.dal.dataobject.accesssource;
 
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
-import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.RiskBaseDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -23,7 +23,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @TenantIgnore
-public class AccessSourceDO extends BaseDO {
+public class AccessSourceDO extends RiskBaseDO {
 
     @TableId
     private Long id;

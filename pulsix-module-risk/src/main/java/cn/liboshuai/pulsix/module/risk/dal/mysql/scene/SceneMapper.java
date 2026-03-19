@@ -34,35 +34,34 @@ public interface SceneMapper extends BaseMapperX<SceneDO> {
                 .orderByAsc(SceneDO::getSceneCode));
     }
 
-    @Select("SELECT COUNT(1) FROM event_schema WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM event_schema WHERE scene_code = #{sceneCode}")
     long selectEventSchemaCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM list_set WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM list_set WHERE scene_code = #{sceneCode}")
     long selectListSetCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM feature_def WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM feature_def WHERE scene_code = #{sceneCode}")
     long selectFeatureCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM rule_def WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM rule_def WHERE scene_code = #{sceneCode}")
     long selectRuleCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM policy_def WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM policy_def WHERE scene_code = #{sceneCode}")
     long selectPolicyCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM scene_release WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM scene_release WHERE scene_code = #{sceneCode}")
     long selectSceneReleaseCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM simulation_case WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM simulation_case WHERE scene_code = #{sceneCode}")
     long selectSimulationCaseCountBySceneCode(@Param("sceneCode") String sceneCode);
 
-    @Select("SELECT COUNT(1) FROM alert_rule_def WHERE scene_code = #{sceneCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM alert_rule_def WHERE scene_code = #{sceneCode}")
     long selectAlertRuleCountBySceneCode(@Param("sceneCode") String sceneCode);
 
     @Select("""
             SELECT COUNT(1)
             FROM access_source_def
-            WHERE deleted = b'0'
-              AND JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
+            WHERE JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
             """)
     long selectAccessSourceCountBySceneCode(@Param("sceneCode") String sceneCode);
 

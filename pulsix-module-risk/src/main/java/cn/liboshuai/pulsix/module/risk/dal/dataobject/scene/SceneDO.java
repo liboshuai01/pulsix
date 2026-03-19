@@ -1,8 +1,8 @@
 package cn.liboshuai.pulsix.module.risk.dal.dataobject.scene;
 
 import cn.liboshuai.pulsix.framework.common.enums.CommonStatusEnum;
-import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.RiskBaseDO;
 import cn.liboshuai.pulsix.module.risk.enums.scene.SceneRuntimeModeEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -20,7 +20,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @TenantIgnore
-public class SceneDO extends BaseDO {
+public class SceneDO extends RiskBaseDO {
 
     /**
      * 场景主键

@@ -39,8 +39,7 @@ public interface AccessSourceMapper extends BaseMapperX<AccessSourceDO> {
     @Select("""
             <script>
             SELECT * FROM access_source_def
-            WHERE deleted = b'0'
-              AND status = #{status}
+            WHERE status = #{status}
             <if test='sceneCode != null and sceneCode != ""'>
               AND JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
             </if>
@@ -57,8 +56,7 @@ public interface AccessSourceMapper extends BaseMapperX<AccessSourceDO> {
     @Select("""
             SELECT COUNT(1)
             FROM access_source_def
-            WHERE deleted = b'0'
-              AND JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
+            WHERE JSON_CONTAINS(COALESCE(allowed_scene_codes_json, JSON_ARRAY()), JSON_QUOTE(#{sceneCode}))
             """)
     long selectSceneReferenceCount(@Param("sceneCode") String sceneCode);
 

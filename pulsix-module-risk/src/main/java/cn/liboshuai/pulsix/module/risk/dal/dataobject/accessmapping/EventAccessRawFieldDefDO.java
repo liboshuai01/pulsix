@@ -1,7 +1,7 @@
 package cn.liboshuai.pulsix.module.risk.dal.dataobject.accessmapping;
 
-import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
 import cn.liboshuai.pulsix.framework.tenant.core.aop.TenantIgnore;
+import cn.liboshuai.pulsix.module.risk.dal.dataobject.RiskBaseDO;
 import cn.liboshuai.pulsix.module.risk.enums.eventmodel.EventFieldTypeEnum;
 import com.baomidou.mybatisplus.annotation.KeySequence;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -19,7 +19,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @TenantIgnore
-public class EventAccessRawFieldDefDO extends BaseDO {
+public class EventAccessRawFieldDefDO extends RiskBaseDO {
 
     @TableId
     private Long id;

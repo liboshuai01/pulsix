@@ -332,6 +332,29 @@ class EventModelServiceImplTest {
         verify(eventFieldDefMapper, never()).deleteByEventCode(anyString());
     }
 
+    @Test
+    void deleteEventModel_thenCreateSameCode_success() {
+        EventSchemaDO schema = createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT");
+        when(eventSchemaMapper.selectById(10L)).thenReturn(schema);
+        when(eventSchemaMapper.selectFeatureCountByEventCode("TRADE_EVENT")).thenReturn(0L);
+        when(eventAccessBindingMapper.selectCountByEventCode("TRADE_EVENT")).thenReturn(0L);
+        when(eventSchemaMapper.selectByEventCode("TRADE_EVENT")).thenReturn(null);
+        doAnswer(invocation -> {
+            EventSchemaDO created = invocation.getArgument(0);
+            created.setId(101L);
+            return 1;
+        }).when(eventSchemaMapper).insert(any(EventSchemaDO.class));
+
+        eventModelService.deleteEventModel(10L);
+        Long id = eventModelService.createEventModel(createBaseReqVO());
+
+        assertThat(id).isEqualTo(101L);
+        verify(eventFieldDefMapper).deleteByEventCodePhysically("TRADE_EVENT");
+        verify(eventAccessBindingMapper).deleteByEventCodePhysically("TRADE_EVENT");
+        verify(eventSchemaMapper).deleteById(10L);
+        verify(eventSchemaMapper).insert(any(EventSchemaDO.class));
+    }
+
     private EventModelSaveReqVO createBaseReqVO() {
         EventModelSaveReqVO reqVO = new EventModelSaveReqVO();
         reqVO.setSceneCode("TRADE_RISK");

@@ -36,7 +36,7 @@ public interface EventSchemaMapper extends BaseMapperX<EventSchemaDO> {
                 .orderByAsc(EventSchemaDO::getEventCode));
     }
 
-    @Select("SELECT COUNT(1) FROM feature_def WHERE event_code = #{eventCode} AND deleted = b'0'")
+    @Select("SELECT COUNT(1) FROM feature_def WHERE event_code = #{eventCode}")
     long selectFeatureCountByEventCode(@Param("eventCode") String eventCode);
 
 }

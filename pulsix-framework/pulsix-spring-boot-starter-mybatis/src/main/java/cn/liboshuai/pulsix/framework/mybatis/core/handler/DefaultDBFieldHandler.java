@@ -1,6 +1,6 @@
 package cn.liboshuai.pulsix.framework.mybatis.core.handler;
 
-import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.BaseDO;
+import cn.liboshuai.pulsix.framework.mybatis.core.dataobject.AuditBaseDO;
 import cn.liboshuai.pulsix.framework.security.core.util.SecurityFrameworkUtils;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
@@ -20,8 +20,8 @@ public class DefaultDBFieldHandler implements MetaObjectHandler {
     @Override
     @SuppressWarnings("PatternVariableCanBeUsed")
     public void insertFill(MetaObject metaObject) {
-        if (Objects.nonNull(metaObject) && metaObject.getOriginalObject() instanceof BaseDO) {
-            BaseDO baseDO = (BaseDO) metaObject.getOriginalObject();
+        if (Objects.nonNull(metaObject) && metaObject.getOriginalObject() instanceof AuditBaseDO) {
+            AuditBaseDO baseDO = (AuditBaseDO) metaObject.getOriginalObject();
 
             LocalDateTime current = LocalDateTime.now();
             // 创建时间为空，则以当前时间为插入时间

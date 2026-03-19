@@ -107,9 +107,8 @@ public interface EventAccessBindingMapper extends BaseMapperX<EventAccessBinding
     @Select("""
             SELECT DISTINCT es.scene_code
             FROM event_access_binding eab
-            INNER JOIN event_schema es ON es.event_code = eab.event_code AND es.deleted = b'0'
-            WHERE eab.deleted = b'0'
-              AND eab.source_code = #{sourceCode}
+            INNER JOIN event_schema es ON es.event_code = eab.event_code
+            WHERE eab.source_code = #{sourceCode}
             ORDER BY es.scene_code ASC
             """)
     List<String> selectBoundSceneCodesBySourceCode(@Param("sourceCode") String sourceCode);
