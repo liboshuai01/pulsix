@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +48,19 @@ public class EventModelServiceImpl implements EventModelService {
 
     private static final Object MISSING_VALUE = new Object();
     private static final String DISABLED_FIELD_NAME_EXT = "ext";
+    private static final String FIELD_EVENT_ID = "eventId";
+    private static final String FIELD_TRACE_ID = "traceId";
+    private static final String FIELD_SCENE_CODE = "sceneCode";
+    private static final String FIELD_EVENT_CODE = "eventCode";
+    private static final String FIELD_EVENT_TIME = "eventTime";
+    private static final String EVENT_TIME_SAMPLE_VALUE = "2026-03-08T10:00:00";
+    private static final List<PublicFieldSpec> PUBLIC_FIELD_SPECS = List.of(
+            new PublicFieldSpec(FIELD_EVENT_ID, "事件ID", "STRING", 1, 1, "事件唯一标识"),
+            new PublicFieldSpec(FIELD_TRACE_ID, "链路ID", "STRING", 1, 2, "全链路追踪号"),
+            new PublicFieldSpec(FIELD_SCENE_CODE, "场景编码", "STRING", 1, 3, "场景编码"),
+            new PublicFieldSpec(FIELD_EVENT_CODE, "事件编码", "STRING", 1, 4, "事件编码"),
+            new PublicFieldSpec(FIELD_EVENT_TIME, "事件时间", "DATETIME", 1, 5, "事件发生时间")
+    );
 
     @Resource
     private EventSchemaMapper eventSchemaMapper;
@@ -222,7 +236,7 @@ public class EventModelServiceImpl implements EventModelService {
     }
 
     private DraftValidationResult validateDraft(EventModelSaveReqVO reqVO) {
-        List<EventFieldDefDO> normalizedFields = normalizeFields(reqVO.getFields());
+        List<EventFieldDefDO> normalizedFields = normalizeFields(reqVO.getFields(), reqVO.getSceneCode(), reqVO.getEventCode());
         List<String> messages = new ArrayList<>();
         List<EventFieldDefDO> activeFields = new ArrayList<>(normalizedFields.size());
         LinkedHashMap<String, EventFieldDefDO> fieldMap = new LinkedHashMap<>();
@@ -271,8 +285,8 @@ public class EventModelServiceImpl implements EventModelService {
                 fieldTypes, messages, duplicateFieldName);
     }
 
-    private List<EventFieldDefDO> normalizeFields(List<EventFieldItemVO> fields) {
-        List<EventFieldDefDO> fieldDOs = EventModelConvert.INSTANCE.convertFieldDOList(fields);
+    private List<EventFieldDefDO> normalizeFields(List<EventFieldItemVO> fields, String sceneCode, String eventCode) {
+        List<EventFieldDefDO> fieldDOs = fields == null ? new ArrayList<>() : EventModelConvert.INSTANCE.convertFieldDOList(fields);
         List<FieldOrderHolder> holders = new ArrayList<>(fieldDOs.size());
         for (int i = 0; i < fieldDOs.size(); i++) {
             EventFieldDefDO field = fieldDOs.get(i);
@@ -289,7 +303,7 @@ public class EventModelServiceImpl implements EventModelService {
             field.setSortNo(i + 1);
             normalized.add(field);
         }
-        return normalized;
+        return normalizePublicFields(normalized, sceneCode, eventCode);
     }
 
     private List<EventFieldDefDO> buildFieldDOList(String eventCode, List<EventFieldDefDO> normalizedFields) {
@@ -349,7 +363,103 @@ public class EventModelServiceImpl implements EventModelService {
         if ("eventCode".equals(field.getFieldName())) {
             return eventCode;
         }
+        Object systemValue = resolveSystemFieldValue(field.getFieldName(), sceneCode, eventCode);
+        if (systemValue != MISSING_VALUE) {
+            return systemValue;
+        }
         return MISSING_VALUE;
+    }
+
+    private List<EventFieldDefDO> normalizePublicFields(List<EventFieldDefDO> normalizedFields,
+                                                        String sceneCode, String eventCode) {
+        LinkedHashMap<String, List<EventFieldDefDO>> publicFieldMap = new LinkedHashMap<>();
+        PUBLIC_FIELD_SPECS.forEach(spec -> publicFieldMap.put(spec.fieldName(), new ArrayList<>()));
+        List<EventFieldDefDO> businessFields = new ArrayList<>();
+
+        for (EventFieldDefDO field : normalizedFields) {
+            PublicFieldSpec publicFieldSpec = findPublicFieldSpec(field.getFieldName());
+            if (publicFieldSpec == null) {
+                businessFields.add(field);
+                continue;
+            }
+            publicFieldMap.get(publicFieldSpec.fieldName())
+                    .add(applyPublicFieldSpec(field, publicFieldSpec, sceneCode, eventCode));
+        }
+
+        List<EventFieldDefDO> result = new ArrayList<>(normalizedFields.size() + PUBLIC_FIELD_SPECS.size());
+        for (PublicFieldSpec publicFieldSpec : PUBLIC_FIELD_SPECS) {
+            List<EventFieldDefDO> matches = publicFieldMap.get(publicFieldSpec.fieldName());
+            if (matches == null || matches.isEmpty()) {
+                result.add(createPublicField(publicFieldSpec, sceneCode, eventCode));
+                continue;
+            }
+            result.addAll(matches);
+        }
+        result.addAll(businessFields);
+        for (int i = 0; i < result.size(); i++) {
+            result.get(i).setSortNo(i + 1);
+        }
+        return result;
+    }
+
+    private EventFieldDefDO createPublicField(PublicFieldSpec publicFieldSpec, String sceneCode, String eventCode) {
+        return applyPublicFieldSpec(new EventFieldDefDO(), publicFieldSpec, sceneCode, eventCode);
+    }
+
+    private EventFieldDefDO applyPublicFieldSpec(EventFieldDefDO field, PublicFieldSpec publicFieldSpec,
+                                                 String sceneCode, String eventCode) {
+        field.setFieldName(publicFieldSpec.fieldName());
+        field.setFieldLabel(publicFieldSpec.fieldLabel());
+        field.setFieldType(publicFieldSpec.fieldType());
+        field.setRequiredFlag(publicFieldSpec.requiredFlag());
+        field.setDescription(publicFieldSpec.description());
+        field.setDefaultValue(resolvePublicFieldDefaultValue(publicFieldSpec.fieldName(), sceneCode, eventCode));
+        field.setSampleValue(resolvePublicFieldSampleValue(publicFieldSpec.fieldName(), sceneCode, eventCode));
+        field.setSortNo(publicFieldSpec.sortNo());
+        return field;
+    }
+
+    private PublicFieldSpec findPublicFieldSpec(String fieldName) {
+        if (StrUtil.isBlank(fieldName)) {
+            return null;
+        }
+        String normalizedFieldName = StrUtil.trim(fieldName);
+        for (PublicFieldSpec publicFieldSpec : PUBLIC_FIELD_SPECS) {
+            if (StrUtil.equals(publicFieldSpec.fieldName(), normalizedFieldName)) {
+                return publicFieldSpec;
+            }
+        }
+        return null;
+    }
+
+    private String resolvePublicFieldDefaultValue(String fieldName, String sceneCode, String eventCode) {
+        return switch (fieldName) {
+            case FIELD_SCENE_CODE -> sceneCode;
+            case FIELD_EVENT_CODE -> eventCode;
+            default -> null;
+        };
+    }
+
+    private String resolvePublicFieldSampleValue(String fieldName, String sceneCode, String eventCode) {
+        return switch (fieldName) {
+            case FIELD_EVENT_ID -> StrUtil.isBlank(eventCode) ? "AUTO_EVENT_ID" : "AUTO_" + eventCode + "_EVENT_ID";
+            case FIELD_TRACE_ID -> StrUtil.isBlank(eventCode) ? "AUTO_TRACE_ID" : "AUTO_" + eventCode + "_TRACE_ID";
+            case FIELD_SCENE_CODE -> sceneCode;
+            case FIELD_EVENT_CODE -> eventCode;
+            case FIELD_EVENT_TIME -> EVENT_TIME_SAMPLE_VALUE;
+            default -> null;
+        };
+    }
+
+    private Object resolveSystemFieldValue(String fieldName, String sceneCode, String eventCode) {
+        return switch (fieldName) {
+            case FIELD_EVENT_ID -> StrUtil.isBlank(eventCode) ? "AUTO_EVENT_ID" : "AUTO_" + eventCode + "_EVENT_ID";
+            case FIELD_TRACE_ID -> StrUtil.isBlank(eventCode) ? "AUTO_TRACE_ID" : "AUTO_" + eventCode + "_TRACE_ID";
+            case FIELD_SCENE_CODE -> sceneCode;
+            case FIELD_EVENT_CODE -> eventCode;
+            case FIELD_EVENT_TIME -> LocalDateTime.now().withNano(0).toString();
+            default -> MISSING_VALUE;
+        };
     }
 
     private Object convertConfiguredValue(EventFieldDefDO field, String rawValue, String source, List<String> messages) {
@@ -469,6 +579,16 @@ public class EventModelServiceImpl implements EventModelService {
             LinkedHashMap<String, String> fieldTypes,
             List<String> messages,
             String duplicateFieldName
+    ) {
+    }
+
+    private record PublicFieldSpec(
+            String fieldName,
+            String fieldLabel,
+            String fieldType,
+            Integer requiredFlag,
+            Integer sortNo,
+            String description
     ) {
     }
 

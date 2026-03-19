@@ -89,6 +89,12 @@
                 <Icon icon="ep:plus" class="mr-5px" />新增字段
               </el-button>
             </div>
+            <el-alert
+              class="mb-12px"
+              title="前 5 个公共字段由系统维护，默认存在且固定排在最前，不支持删除或调整。"
+              type="info"
+              :closable="false"
+            />
             <el-table
               :data="formData.fields"
               :fit="false"
@@ -102,6 +108,7 @@
                   <el-input-number
                     v-model="row.sortNo"
                     :min="1"
+                    :disabled="row.__systemField"
                     controls-position="right"
                     class="risk-event-model-form__sort-input"
                   />
@@ -109,17 +116,21 @@
               </el-table-column>
               <el-table-column label="字段名" width="170">
                 <template #default="{ row }">
-                  <el-input v-model="row.fieldName" placeholder="fieldName" />
+                  <el-input v-model="row.fieldName" placeholder="fieldName" :disabled="row.__systemField" />
                 </template>
               </el-table-column>
               <el-table-column label="显示名" width="170">
                 <template #default="{ row }">
-                  <el-input v-model="row.fieldLabel" placeholder="字段显示名" />
+                  <el-input
+                    v-model="row.fieldLabel"
+                    placeholder="字段显示名"
+                    :disabled="row.__systemField"
+                  />
                 </template>
               </el-table-column>
               <el-table-column label="字段类型" width="150">
                 <template #default="{ row }">
-                  <el-select v-model="row.fieldType" placeholder="请选择字段类型">
+                  <el-select v-model="row.fieldType" placeholder="请选择字段类型" :disabled="row.__systemField">
                     <el-option
                       v-for="option in EVENT_FIELD_TYPE_OPTIONS"
                       :key="option.value"
@@ -131,22 +142,27 @@
               </el-table-column>
               <el-table-column label="必填" width="90" align="center">
                 <template #default="{ row }">
-                  <el-switch v-model="row.requiredFlag" :active-value="1" :inactive-value="0" />
+                  <el-switch
+                    v-model="row.requiredFlag"
+                    :active-value="1"
+                    :inactive-value="0"
+                    :disabled="row.__systemField"
+                  />
                 </template>
               </el-table-column>
               <el-table-column label="默认值" width="170">
                 <template #default="{ row }">
-                  <el-input v-model="row.defaultValue" placeholder="默认值" />
+                  <el-input v-model="row.defaultValue" placeholder="默认值" :disabled="row.__systemField" />
                 </template>
               </el-table-column>
               <el-table-column label="样例值" width="190">
                 <template #default="{ row }">
-                  <el-input v-model="row.sampleValue" placeholder="样例值" />
+                  <el-input v-model="row.sampleValue" placeholder="样例值" :disabled="row.__systemField" />
                 </template>
               </el-table-column>
               <el-table-column label="描述" width="210">
                 <template #default="{ row }">
-                  <el-input v-model="row.description" placeholder="字段描述" />
+                  <el-input v-model="row.description" placeholder="字段描述" :disabled="row.__systemField" />
                 </template>
               </el-table-column>
               <el-table-column
@@ -156,12 +172,16 @@
                 align="center"
                 header-align="center"
               >
-                <template #default="{ $index }">
-                  <div class="risk-event-model-form__row-actions">
+                <template #default="{ row, $index }">
+                  <div v-if="row.__systemField" class="text-12px text-[var(--el-text-color-secondary)]">
+                    系统字段
+                  </div>
+                  <div v-else class="risk-event-model-form__row-actions">
                     <el-button
                       link
                       type="primary"
                       class="risk-event-model-form__row-action-btn"
+                      :disabled="!canMoveFieldUp($index)"
                       @click="moveFieldUp($index)"
                     >
                       上移
@@ -170,6 +190,7 @@
                       link
                       type="primary"
                       class="risk-event-model-form__row-action-btn"
+                      :disabled="row.__systemField || $index >= formData.fields.length - 1"
                       @click="moveFieldDown($index)"
                     >
                       下移
@@ -211,10 +232,20 @@ import type { FormRules } from 'element-plus'
 
 defineOptions({ name: 'RiskEventModelForm' })
 
-type EventFieldRow = EventModelApi.EventFieldItemVO & { __key: string }
+type EventFieldRow = EventModelApi.EventFieldItemVO & { __key: string; __systemField: boolean }
 type EventModelFormData = EventModelApi.EventModelSaveReqVO & {
   fields: EventFieldRow[]
   version?: number
+}
+type PublicFieldSpec = {
+  fieldName: string
+  fieldLabel: string
+  fieldType: string
+  requiredFlag: number
+  sortNo: number
+  description: string
+  buildDefaultValue: (sceneCode: string, eventCode: string) => string
+  buildSampleValue: (sceneCode: string, eventCode: string) => string
 }
 
 const { t } = useI18n()
@@ -228,8 +259,87 @@ const activeTab = ref('basic')
 const formRef = ref()
 const sceneOptions = ref<SceneApi.SceneVO[]>([])
 
+const createFieldKey = () => `${Date.now()}-${Math.random()}`
+const buildEventIdSample = (eventCode: string) =>
+  eventCode ? `AUTO_${eventCode}_EVENT_ID` : 'AUTO_EVENT_ID'
+const buildTraceIdSample = (eventCode: string) =>
+  eventCode ? `AUTO_${eventCode}_TRACE_ID` : 'AUTO_TRACE_ID'
+const buildEventTimeSample = () => '2026-03-08T10:00:00'
+const PUBLIC_FIELD_SPECS: PublicFieldSpec[] = [
+  {
+    fieldName: 'eventId',
+    fieldLabel: '事件ID',
+    fieldType: 'STRING',
+    requiredFlag: 1,
+    sortNo: 1,
+    description: '事件唯一标识',
+    buildDefaultValue: () => '',
+    buildSampleValue: (_sceneCode, eventCode) => buildEventIdSample(eventCode)
+  },
+  {
+    fieldName: 'traceId',
+    fieldLabel: '链路ID',
+    fieldType: 'STRING',
+    requiredFlag: 1,
+    sortNo: 2,
+    description: '全链路追踪号',
+    buildDefaultValue: () => '',
+    buildSampleValue: (_sceneCode, eventCode) => buildTraceIdSample(eventCode)
+  },
+  {
+    fieldName: 'sceneCode',
+    fieldLabel: '场景编码',
+    fieldType: 'STRING',
+    requiredFlag: 1,
+    sortNo: 3,
+    description: '场景编码',
+    buildDefaultValue: (sceneCode) => sceneCode || '',
+    buildSampleValue: (sceneCode) => sceneCode || ''
+  },
+  {
+    fieldName: 'eventCode',
+    fieldLabel: '事件编码',
+    fieldType: 'STRING',
+    requiredFlag: 1,
+    sortNo: 4,
+    description: '事件编码',
+    buildDefaultValue: (_sceneCode, eventCode) => eventCode || '',
+    buildSampleValue: (_sceneCode, eventCode) => eventCode || ''
+  },
+  {
+    fieldName: 'eventTime',
+    fieldLabel: '事件时间',
+    fieldType: 'DATETIME',
+    requiredFlag: 1,
+    sortNo: 5,
+    description: '事件发生时间',
+    buildDefaultValue: () => '',
+    buildSampleValue: () => buildEventTimeSample()
+  }
+]
+const PUBLIC_FIELD_NAME_SET = new Set(PUBLIC_FIELD_SPECS.map((field) => field.fieldName))
+
+const createSystemFieldRow = (
+  spec: PublicFieldSpec,
+  sceneCode: string,
+  eventCode: string,
+  source?: Partial<EventFieldRow>
+): EventFieldRow => ({
+  __key: source?.__key || createFieldKey(),
+  __systemField: true,
+  fieldName: spec.fieldName,
+  fieldLabel: spec.fieldLabel,
+  fieldType: spec.fieldType,
+  requiredFlag: spec.requiredFlag,
+  defaultValue: spec.buildDefaultValue(sceneCode, eventCode),
+  sampleValue: spec.buildSampleValue(sceneCode, eventCode),
+  description: spec.description,
+  sortNo: source?.sortNo ?? spec.sortNo
+})
+
 const createFieldRow = (): EventFieldRow => ({
-  __key: `${Date.now()}-${Math.random()}`,
+  __key: createFieldKey(),
+  __systemField: false,
   fieldName: '',
   fieldLabel: '',
   fieldType: 'STRING',
@@ -248,7 +358,7 @@ const createDefaultFormData = (): EventModelFormData => ({
   version: undefined,
   status: CommonStatusEnum.DISABLE,
   description: '',
-  fields: []
+  fields: PUBLIC_FIELD_SPECS.map((spec) => createSystemFieldRow(spec, '', ''))
 })
 
 const formData = ref<EventModelFormData>(createDefaultFormData())
@@ -270,6 +380,78 @@ const loadSceneOptions = async () => {
   sceneOptions.value = await SceneApi.getSimpleSceneList()
 }
 
+const mapToFieldRow = (field: EventModelApi.EventFieldItemVO, index: number): EventFieldRow => ({
+  ...field,
+  __key: createFieldKey(),
+  __systemField: false,
+  fieldLabel: field.fieldLabel || '',
+  defaultValue: field.defaultValue || '',
+  sampleValue: field.sampleValue || '',
+  description: field.description || '',
+  sortNo: field.sortNo ?? index + 1
+})
+
+const ensurePublicFields = (
+  fields: EventFieldRow[],
+  sceneCode: string,
+  eventCode: string
+): EventFieldRow[] => {
+  const sortedFields = [...fields].sort((a, b) => (a.sortNo || 0) - (b.sortNo || 0))
+  const publicFieldMap = new Map<string, EventFieldRow[]>()
+  const businessFields: EventFieldRow[] = []
+  PUBLIC_FIELD_SPECS.forEach((field) => publicFieldMap.set(field.fieldName, []))
+
+  sortedFields.forEach((field, index) => {
+    const normalizedField = {
+      ...field,
+      __key: field.__key || createFieldKey(),
+      __systemField: false,
+      fieldLabel: field.fieldLabel || '',
+      defaultValue: field.defaultValue || '',
+      sampleValue: field.sampleValue || '',
+      description: field.description || '',
+      sortNo: field.sortNo ?? index + 1
+    }
+    if (PUBLIC_FIELD_NAME_SET.has(normalizedField.fieldName)) {
+      publicFieldMap.get(normalizedField.fieldName)?.push(normalizedField)
+      return
+    }
+    businessFields.push(normalizedField)
+  })
+
+  const normalizedFields: EventFieldRow[] = []
+  PUBLIC_FIELD_SPECS.forEach((spec) => {
+    const matches = publicFieldMap.get(spec.fieldName) || []
+    if (!matches.length) {
+      normalizedFields.push(createSystemFieldRow(spec, sceneCode, eventCode))
+      return
+    }
+    matches.forEach((field) => {
+      normalizedFields.push(createSystemFieldRow(spec, sceneCode, eventCode, field))
+    })
+  })
+
+  businessFields.forEach((field) => {
+    normalizedFields.push({
+      ...field,
+      __systemField: false
+    })
+  })
+
+  return normalizedFields.map((field, index) => ({
+    ...field,
+    sortNo: index + 1
+  }))
+}
+
+const syncSystemFields = () => {
+  formData.value.fields = ensurePublicFields(
+    formData.value.fields,
+    formData.value.sceneCode,
+    formData.value.eventCode
+  )
+}
+
 const open = async (type: 'create' | 'update', id?: number) => {
   dialogVisible.value = true
   dialogTitle.value = type === 'create' ? t('action.create') : t('action.update')
@@ -289,11 +471,11 @@ const open = async (type: 'create' | 'update', id?: number) => {
         version: data.version,
         status: data.status,
         description: data.description || '',
-        fields: (data.fields || []).map((field, index) => ({
-          ...field,
-          sortNo: field.sortNo ?? index + 1,
-          __key: `${Date.now()}-${index}-${Math.random()}`
-        }))
+        fields: ensurePublicFields(
+          (data.fields || []).map((field, index) => mapToFieldRow(field, index)),
+          data.sceneCode,
+          data.eventCode
+        )
       }
     } finally {
       formLoading.value = false
@@ -358,12 +540,19 @@ const addField = () => {
 }
 
 const removeField = (index: number) => {
+  if (formData.value.fields[index]?.__systemField) {
+    return
+  }
   formData.value.fields.splice(index, 1)
   syncFieldSortNo()
 }
 
+const canMoveFieldUp = (index: number) => {
+  return !formData.value.fields[index]?.__systemField && index > PUBLIC_FIELD_SPECS.length
+}
+
 const moveFieldUp = (index: number) => {
-  if (index === 0) {
+  if (!canMoveFieldUp(index)) {
     return
   }
   const current = formData.value.fields[index]
@@ -373,7 +562,7 @@ const moveFieldUp = (index: number) => {
 }
 
 const moveFieldDown = (index: number) => {
-  if (index >= formData.value.fields.length - 1) {
+  if (formData.value.fields[index]?.__systemField || index >= formData.value.fields.length - 1) {
     return
   }
   const current = formData.value.fields[index]
@@ -404,6 +593,13 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
     return null
   }
 
+  const normalizedFields = ensurePublicFields(
+    formData.value.fields,
+    formData.value.sceneCode,
+    formData.value.eventCode
+  )
+  formData.value.fields = normalizedFields
+
   return {
     id: formData.value.id,
     sceneCode: formData.value.sceneCode,
@@ -411,8 +607,8 @@ const buildPayload = (): EventModelApi.EventModelSaveReqVO | null => {
     eventName: formData.value.eventName,
     status: formData.value.status,
     description: formData.value.description || undefined,
-    fields: formData.value.fields.map((field: EventFieldRow) => {
-      const { __key: _key, ...fieldData } = field
+    fields: normalizedFields.map((field: EventFieldRow) => {
+      const { __key: _key, __systemField: _systemField, ...fieldData } = field
       return {
         ...fieldData,
         defaultValue: fieldData.defaultValue || undefined,
@@ -428,6 +624,13 @@ const resetForm = () => {
   formData.value = createDefaultFormData()
   formRef.value?.resetFields()
 }
+
+watch(
+  () => [formData.value.sceneCode, formData.value.eventCode],
+  () => {
+    syncSystemFields()
+  }
+)
 </script>
 
 <style scoped lang="scss">

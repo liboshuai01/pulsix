@@ -75,10 +75,34 @@ class EventModelServiceImplTest {
         ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
-        assertThat(insertedFields).hasSize(5);
+        assertThat(insertedFields).hasSize(6);
         assertThat(insertedFields).allMatch(field -> "TRADE_EVENT".equals(field.getEventCode()));
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
-                .containsExactly(1, 2, 3, 4, 5);
+                .containsExactly(1, 2, 3, 4, 5, 6);
+    }
+
+    @Test
+    void createEventModel_missingPublicFields_autoInjected() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setFields(new ArrayList<>(List.of(
+                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 1)
+        )));
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(null);
+        doAnswer(invocation -> {
+            EventSchemaDO schema = invocation.getArgument(0);
+            schema.setId(101L);
+            return 1;
+        }).when(eventSchemaMapper).insert(any(EventSchemaDO.class));
+
+        eventModelService.createEventModel(reqVO);
+
+        ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(eventFieldDefMapper).insertBatch(captor.capture());
+        List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
+        assertThat(insertedFields).extracting(EventFieldDefDO::getFieldName)
+                .containsExactly("eventId", "traceId", "sceneCode", "eventCode", "eventTime", "amount");
+        assertThat(insertedFields).filteredOn(field -> !"amount".equals(field.getFieldName()))
+                .allMatch(field -> field.getRequiredFlag() == 1);
     }
 
     @Test
@@ -162,9 +186,50 @@ class EventModelServiceImplTest {
         verify(eventFieldDefMapper).insertBatch(captor.capture());
         List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
         assertThat(insertedFields).extracting(EventFieldDefDO::getFieldName)
-                .containsExactly("eventId", "eventCode", "sceneCode", "eventTime", "amount");
+                .containsExactly("eventId", "traceId", "sceneCode", "eventCode", "eventTime", "amount");
         assertThat(insertedFields).extracting(EventFieldDefDO::getSortNo)
-                .containsExactly(1, 2, 3, 4, 5);
+                .containsExactly(1, 2, 3, 4, 5, 6);
+    }
+
+    @Test
+    void updateEventModel_publicFieldConfigChanged_correctedBeforeInsert() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setId(10L);
+        EventSchemaDO schema = createEventSchema(10L, "TRADE_RISK", "TRADE_EVENT");
+        when(eventSchemaMapper.selectById(10L)).thenReturn(schema);
+        when(eventSchemaMapper.selectByEventCode(reqVO.getEventCode())).thenReturn(schema);
+
+        reqVO.getFields().stream()
+                .filter(field -> "traceId".equals(field.getFieldName()))
+                .findFirst()
+                .ifPresent(field -> {
+                    field.setFieldType("JSON");
+                    field.setRequiredFlag(0);
+                    field.setSortNo(99);
+                });
+        reqVO.getFields().stream()
+                .filter(field -> "eventTime".equals(field.getFieldName()))
+                .findFirst()
+                .ifPresent(field -> field.setRequiredFlag(0));
+
+        eventModelService.updateEventModel(reqVO);
+
+        ArgumentCaptor<Collection<EventFieldDefDO>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(eventFieldDefMapper).insertBatch(captor.capture());
+        List<EventFieldDefDO> insertedFields = new ArrayList<>(captor.getValue());
+        EventFieldDefDO traceIdField = insertedFields.stream()
+                .filter(field -> "traceId".equals(field.getFieldName()))
+                .findFirst()
+                .orElseThrow();
+        EventFieldDefDO eventTimeField = insertedFields.stream()
+                .filter(field -> "eventTime".equals(field.getFieldName()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(traceIdField.getFieldType()).isEqualTo("STRING");
+        assertThat(traceIdField.getRequiredFlag()).isEqualTo(1);
+        assertThat(traceIdField.getSortNo()).isEqualTo(2);
+        assertThat(eventTimeField.getRequiredFlag()).isEqualTo(1);
+        assertThat(eventTimeField.getSortNo()).isEqualTo(5);
     }
 
     @Test
@@ -221,7 +286,24 @@ class EventModelServiceImplTest {
         assertThat(preview.getStandardEventJson().get("amount")).isInstanceOf(BigDecimal.class);
         assertThat((BigDecimal) preview.getStandardEventJson().get("amount"))
                 .isEqualByComparingTo(new BigDecimal("88.75"));
-        assertThat(preview.getRequiredFields()).contains("eventId", "sceneCode", "eventCode", "amount");
+        assertThat(preview.getRequiredFields())
+                .contains("eventId", "traceId", "sceneCode", "eventCode", "eventTime", "amount");
+    }
+
+    @Test
+    void previewStandardEvent_missingPublicFields_stillGeneratesSystemValues() {
+        EventModelSaveReqVO reqVO = createBaseReqVO();
+        reqVO.setFields(new ArrayList<>(List.of(
+                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 1)
+        )));
+
+        EventModelPreviewRespVO preview = eventModelService.previewStandardEvent(reqVO);
+
+        assertThat(preview.getStandardEventJson().get("eventId")).isEqualTo("AUTO_TRADE_EVENT_EVENT_ID");
+        assertThat(preview.getStandardEventJson().get("traceId")).isEqualTo("AUTO_TRADE_EVENT_TRACE_ID");
+        assertThat(preview.getStandardEventJson().get("sceneCode")).isEqualTo("TRADE_RISK");
+        assertThat(preview.getStandardEventJson().get("eventCode")).isEqualTo("TRADE_EVENT");
+        assertThat(preview.getStandardEventJson()).containsKey("eventTime");
     }
 
     @Test
@@ -260,10 +342,11 @@ class EventModelServiceImplTest {
 
         reqVO.setFields(new ArrayList<>(List.of(
                 createField("eventId", "事件ID", "STRING", 1, null, "E_TRADE_0001", 1),
-                createField("sceneCode", "场景编码", "STRING", 1, null, "TRADE_RISK", 2),
-                createField("eventCode", "事件编码", "STRING", 1, null, "TRADE_EVENT", 3),
-                createField("eventTime", "事件时间", "DATETIME", 0, null, "2026-03-08T10:00:00", 4),
-                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 5)
+                createField("traceId", "链路ID", "STRING", 1, null, "T_TRADE_0001", 2),
+                createField("sceneCode", "场景编码", "STRING", 1, null, "TRADE_RISK", 3),
+                createField("eventCode", "事件编码", "STRING", 1, null, "TRADE_EVENT", 4),
+                createField("eventTime", "事件时间", "DATETIME", 1, null, "2026-03-08T10:00:00", 5),
+                createField("amount", "交易金额", "DECIMAL", 1, null, "66.5", 6)
         )));
         return reqVO;
     }
